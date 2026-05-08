@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://danni.bg/contracts/curated-tabular-artifact.schema.json",
+  "title": "Curated Tabular Artifact Schema",
+  "description": "Declared schema attached to a curated tabular resource. Stored both inline in curated_artifacts.schema_json and as schema.json next to the data.ndjson file. Satisfies FR-008 (declared columns, declared types, UTF-8) and FR-009 (recorded normalization rules).",
+  "type": "object",
+  "required": ["kind", "encoding", "rowFormat", "columns"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": { "const": "tabular" },
+    "encoding": { "const": "utf-8" },
+    "rowFormat": {
+      "const": "ndjson",
+      "description": "Curated tabular data is stored as newline-delimited JSON: one row per line, each line a JSON object keyed by column.canonicalName."
+    },
+    "rowCount": { "type": ["integer", "null"], "minimum": 0 },
+    "columns": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Column" }
+    },
+    "primaryKey": {
+      "type": ["array", "null"],
+      "items": { "type": "string" },
+      "description": "Subset of columns.canonicalName that uniquely identifies a row, when discoverable."
+    },
+    "transformRules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/TransformRule" },
+      "description": "Ordered audit trail of normalization rules applied (FR-009)."
+    }
+  },
+  "$defs": {
+    "Column": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalName", "sourceName", "type", "nullable"],
+      "properties": {
+        "canonicalName": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Stable snake_case identifier used as the JSON key in data.ndjson."
+        },
+        "sourceName": {
+          "type": "string",
+          "description": "Original column header as published, preserved verbatim (Cyrillic preserved)."
+        },
+        "labelBg": {
+          "type": ["string", "null"],
+          "description": "Human-friendly Bulgarian label (often equals sourceName)."
+        },
+        "labelEn": { "type": ["string", "null"] },
+        "type": {
+          "enum": [
+            "string",
+            "integer",
+            "decimal",
+            "boolean",
+            "date",
+            "datetime",
+            "time",
+            "geo_point",
+            "geo_geometry",
+            "json",
+            "binary"
+          ]
+        },
+        "nullable": { "type": "boolean" },
+        "format": {
+          "type": ["string", "null"],
+          "description": "Optional semantic format hint, e.g. 'iso8601', 'bg-month-name', 'decimal:bg-locale', 'egn', 'eik', 'bulstat', 'iso3166-2:BG'."
+        },
+        "unit": { "type": ["string", "null"] },
+        "interpretationConfidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Confidence the curator has in the chosen type (FR edge case for ambiguous columns)."
+        },
+        "alternateInterpretations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "confidence"],
+            "properties": {
+              "type": { "type": "string" },
+              "format": { "type": ["string", "null"] },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["entityId", "kind", "extractor", "confidence"],
+            "description": "Column-level entity attachments (SC-009 column-level coverage).",
+            "properties": {
+              "entityId": { "type": "string" },
+              "kind": { "type": "string" },
+              "extractor": { "type": "string" },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "TransformRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "appliedTo"],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "description": "Identifier of the normalization rule, e.g. 'utf8-from-windows1251', 'date-iso8601', 'decimal-comma-to-point', 'trim-whitespace', 'cyrillic-strip-bom'."
+        },
+        "appliedTo": {
+          "type": ["string", "array"],
+          "items": { "type": "string" },
+          "description": "'*' for all columns; column canonicalName(s) otherwise."
+        },
+        "params": { "type": "object" },
+        "ruleVersion": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

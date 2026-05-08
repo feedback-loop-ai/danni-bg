@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://danni.bg/contracts/sync-run.schema.json",
+  "title": "Sync Run Record (run-history view)",
+  "description": "Compact representation of a Sync Run as exposed via `bun run status` and (later) MCP read tools. One entry per row in sync_runs, augmented with derived fields for operator visibility.",
+  "type": "object",
+  "required": [
+    "runId",
+    "trigger",
+    "startedAt",
+    "totals",
+    "manifestPath"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "runId": { "type": "string" },
+    "trigger": { "enum": ["manual", "scheduled"] },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "endedAt": { "type": ["string", "null"], "format": "date-time" },
+    "durationSeconds": { "type": ["number", "null"], "minimum": 0 },
+    "summaryOutcome": {
+      "type": ["string", "null"],
+      "enum": ["success", "partial", "failed", null]
+    },
+    "scopeFilter": { "$ref": "manifest.schema.json#/$defs/ScopeFilter" },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "discovered",
+        "captured",
+        "skippedUnchanged",
+        "failed",
+        "withdrawn",
+        "outOfScope"
+      ],
+      "properties": {
+        "discovered": { "type": "integer", "minimum": 0 },
+        "captured": { "type": "integer", "minimum": 0 },
+        "skippedUnchanged": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "withdrawn": { "type": "integer", "minimum": 0 },
+        "outOfScope": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "failureRate": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "failed / max(discovered, 1). Used by FR-017b threshold check."
+    },
+    "manifestPath": { "type": ["string", "null"] },
+    "notes": { "type": ["string", "null"] }
+  }
+}

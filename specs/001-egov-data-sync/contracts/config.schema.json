@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://danni.bg/contracts/config.schema.json",
+  "title": "danni-bg Config File",
+  "description": "Operator config validated at startup (Principle VII). Default location: ./danni.config.json. Overridable via DANNI_CONFIG env var.",
+  "type": "object",
+  "required": ["portal", "crawler", "store", "schedule", "scope", "enrichment", "index"],
+  "additionalProperties": false,
+  "properties": {
+    "portal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseUrl"],
+      "properties": {
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Root of the CKAN Action API, e.g. 'https://data.egov.bg/api/3/action/'."
+        }
+      }
+    },
+    "crawler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["userAgent", "rateLimit", "concurrency", "backoff", "robots"],
+      "properties": {
+        "userAgent": {
+          "type": "string",
+          "description": "MUST identify the project, version, and contact (Principle XI). Format: 'danni-bg/<version> (+<contact-url>)'."
+        },
+        "rateLimit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requestsPerSecondPerHost"],
+          "properties": {
+            "requestsPerSecondPerHost": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 }
+          }
+        },
+        "concurrency": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maxConcurrentRequestsPerHost"],
+          "properties": {
+            "maxConcurrentRequestsPerHost": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8,
+              "description": "Cap is intentionally low (Principle XI: no parallel hammering)."
+            }
+          }
+        },
+        "backoff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["initialMs", "maxMs", "failureBudget"],
+          "properties": {
+            "initialMs": { "type": "integer", "minimum": 100 },
+            "maxMs": { "type": "integer", "minimum": 1000 },
+            "failureBudget": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Stop the run after this many consecutive transport-level failures (Principle XI)."
+            }
+          }
+        },
+        "robots": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["recheckIntervalSeconds"],
+          "properties": {
+            "recheckIntervalSeconds": { "type": "integer", "minimum": 60 }
+          }
+        }
+      }
+    },
+    "store": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root"],
+      "properties": {
+        "root": { "type": "string", "description": "Directory containing danni.sqlite + raw/ + curated/ + manifest/." },
+        "freshnessSloSeconds": {
+          "type": "integer",
+          "minimum": 60,
+          "default": 86400,
+          "description": "Default 24h. Records older than this are flagged isStale=true on read (Principle IX)."
+        }
+      }
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "onOverlap", "failureRateThreshold", "notifier"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "cron": {
+          "type": ["string", "null"],
+          "description": "Standard 5-field cron expression in `timezone`. Required when enabled=true."
+        },
+        "timezone": { "type": "string", "default": "Europe/Sofia" },
+        "onOverlap": { "enum": ["skip", "queue"] },
+        "failureRateThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Notify operator when failed/discovered exceeds this (FR-017b)."
+        },
+        "notifier": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": { "enum": ["stderr", "webhook"] },
+            "webhookUrl": { "type": ["string", "null"], "format": "uri" },
+            "webhookBearerEnv": {
+              "type": ["string", "null"],
+              "description": "Name of an env var holding the bearer token. NEVER store the token itself in this file."
+            }
+          }
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Default scope filter for scheduled runs. Empty {} = every public dataset.",
+      "properties": {
+        "publishers": { "type": "array", "items": { "type": "string" } },
+        "categories": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "datasetIds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "enrichment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["translator", "embedder"],
+      "properties": {
+        "translator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider"],
+          "properties": {
+            "provider": { "enum": ["local-marianmt", "hosted-api"] },
+            "modelId": { "type": ["string", "null"] },
+            "endpointUrl": { "type": ["string", "null"], "format": "uri" },
+            "apiKeyEnv": { "type": ["string", "null"] }
+          }
+        },
+        "embedder": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider"],
+          "properties": {
+            "provider": { "enum": ["local-onnx", "hosted-api"] },
+            "modelId": { "type": ["string", "null"] },
+            "endpointUrl": { "type": ["string", "null"], "format": "uri" },
+            "apiKeyEnv": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["incremental"],
+      "properties": {
+        "incremental": {
+          "type": "boolean",
+          "description": "FR-015 requires this to be true in production. Set false only for one-off rebuilds."
+        }
+      }
+    }
+  }
+}

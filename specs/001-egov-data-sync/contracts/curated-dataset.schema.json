@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://danni.bg/contracts/curated-dataset.schema.json",
+  "title": "Curated Dataset",
+  "description": "Machine-consumer-facing view of a single curated dataset. Composed from datasets + organizations + curated_artifacts + dataset_entities + dataset_links + translations. Original Bulgarian fields are present unmodified; English helpers are clearly marked and never replace originals (Principle X, FR-019c).",
+  "type": "object",
+  "required": [
+    "datasetId",
+    "slug",
+    "sourceUrl",
+    "publisher",
+    "title",
+    "description",
+    "lifecycleState",
+    "freshness",
+    "resources",
+    "entities",
+    "links"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "datasetId": { "type": "string" },
+    "slug": { "type": "string" },
+    "sourceUrl": { "type": "string", "format": "uri" },
+    "publisher": { "$ref": "#/$defs/Organization" },
+    "title": { "$ref": "#/$defs/LocalizedText" },
+    "description": { "$ref": "#/$defs/LocalizedText" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "groups": { "type": "array", "items": { "type": "string" } },
+    "license": { "type": ["string", "null"] },
+    "lifecycleState": { "enum": ["active", "withdrawn", "out_of_scope"] },
+    "withdrawnReason": { "type": ["string", "null"] },
+    "freshness": { "$ref": "#/$defs/Freshness" },
+    "resources": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/CuratedResourceRef" }
+    },
+    "entities": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/EntityAttachment" }
+    },
+    "links": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/CrossDatasetLink" }
+    }
+  },
+  "$defs": {
+    "Organization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "slug", "title"],
+      "properties": {
+        "id": { "type": "string" },
+        "slug": { "type": "string" },
+        "title": { "$ref": "#/$defs/LocalizedText" },
+        "sourceUrl": { "type": "string", "format": "uri" }
+      }
+    },
+    "LocalizedText": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bg"],
+      "description": "Authoritative Bulgarian text plus an optional, clearly-marked English helper (FR-019c). The `en` field is NEVER substituted for `bg` and is always accompanied by translator + confidence.",
+      "properties": {
+        "bg": { "type": "string" },
+        "en": { "type": ["string", "null"] },
+        "translator": { "type": ["string", "null"] },
+        "translationConfidence": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "Freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lastSyncedAt", "isStale"],
+      "description": "Per Principle IX: every read response carries explicit freshness.",
+      "properties": {
+        "lastSyncedAt": { "type": "string", "format": "date-time" },
+        "sourceLastModified": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "sourceEtagOrHash": { "type": ["string", "null"] },
+        "isStale": { "type": "boolean" },
+        "freshnessSloSeconds": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "CuratedResourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resourceId",
+        "sourceUrl",
+        "kind",
+        "rawPath",
+        "freshness"
+      ],
+      "properties": {
+        "resourceId": { "type": "string" },
+        "sourceUrl": { "type": "string", "format": "uri" },
+        "name": { "type": ["string", "null"] },
+        "description": { "$ref": "#/$defs/LocalizedText" },
+        "kind": {
+          "enum": ["tabular", "json", "geojson", "xml", "text", "uncurated"]
+        },
+        "uncuratedReason": { "type": ["string", "null"] },
+        "declaredFormat": { "type": ["string", "null"] },
+        "detectedFormat": { "type": ["string", "null"] },
+        "rawPath": { "type": "string" },
+        "curatedPath": { "type": ["string", "null"] },
+        "schemaPath": { "type": ["string", "null"] },
+        "schema": {
+          "type": ["object", "null"],
+          "description": "Inline copy of curated_artifacts.schema_json for tabular kinds. See curated-tabular-artifact.schema.json for tabular schemas."
+        },
+        "transformRules": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "Ordered list of transformation rule applications recorded during curation (FR-009)."
+        },
+        "freshness": { "$ref": "#/$defs/Freshness" }
+      }
+    },
+    "EntityAttachment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entityId",
+        "kind",
+        "label",
+        "extractor",
+        "confidence"
+      ],
+      "properties": {
+        "entityId": { "type": "string" },
+        "kind": {
+          "enum": [
+            "organization",
+            "geographic_unit",
+            "time_period",
+            "named_subject",
+            "tag",
+            "group"
+          ]
+        },
+        "label": { "$ref": "#/$defs/LocalizedText" },
+        "attributes": { "type": "object" },
+        "extractor": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "evidence": { "type": "object" }
+      }
+    },
+    "CrossDatasetLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "otherDatasetId",
+        "viaEntityId",
+        "heuristic",
+        "confidence"
+      ],
+      "properties": {
+        "otherDatasetId": { "type": "string" },
+        "viaEntityId": { "type": "string" },
+        "heuristic": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://danni.bg/contracts/index-entry.schema.json",
+  "title": "Index Entry",
+  "description": "A single ranked search result returned by the index over the curated mirror. Every entry MUST point back to the curated artifact and the original source URL (FR-013).",
+  "type": "object",
+  "required": [
+    "datasetId",
+    "score",
+    "matchKind",
+    "title",
+    "publisher",
+    "sourceUrl",
+    "curatedDatasetPath",
+    "freshness"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "datasetId": { "type": "string" },
+    "score": { "type": "number", "description": "Higher is more relevant. Combines lexical + semantic components for hybrid queries." },
+    "matchKind": {
+      "enum": ["keyword", "semantic", "hybrid", "entity"],
+      "description": "Which retrieval path produced the entry (FR-012, FR-014). 'entity' indicates the result was selected because of an attached entity match (SC-011)."
+    },
+    "title": { "$ref": "curated-dataset.schema.json#/$defs/LocalizedText" },
+    "snippet": {
+      "type": ["string", "null"],
+      "description": "Optional contextual snippet (Bulgarian or English) showing the match."
+    },
+    "publisher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "$ref": "curated-dataset.schema.json#/$defs/LocalizedText" }
+      }
+    },
+    "matchedEntities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["entityId", "kind"],
+        "properties": {
+          "entityId": { "type": "string" },
+          "kind": { "type": "string" },
+          "label": {
+            "$ref": "curated-dataset.schema.json#/$defs/LocalizedText"
+          }
+        }
+      }
+    },
+    "sourceUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Original portal URL — required by FR-013 for one-hop traceability."
+    },
+    "curatedDatasetPath": {
+      "type": "string",
+      "description": "Relative path under store/curated/ that the consumer can read for the full curated dataset record (FR-013)."
+    },
+    "freshness": {
+      "$ref": "curated-dataset.schema.json#/$defs/Freshness"
+    }
+  }
+}
