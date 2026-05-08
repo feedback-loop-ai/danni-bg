@@ -1,0 +1,11 @@
+{
+  "help": "https://data.egov.bg/api/3/action/help_show?name=organization_show",
+  "success": true,
+  "result": {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "name": "obshtina-sofia",
+    "title": "Столична община",
+    "description": "Местна власт на София.",
+    "package_count": 12
+  }
+}

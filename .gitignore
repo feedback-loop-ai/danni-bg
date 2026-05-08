@@ -1,1 +1,35 @@
 .claude/
+node_modules/
+coverage/
+dist/
+*.tsbuildinfo
+.tsbuildinfo
+
+# Runtime store (per data-model.md §4); keep .gitkeep markers under store/
+store/*
+!store/.gitkeep
+!store/raw/
+!store/curated/
+!store/manifest/
+store/raw/*
+!store/raw/.gitkeep
+store/curated/*
+!store/curated/.gitkeep
+store/manifest/*
+!store/manifest/.gitkeep
+store/danni.sqlite
+store/danni.sqlite-*
+
+# Vendored ML model binaries (operator-supplied; see vendor/models/README.md)
+vendor/models/*
+!vendor/models/.gitkeep
+!vendor/models/README.md
+
+# Operator config
+danni.config.json
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store

@@ -1,0 +1,11 @@
+{
+  "help": "https://data.egov.bg/api/3/action/help_show?name=group_show",
+  "success": true,
+  "result": {
+    "id": "22222222-2222-2222-2222-222222222222",
+    "name": "finansi",
+    "title": "Финанси",
+    "description": "Категория за финансови набори от данни.",
+    "package_count": 5
+  }
+}

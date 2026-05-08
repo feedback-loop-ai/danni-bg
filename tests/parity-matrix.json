@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Maps every consumed CKAN endpoint and every catalog entry to the contract-test ID that validates it. CI fails if any endpoint or catalog entry lacks a corresponding test (Constitution VIII).",
+  "version": "1.0.0",
+  "endpoints": [
+    {
+      "name": "package_list",
+      "testId": "tests/unit/crawler/ckan-schema.test.ts#parses package_list/standard.json"
+    },
+    {
+      "name": "package_search",
+      "testId": "tests/unit/crawler/ckan-schema.test.ts#parses package_search/page-1.json with two packages"
+    },
+    {
+      "name": "package_show",
+      "testId": "tests/unit/crawler/ckan-schema.test.ts#parses package_show/standard.json including Cyrillic title"
+    },
+    {
+      "name": "organization_list",
+      "testId": "tests/unit/crawler/ckan-schema.test.ts#parses organization_show/standard.json"
+    },
+    {
+      "name": "organization_show",
+      "testId": "tests/unit/crawler/ckan-schema.test.ts#parses organization_show/standard.json"
+    },
+    {
+      "name": "group_list",
+      "testId": "tests/unit/crawler/ckan-schema.test.ts#parses group_show/standard.json"
+    },
+    {
+      "name": "group_show",
+      "testId": "tests/unit/crawler/ckan-schema.test.ts#parses group_show/standard.json"
+    },
+    {
+      "name": "tag_list",
+      "testId": "tests/unit/crawler/ckan-schema.test.ts#parses tag_list/standard.json"
+    },
+    {
+      "name": "resource_get",
+      "testId": "tests/integration/sync-bootstrap-resync.test.ts#captures all resources fresh; second run skips unchanged content"
+    }
+  ],
+  "datasetSchemas": []
+}

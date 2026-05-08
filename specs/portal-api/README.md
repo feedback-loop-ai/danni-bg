@@ -1,57 +1,56 @@
-# data.egov.bg API Reference Spec
+# data.egov.bg Portal API Reference
 
-This directory holds the **authoritative reference** for every endpoint on
-`data.egov.bg` that the danni-bg crawler depends on. It satisfies
-Constitution Principle III (Contract-First API Design) and is the source of
-truth for the contract tests required by Principle VIII.
+This directory is the authoritative reference for every data.egov.bg endpoint the `danni-bg` crawler depends on. Constitution III requires that every consumed endpoint have its request shape, response shape, error envelope, and pagination semantics documented here, and a corresponding contract test recorded in `tests/parity-matrix.json#endpoints`.
 
-## Status
+## Base
 
-**Bootstrapped on 2026-05-08** as part of feature `001-egov-data-sync` (Phase
-1 design). At this point the directory contains only this README + the list
-of expected endpoints. Concrete fixtures and per-endpoint schemas will be
-captured as the first live smoke run records them (Phase 2 task in
-`tasks.md`).
+The portal exposes a CKAN-compatible Action API at:
 
-## Expected endpoints (from research.md R1)
+```
+https://data.egov.bg/api/3/action/
+```
 
-| Endpoint | Purpose | Spec FR |
+All endpoints accept an HTTP `GET` request. Successful responses are JSON envelopes shaped as:
+
+```json
+{
+  "help": "<documentation URL>",
+  "success": true,
+  "result": <endpoint-specific>
+}
+```
+
+Errors are returned with a non-`success` flag and an `error` envelope:
+
+```json
+{
+  "help": "<documentation URL>",
+  "success": false,
+  "error": {
+    "__type": "<CKAN exception class>",
+    "message": "<human-readable>"
+  }
+}
+```
+
+HTTP status: `200` is used even for `success=false` envelopes for some CKAN deployments; clients MUST inspect the `success` boolean. Transport-level errors (5xx, network) are handled by the retry/backoff layer (`src/crawler/backoff.ts`).
+
+## Endpoints consumed
+
+| Endpoint file | Purpose | Spec ref |
 |---|---|---|
-| `GET /api/3/action/package_list` | Enumerate dataset IDs | FR-001 |
-| `GET /api/3/action/package_search?rows=&start=&fq=` | Paginated, filterable enumeration | FR-001, FR-018 |
-| `GET /api/3/action/package_show?id=<id>` | Full dataset metadata + resources | FR-002 |
-| `GET /api/3/action/organization_list` | Organization enumeration | FR-019a |
-| `GET /api/3/action/organization_show?id=<id>` | Organization detail | FR-019a |
-| `GET /api/3/action/group_list` | Category enumeration | FR-018 |
-| `GET /api/3/action/group_show?id=<id>` | Category detail | FR-018 |
-| `GET /api/3/action/tag_list` | Tag enumeration | FR-018 |
-| `GET <resource.url>` | Resource bytes (off-portal allowed) | FR-002, FR-005 |
-| `GET /robots.txt` | Crawler etiquette | Principle XI |
+| [`package_list.md`](./package_list.md) | Enumerate all dataset identifiers | FR-001 |
+| [`package_search.md`](./package_search.md) | Filtered + paginated discovery | FR-001, FR-018 |
+| [`package_show.md`](./package_show.md) | Full dataset metadata + resource list | FR-002 |
+| [`organization_list.md`](./organization_list.md) | Enumerate publishers | FR-019a |
+| [`organization_show.md`](./organization_show.md) | Authoritative publisher metadata | FR-019a |
+| [`group_list.md`](./group_list.md) | Enumerate categories/groups | FR-018 |
+| [`group_show.md`](./group_show.md) | Full group metadata | FR-018 |
+| [`tag_list.md`](./tag_list.md) | Enumerate tags | FR-018 |
+| [`resource_get.md`](./resource_get.md) | Off-portal resource HTTP GET | FR-002, FR-005 |
 
-## Per-endpoint file structure (to be filled in)
+A live smoke run (T125, deferred to operator) records the observed dataset/resource counts and any divergence from this spec into [`scale.md`](./scale.md).
 
-Each endpoint will have:
+## Conditional requests
 
-```
-specs/portal-api/<endpoint-name>/
-├── request.schema.json    # Path, query, headers
-├── response.success.schema.json
-├── response.error.schema.json
-├── pagination.md          # If applicable
-├── fixtures/              # Recorded live responses for tests
-│   └── <case-name>.json
-└── notes.md               # Any deviation from vanilla CKAN observed
-```
-
-## Parity matrix
-
-`tests/parity-matrix.json` (Constitution VIII) maps each endpoint above to its
-contract test. CI fails if an endpoint is consumed by `src/crawler/` but has
-no entry in the matrix.
-
-## Scale snapshot
-
-`scale.md` (created by the first live smoke task) records the observed total
-dataset count, resource count, total raw bytes, and median response size as
-of the most recent successful smoke run. It informs operator capacity
-planning (research.md R8).
+The crawler issues conditional requests on every resource fetch (R7): `If-None-Match` when a stored `etag` is known, else `If-Modified-Since` when a stored `last_modified` is known, else an unconditional `GET` with on-the-fly content-hash comparison. Upstream support for either header is best-effort; the content-hash fallback satisfies FR-004 in all cases.

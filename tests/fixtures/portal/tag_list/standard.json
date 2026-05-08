@@ -1,0 +1,8 @@
+{
+  "help": "https://data.egov.bg/api/3/action/help_show?name=tag_list",
+  "success": true,
+  "result": [
+    { "id": "tag-1", "name": "byudzhet", "display_name": "byudzhet" },
+    { "id": "tag-2", "name": "кирилица", "display_name": "кирилица" }
+  ]
+}

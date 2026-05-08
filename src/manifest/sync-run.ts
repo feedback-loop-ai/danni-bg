@@ -1,0 +1,162 @@
+import type { Database } from 'bun:sqlite';
+import type { ScopeConfig } from '../config/schema.ts';
+import { ulid } from '../lib/ids.ts';
+import { nowIso } from '../lib/time.ts';
+import { withTransaction } from '../store/db.ts';
+import { type EventOutcome, SyncRunEventsRepo } from '../store/repos/sync-run-events.ts';
+import { SyncRunsLockRepo } from '../store/repos/sync-runs-lock.ts';
+import { type RunTrigger, type SummaryOutcome, SyncRunsRepo } from '../store/repos/sync-runs.ts';
+import { type ManifestDatasetEntry, type ManifestTotals, writeManifest } from './writer.ts';
+
+export interface SyncRunLifecycleOptions {
+  db: Database;
+  storeRoot: string;
+  trigger: RunTrigger;
+  scopeFilter: ScopeConfig;
+  onOverlap: 'skip' | 'queue';
+}
+
+export interface SyncRunHandle {
+  runId: string;
+  startedAt: string;
+  scopeFilter: ScopeConfig;
+  trigger: RunTrigger;
+  recordEvent(input: {
+    datasetId: string;
+    resourceId?: string | null | undefined;
+    outcome: EventOutcome;
+    bytes?: number | null | undefined;
+    sha256?: string | null | undefined;
+    failureReason?: string | null | undefined;
+    httpStatus?: number | null | undefined;
+  }): void;
+  end(input: {
+    summaryOutcome: SummaryOutcome;
+    totals: ManifestTotals;
+    datasetEntries: ManifestDatasetEntry[];
+    notes?: string;
+  }): { manifestPath: string };
+  abort(reason: string): void;
+}
+
+export class LockContentionError extends Error {
+  constructor(public readonly heldByRunId: string | null) {
+    super(`sync-run lock is already held by ${heldByRunId ?? 'an unknown run'}`);
+    this.name = 'LockContentionError';
+  }
+}
+
+export function reapAbandonedRuns(db: Database, now: string = nowIso()): string[] {
+  const runs = new SyncRunsRepo(db);
+  const lock = new SyncRunsLockRepo(db);
+  const stale = runs.abandonStale('previous run abandoned by process exit', now);
+  if (stale.length > 0) lock.forceRelease();
+  return stale.map((r) => r.id);
+}
+
+export function beginSyncRun(opts: SyncRunLifecycleOptions): SyncRunHandle {
+  const { db, storeRoot, trigger, scopeFilter, onOverlap } = opts;
+
+  reapAbandonedRuns(db);
+
+  const runs = new SyncRunsRepo(db);
+  const events = new SyncRunEventsRepo(db);
+  const lock = new SyncRunsLockRepo(db);
+
+  const runId = ulid();
+  const startedAt = nowIso();
+
+  const acquired = withTransaction(db, () => {
+    if (!lock.tryAcquire(runId, startedAt)) return false;
+    runs.create({ id: runId, trigger, scopeFilterJson: JSON.stringify(scopeFilter), startedAt });
+    return true;
+  });
+
+  if (!acquired) {
+    if (onOverlap === 'skip') {
+      throw new LockContentionError(lock.state().held_by_run_id);
+    }
+    // queue mode: caller must wait; we surface contention as a thrown signal too
+    throw new LockContentionError(lock.state().held_by_run_id);
+  }
+
+  let ended = false;
+
+  const handle: SyncRunHandle = {
+    runId,
+    startedAt,
+    scopeFilter,
+    trigger,
+    recordEvent(input) {
+      events.insert({
+        runId,
+        datasetId: input.datasetId,
+        resourceId: input.resourceId ?? null,
+        outcome: input.outcome,
+        bytes: input.bytes ?? null,
+        sha256: input.sha256 ?? null,
+        failureReason: input.failureReason ?? null,
+        httpStatus: input.httpStatus ?? null,
+      });
+    },
+    end(input) {
+      if (ended) throw new Error(`sync run ${runId} already ended`);
+      ended = true;
+      const endedAt = nowIso();
+      const manifestPath = writeManifest(storeRoot, {
+        manifestVersion: '1.0.0',
+        runId,
+        trigger,
+        scopeFilter,
+        startedAt,
+        endedAt,
+        summaryOutcome: input.summaryOutcome,
+        totals: input.totals,
+        ...(input.notes !== undefined ? { notes: input.notes } : {}),
+        datasets: input.datasetEntries,
+      });
+      withTransaction(db, () => {
+        runs.finalize({
+          id: runId,
+          endedAt,
+          summaryOutcome: input.summaryOutcome,
+          totals: input.totals,
+          manifestPath,
+          ...(input.notes !== undefined ? { notes: input.notes } : {}),
+        });
+        lock.release(runId);
+      });
+      return { manifestPath };
+    },
+    abort(reason: string) {
+      if (ended) return;
+      ended = true;
+      const endedAt = nowIso();
+      withTransaction(db, () => {
+        runs.appendNote(runId, `aborted: ${reason}`);
+        runs.finalize({
+          id: runId,
+          endedAt,
+          summaryOutcome: 'failed',
+          totals: {
+            discovered: 0,
+            captured: 0,
+            skippedUnchanged: 0,
+            failed: 0,
+            withdrawn: 0,
+            outOfScope: 0,
+          },
+          manifestPath: null,
+          notes: `aborted: ${reason}`,
+        });
+        lock.release(runId);
+      });
+    },
+  };
+  return handle;
+}
+
+export function failureRate(totals: ManifestTotals): number {
+  const denom = Math.max(totals.discovered, 1);
+  return totals.failed / denom;
+}
