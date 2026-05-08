@@ -78,11 +78,11 @@ by downstream consumers.
 | VI | Fast Feedback Loops | ✅ PASS | Bun + Vitest + Biome; recorded portal fixtures eliminate live-network dependency in dev loop. |
 | VII | Type Safety & Validation | ✅ PASS | TS strict mode; Zod at CLI, config, portal-response, and persisted-record-load boundaries. |
 | VIII | 100% Test Coverage & Endpoint Parity | ✅ PASS | Plan provisions: contract tests per consumed CKAN endpoint; round-trip parity tests per Dataset Schema Catalog entry; `tests/parity-matrix.json` checked in CI. Coverage gate: 100% line + branch. |
-| IX | Data Freshness & Sync Integrity | ✅ PASS | Every dataset/resource row carries `last_synced_at` and `source_etag_or_hash`. Withdrawn detection (FR-016) maps to constitution's "tombstone" requirement. Sync-run audit trail per FR-003 / FR-017a. Freshness block exposed by the read contracts so the future MCP layer can surface it directly. |
+| IX | Data Freshness & Sync Integrity | ✅ PASS | Every dataset/resource row carries `last_synced_at` and `source_etag_or_hash`. Withdrawn detection (FR-016) maps to constitution's "tombstone" requirement. In-place title/metadata renames are captured via `dataset_revisions` (data-model §1.10). Cross-identifier republication (same logical dataset under a new portal id) is **deferred to a follow-up feature** — see Complexity Tracking — because it requires semantic dedup beyond what CKAN exposes; v1 treats each portal id as authoritative per the spec assumption. Sync-run audit trail per FR-003 / FR-017a. Freshness block exposed by the read contracts so the future MCP layer can surface it directly. |
 | X | Bulgarian-Locale Awareness | ✅ PASS | UTF-8 end-to-end; FTS5 `unicode61` tokenizer (with `remove_diacritics 0` to preserve Cyrillic semantics); original Bulgarian fields immutable; English translations stored in clearly distinct fields with provenance + confidence (FR-019c, FR-019d); test fixtures include Cyrillic. |
 | XI | Respectful Crawling | ✅ PASS | robots.txt fetched + honored; per-host rate limit; identifying User-Agent (`danni-bg/<version> (+<contact-url>)`); conditional requests; exponential backoff + jitter; configurable concurrency cap; configurable failure budget. Test suite asserts each of these. |
 
-**Result**: All gates PASS. No entries required in Complexity Tracking.
+**Result**: All gates PASS with one explicit deferral recorded in Complexity Tracking (cross-id rename detection, Principle IX).
 
 ## Project Structure
 
@@ -155,8 +155,6 @@ deliberately absent here.
 
 ## Complexity Tracking
 
-> No constitution gate failed. This section is intentionally empty.
-
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|--------------------------------------|
-| _(none)_  | _(none)_   | _(none)_                             |
+| Cross-id rename / republication detection deferred to v2 | Constitution IX requires rename detection. CKAN exposes no stable identity beyond `id`; correctly detecting "same logical dataset, new id" requires content-hash + metadata heuristics that are themselves a research item. v1 captures in-place renames via `dataset_revisions`; cross-id republication is recorded as a *new* dataset (per spec assumption) and flagged for v2 reconciliation. | "Best-effort fuzzy match in v1" rejected: false positives would corrupt the audit trail (Principle IX) and silently merge unrelated datasets — worse than deferring. |

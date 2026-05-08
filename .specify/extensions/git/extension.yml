@@ -108,6 +108,7 @@ hooks:
     optional: true
     prompt: "Commit task changes?"
     description: "Auto-commit after task generation"
+    enabled: true
   after_implement:
     command: speckit.git.commit
     optional: true

@@ -10,6 +10,8 @@ description: "Task list for 001-egov-data-sync"
 
 **Tests**: Tests are MANDATORY for this feature (Constitution Principles III, VIII: 100% line + branch coverage, contract tests per consumed CKAN endpoint, round-trip parity tests per Dataset Schema Catalog entry, `tests/parity-matrix.json` checked in CI).
 
+**Operational SLOs (not CI-gated)**: SC-001 (≥95% per-resource success rate) and SC-008 (≥95% scheduled-run completion over 30 days) are observed via the run-history surfaced by `danni status` and the per-run manifest summaries — not asserted by the CI test suite. The CI suite asserts the *mechanisms* (failure recording, run-history persistence, notifier dispatch); the rate thresholds are evaluated against live operation.
+
 **Organization**: Tasks are grouped by user story (US1 = P1 bootstrap mirror, US2 = P2 curation+enrichment, US3 = P2 indexing) to enable independent implementation and testing.
 
 ## Format: `[ID] [P?] [Story?] Description`
@@ -149,6 +151,7 @@ Single-project layout per plan.md:
 - [ ] T062 [US1] Integration test: withdrawal + out-of-scope in `tests/integration/lifecycle.test.ts` — second run with the dataset removed from `package_search` produces a `withdrawn` event after two consecutive runs; second run with a narrowed scope filter produces `out_of_scope` events; raw bytes survive both transitions (FR-016, FR-018a).
 - [ ] T063 [US1] Integration test: respectful crawler in `tests/integration/respectful-crawler.test.ts` — assert `User-Agent` header, robots.txt enforced (denied path is skipped), rate limiter caps concurrent connections, conditional headers sent on second pass (Principle XI).
 - [ ] T064 [US1] Integration test: concurrent-run rejection in `tests/integration/concurrent-runs.test.ts` — start a run, while it holds the lock attempt a second; with `on_overlap=skip` second exits 5; with `on_overlap=queue` second runs after first completes (FR-017c).
+- [ ] T064a [US1] Integration test: mid-run resume in `tests/integration/resume-mid-run.test.ts` — start a sync, abort it after N resources are captured (simulate via injected error after the Nth `captured` event), restart, and assert the second run re-discovers the dataset list, marks the prior run `failed/abandoned`, and emits 0 fresh `captured` events for the already-captured resources (only the remaining resources fetch fresh) (FR-007).
 
 **Checkpoint**: `bun run danni sync --scope '<test-scope>'` produces a complete byte-faithful mirror + manifest; `danni status --json` validates against `contracts/sync-run.schema.json`; coverage gate green over US1 modules. **MVP shippable here.**
 
@@ -222,6 +225,7 @@ Single-project layout per plan.md:
 - [ ] T104 [US2] Integration test: full curate cycle in `tests/integration/curate-cycle.test.ts` over a multi-format fixture set — every resource gets a curated artifact (or `uncurated` row + reason), entities + links persisted, translations stored, no portal HTTP calls (FR-011).
 - [ ] T105 [US2] Integration test: re-curation idempotence in `tests/integration/curate-idempotent.test.ts` — second `danni curate --curator-version <same>` is a no-op; bumping `--curator-version` re-runs and writes a new `curated_artifacts` row keyed on the new version.
 - [ ] T106 [US2] Integration test: enrichment guarantees in `tests/integration/enrichment-guarantees.test.ts` — ≥90% of curated datasets carry ≥1 entity (SC-009); ≥95% have a non-empty English title translation with original BG preserved byte-exact (SC-010); querying by a known municipality recovers every dataset linked to it (SC-011).
+- [ ] T106a [US2] Author the search query-set fixture at `tests/fixtures/search/query-set.json` and `tests/fixtures/search/README.md` — ≥20 representative BG+EN queries with expected dataset_ids drawn from the curated fixture corpus, with one-line rationale per entry (selection covers the categories listed in T121).
 
 **Checkpoint**: `danni curate` produces curated artifacts validating against the JSON Schemas in `contracts/`; entities/links/translations rows present; coverage gate green over US2 modules.
 
@@ -261,7 +265,7 @@ Single-project layout per plan.md:
 - [ ] T118 [P] [US3] Contract test in `tests/contract/index-entry.test.ts`: `danni search --json` records validate against `contracts/index-entry.schema.json`.
 - [ ] T119 [P] [US3] Unit tests for embedders in `tests/unit/index/embedders/{local-onnx,hosted-api}.test.ts` — dimension consistency, deterministic batching, hosted error mapping.
 - [ ] T120 [P] [US3] Unit tests for builders in `tests/unit/index/{fts,vec,query,run-index}.test.ts` — FTS Cyrillic preservation (Principle X), vector upsert idempotence, query fusion ordering.
-- [ ] T121 [US3] Integration test: cross-language retrieval in `tests/integration/search-cross-lang.test.ts` — same dataset returned in top-5 for BG and EN queries against a curated fixture (FR-014, SC-004).
+- [ ] T121 [US3] Integration test: cross-language retrieval in `tests/integration/search-cross-lang.test.ts` — drives the query set defined in `tests/fixtures/search/query-set.json` (T106a; ≥20 query/expected-dataset pairs covering: ministry-budget, municipal registries, geo entities, format-specific terms, BG↔EN pairs). Assert ≥90% of queries return the expected dataset within top-5 across both BG and EN languages (FR-014, SC-004). Selection rationale documented in `tests/fixtures/search/README.md`.
 - [ ] T122 [US3] Integration test: incremental index in `tests/integration/index-incremental.test.ts` — second sync that mutates one dataset triggers an index update for that dataset only; full corpus is not re-embedded; new content surfaces in next search (FR-015, SC-007).
 - [ ] T123 [US3] Integration test: entity-anchored recall in `tests/integration/search-by-entity.test.ts` — querying by a known municipality entity_id recovers every linked dataset (SC-011).
 - [ ] T124 [US3] Integration test: result traceability in `tests/integration/search-traceability.test.ts` — every result includes a non-empty `sourceUrl` resolving back to data.egov.bg and a `curatedDatasetPath` pointing at an existing file on disk (FR-013, SC-005).
@@ -279,6 +283,7 @@ Single-project layout per plan.md:
 - [ ] T127 [P] Vitest unit-suite budget check in `tests/integration/perf-unit-suite.test.ts`: assert `bun run test --run` over `tests/unit/` completes in < 5s (Constitution VI).
 - [ ] T128 [P] Search latency check in `tests/integration/perf-search.test.ts`: top-5 retrieval < 1s on the curated fixture corpus.
 - [ ] T129 [P] Run quickstart validation script in `tests/integration/quickstart.test.ts`: shells through every numbered step in `specs/001-egov-data-sync/quickstart.md` against fixtures and asserts each artifact appears as documented.
+- [ ] T129a [P] Offline-read integration test in `tests/integration/offline-read.test.ts`: with portal HTTP egress blocked (e.g. via a fetch shim that throws on any data.egov.bg URL), assert `danni status --json`, `danni mirror-info <id> --json`, and `danni search "<term>" --json` all succeed against a pre-populated fixture store (SC-006).
 - [ ] T130 [P] Constitution-gate test in `tests/integration/constitution-gates.test.ts`: asserts (a) every consumed CKAN endpoint listed in `specs/portal-api/` has a contract test ID in `tests/parity-matrix.json#endpoints`, (b) every dataset-schema entry in `specs/dataset-schemas/` has a parity-test ID in `tests/parity-matrix.json#datasetSchemas` (Constitution III, VIII).
 - [ ] T131 [P] Fill out `specs/dataset-schemas/README.md` + per-format catalog stubs (`specs/dataset-schemas/{tabular,json,geojson,xml}.md`) describing the curated schema contract per kind; one entry per fixture in `tests/fixtures/resources/`.
 - [ ] T132 [P] Project README rewrite in `README.md`: capabilities, status (v1 = data pipeline; MCP follow-up), pointers to plan/spec/quickstart, single-paragraph install + run, license.
