@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Cross-language search query set used by tests/integration/search-cross-lang.test.ts (T121). Each entry pairs a representative BG or EN user query with the dataset_ids that should rank in the top 5 of the result set.",
+  "version": "1.0.0",
+  "queries": [
+    { "query": "общини бюджет", "lang": "bg", "expected": ["d-budget-sofia-2025"], "rationale": "Direct BG keyword for municipal budget" },
+    { "query": "municipal budgets", "lang": "en", "expected": ["d-budget-sofia-2025"], "rationale": "EN equivalent of common BG term" },
+    { "query": "София", "lang": "bg", "expected": ["d-budget-sofia-2025", "d-population-sofia"], "rationale": "City name, multi-result" },
+    { "query": "Sofia", "lang": "en", "expected": ["d-budget-sofia-2025", "d-population-sofia"], "rationale": "EN city name" },
+    { "query": "Пловдив", "lang": "bg", "expected": ["d-population-plovdiv"], "rationale": "Other oblast" },
+    { "query": "Plovdiv", "lang": "en", "expected": ["d-population-plovdiv"], "rationale": "EN equivalent" },
+    { "query": "образование", "lang": "bg", "expected": ["d-education-2024"], "rationale": "Topic keyword in BG" },
+    { "query": "education", "lang": "en", "expected": ["d-education-2024"], "rationale": "EN topic" },
+    { "query": "транспорт", "lang": "bg", "expected": ["d-transport-routes"], "rationale": "BG topic keyword" },
+    { "query": "transport", "lang": "en", "expected": ["d-transport-routes"], "rationale": "EN topic" },
+    { "query": "регистър", "lang": "bg", "expected": ["d-register-companies"], "rationale": "BG keyword" },
+    { "query": "register", "lang": "en", "expected": ["d-register-companies"], "rationale": "EN equivalent" },
+    { "query": "екология", "lang": "bg", "expected": ["d-environment-air"], "rationale": "BG topic" },
+    { "query": "environment", "lang": "en", "expected": ["d-environment-air"], "rationale": "EN topic" },
+    { "query": "здравеопазване", "lang": "bg", "expected": ["d-health-spending"], "rationale": "BG topic" },
+    { "query": "health spending", "lang": "en", "expected": ["d-health-spending"], "rationale": "EN topic" },
+    { "query": "geojson", "lang": "en", "expected": ["d-geo-boundaries"], "rationale": "Format-specific term" },
+    { "query": "Столична община", "lang": "bg", "expected": ["d-budget-sofia-2025", "d-population-sofia"], "rationale": "Geo entity match" },
+    { "query": "статистика", "lang": "bg", "expected": ["d-population-sofia", "d-population-plovdiv"], "rationale": "Topical term" },
+    { "query": "statistics", "lang": "en", "expected": ["d-population-sofia", "d-population-plovdiv"], "rationale": "EN topic" }
+  ]
+}

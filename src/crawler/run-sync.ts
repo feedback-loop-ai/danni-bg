@@ -31,6 +31,8 @@ export interface RunSyncOptions {
   notifier?: Notifier;
   dryRun?: boolean;
   manifestOutOverride?: string;
+  /** Called after a successful run with the dataset_ids touched (FR-015 incremental index). */
+  onTouchedDatasets?: (datasetIds: string[]) => Promise<void> | void;
 }
 
 export interface RunSyncResult {
@@ -250,6 +252,16 @@ export async function runSync(opts: RunSyncOptions): Promise<RunSyncResult> {
             threshold: opts.config.schedule.failureRateThreshold,
           },
         );
+      }
+    }
+
+    if (opts.onTouchedDatasets && observedDatasetIds.size > 0) {
+      try {
+        await opts.onTouchedDatasets([...observedDatasetIds]);
+      } catch (err) {
+        log.warn('sync.index_hook_failed', {
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
 

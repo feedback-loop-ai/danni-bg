@@ -40,5 +40,10 @@
       "testId": "tests/integration/sync-bootstrap-resync.test.ts#captures all resources fresh; second run skips unchanged content"
     }
   ],
-  "datasetSchemas": []
+  "datasetSchemas": [
+    {
+      "name": "tabular",
+      "testId": "tests/contract/curated-tabular-artifact.test.ts#CSV curator output validates against curated-tabular-artifact.schema.json shape"
+    }
+  ]
 }

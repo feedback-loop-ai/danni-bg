@@ -1,0 +1,122 @@
+import { Database } from 'bun:sqlite';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
+import { composeView } from '../../src/cli/mirror-info.ts';
+import { runMigrations } from '../../src/store/migrate.ts';
+import { CuratedArtifactsRepo } from '../../src/store/repos/curated-artifacts.ts';
+import { DatasetsRepo } from '../../src/store/repos/datasets.ts';
+import { OrganizationsRepo } from '../../src/store/repos/organizations.ts';
+import { ResourcesRepo } from '../../src/store/repos/resources.ts';
+import { TranslationsRepo } from '../../src/store/repos/translations.ts';
+
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+const MIGRATIONS = join(ROOT, 'migrations');
+
+const LocalizedText = z
+  .object({
+    bg: z.string(),
+    en: z.string().nullable().optional(),
+    translator: z.string().nullable().optional(),
+    translationConfidence: z.number().min(0).max(1).nullable().optional(),
+  })
+  .strict();
+
+const Freshness = z
+  .object({
+    lastSyncedAt: z.string(),
+    sourceLastModified: z.string().nullable().optional(),
+    sourceEtagOrHash: z.string().nullable().optional(),
+    isStale: z.boolean(),
+    freshnessSloSeconds: z.number().int().min(0),
+  })
+  .strict();
+
+const CuratedDatasetSchema = z.object({
+  datasetId: z.string(),
+  slug: z.string(),
+  sourceUrl: z.string(),
+  publisher: z
+    .object({
+      id: z.string(),
+      slug: z.string(),
+      title: LocalizedText,
+      sourceUrl: z.string().optional(),
+    })
+    .strict()
+    .nullable(),
+  title: LocalizedText,
+  description: LocalizedText,
+  tags: z.array(z.string()).optional(),
+  groups: z.array(z.string()).optional(),
+  license: z.string().nullable().optional(),
+  lifecycleState: z.enum(['active', 'withdrawn', 'out_of_scope']),
+  withdrawnReason: z.string().nullable().optional(),
+  freshness: Freshness,
+  resources: z.array(z.unknown()),
+  entities: z.array(z.unknown()),
+  links: z.array(z.unknown()),
+});
+
+describe('contract.curated-dataset', () => {
+  let db: Database;
+  beforeEach(() => {
+    db = new Database(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    runMigrations(db, MIGRATIONS);
+  });
+  afterEach(() => {
+    db.close();
+  });
+
+  it('mirror-info composeView output validates against the schema', () => {
+    new OrganizationsRepo(db).upsert({
+      id: 'org-1',
+      slug: 'sofia',
+      titleBg: 'Столична община',
+      sourceUrl: 'https://x/org-1',
+    });
+    new DatasetsRepo(db).upsert({
+      id: 'd1',
+      slug: 'budget',
+      titleBg: 'Бюджет',
+      descriptionBg: 'Описание',
+      publisherId: 'org-1',
+      tags: ['budget'],
+      groups: ['finansi'],
+      sourceUrl: 'https://x/d1',
+    });
+    new ResourcesRepo(db).upsert({
+      id: 'r1',
+      datasetId: 'd1',
+      sourceUrl: 'https://x/r1.csv',
+      declaredFormat: 'csv',
+    });
+    new CuratedArtifactsRepo(db).upsert({
+      datasetId: 'd1',
+      resourceId: 'r1',
+      kind: 'tabular',
+      path: 'd1/r1/data.ndjson',
+      schemaJson: '{"kind":"tabular"}',
+      transformRulesJson: '[]',
+      curatorVersion: 'v1',
+    });
+    new TranslationsRepo(db).upsert({
+      subjectKind: 'dataset_title',
+      subjectId: 'd1',
+      textBg: 'Бюджет',
+      textEn: 'Budget',
+      translator: 'local-marianmt:v1',
+      confidence: 0.7,
+    });
+    const view = composeView(
+      db as unknown as ReturnType<typeof import('../../src/store/db.ts').openDb>,
+      'd1',
+      86400,
+    );
+    const r = CuratedDatasetSchema.safeParse(view);
+    if (!r.success) throw new Error(JSON.stringify(r.error.issues));
+    expect(r.success).toBe(true);
+  });
+});
