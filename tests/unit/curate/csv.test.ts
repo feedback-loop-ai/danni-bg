@@ -7,6 +7,7 @@ import { ensureDir } from '../../../src/lib/fs.ts';
 import type { ResourceRow } from '../../../src/store/repos/resources.ts';
 
 const FIX = fileURLToPath(new URL('../../fixtures/resources/', import.meta.url));
+const XLSX_FIX = fileURLToPath(new URL('../../fixtures/xlsx/', import.meta.url));
 
 function fakeResource(overrides: Partial<ResourceRow> = {}): ResourceRow {
   return {
@@ -106,6 +107,30 @@ describe('curate.csv', () => {
         curatorVersion: 'v',
       }),
     ).toBe(false);
+  });
+
+  it('canHandle rejects csv-declared bytes that are actually a zip/xlsx', () => {
+    // An .xlsx mislabeled declared_format='csv' must NOT be claimed by the CSV
+    // curator (it would silently mangle the binary) — it falls to the XLSX curator.
+    expect(
+      new CsvCurator().canHandle({
+        storeRoot: '',
+        resource: fakeResource({ declared_format: 'csv', source_url: 'https://x/wrong.csv' }),
+        rawAbsPath: join(XLSX_FIX, 'simple.xlsx'),
+        curatorVersion: 'v',
+      }),
+    ).toBe(false);
+  });
+
+  it('canHandle trusts the csv name when the raw bytes are unreadable', () => {
+    expect(
+      new CsvCurator().canHandle({
+        storeRoot: '',
+        resource: fakeResource({ declared_format: 'csv' }),
+        rawAbsPath: join(XLSX_FIX, 'does-not-exist.csv'),
+        curatorVersion: 'v',
+      }),
+    ).toBe(true);
   });
 
   it('handles semicolon delimited rows', async () => {

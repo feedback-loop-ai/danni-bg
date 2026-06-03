@@ -12,6 +12,7 @@ import type {
 import { type DetectedEncoding, decodeBytes, detectEncoding } from './encoding.ts';
 import { normalizeBoolean, normalizeDate, normalizeDecimal } from './normalize.ts';
 import { canonicalizeName, inferColumnType } from './schema.ts';
+import { startsWithZipMagic } from './xlsx.ts';
 
 interface ParsedCsv {
   delimiter: ',' | ';' | '\t';
@@ -92,8 +93,18 @@ export class CsvCurator implements Curator {
 
   canHandle(ctx: CurateContext): boolean {
     const fmt = (ctx.resource.declared_format ?? '').toLowerCase();
-    if (fmt === 'csv' || fmt === 'tsv') return true;
-    return ctx.resource.source_url.toLowerCase().endsWith('.csv');
+    const nameMatch =
+      fmt === 'csv' || fmt === 'tsv' || ctx.resource.source_url.toLowerCase().endsWith('.csv');
+    if (!nameMatch) return false;
+    // A genuine CSV never begins with the ZIP local-file magic ('PK'). Reject
+    // such bytes so an .xlsx mislabeled csv (wrong declared_format / URL) falls
+    // through to the XLSX curator instead of being silently mangled as text.
+    if (!ctx.rawAbsPath) return true;
+    try {
+      return !startsWithZipMagic(ctx.rawAbsPath);
+    } catch {
+      return true;
+    }
   }
 
   async curate(ctx: CurateContext): Promise<CuratedArtifactOutput> {

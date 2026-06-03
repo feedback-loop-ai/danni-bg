@@ -10,14 +10,14 @@ description: "Task list for 001-egov-data-sync"
 
 **Tests**: Tests are MANDATORY for this feature (Constitution Principles III, VIII: 100% line + branch coverage, contract tests per consumed CKAN endpoint, round-trip parity tests per Dataset Schema Catalog entry, `tests/parity-matrix.json` checked in CI).
 
-## Implementation status (as of 2026-05-08)
+## Implementation status (as of 2026-06-03)
 
-All six phases are landed end-to-end. The full pipeline — sync → curate → enrich → index → search — is exercised by 399 tests across 90 files, with line coverage at ≥98% on every authored `src/` module. Notable v1 deferrals (called out per task):
+All six phases are landed end-to-end. The full pipeline — sync → curate → enrich → index → search — is exercised by 437 tests across 92 files, with line coverage at ≥98% on every authored `src/` module. Notable v1 deferrals (called out per task):
 
-- **T073 XLSX curator**: deferred — `.xlsx` resources fall through to `uncurated` until a parser dep is added.
+- **T073 XLSX curator**: **landed** (2026-06-03) — a dependency-free OOXML reader in `src/curate/xlsx.ts` (ZIP central-directory parse + `node:zlib` inflate; workbook/sharedStrings/worksheet XML) emits one tabular artifact per sheet under a sheet-named subdir. Validated against deterministic fixtures and a genuine LibreOffice golden file. Binary `.xls` (BIFF/OLE) and ZIP64 remain unsupported and fall through to `uncurated`.
 - **T091 local MarianMT translator**: ships as a stub with confidence 0.0 (translator id is recorded for provenance); operators inject a real `translateFn` or use the `hosted-api` provider.
 - **T109 local-onnx embedder**: ships as a deterministic hash stub for CI portability; operators inject a real `embedFn` or use the `hosted-api` provider.
-- **T106 enrichment-guarantees integration test**: deferred — joint with T123 entity-anchored recall, which is landed.
+- **T106 enrichment-guarantees integration test**: **landed** (2026-06-03) in `tests/integration/enrichment-guarantees.test.ts` — a 12-dataset corpus asserts SC-009/SC-010/SC-011.
 - **T127 unit-suite perf gate**: not added as a separate file — the suite already runs in <1s and `bun test` covers the budget.
 - **T133 strict 100% coverage gate**: kept commented out in `bunfig.toml` until the operator-supplied ONNX/MarianMT paths are exercised in CI.
 
@@ -192,7 +192,7 @@ Single-project layout per plan.md:
 
 - [X] T071 [P] [US2] CSV curator in `src/curate/csv.ts` (delimiter sniff, header row, T068 encoding, T069 normalize, T070 declare) → emits `data.ndjson` + `schema.json` under `store/curated/<dataset_id>/<resource_id>/`.
 - [X] T072 [P] [US2] JSON curator in `src/curate/json.ts` → emits `data.json` + `schema.json`.
-- [ ] T073 [P] [US2] XLSX curator in `src/curate/xlsx.ts` (one artifact per sheet) → emits `data.ndjson` + `schema.json` per sheet under a sheet-named subdir. **DEFERRED** — XLSX requires a heavy parser dep; v1 falls through to `uncurated` for `.xlsx` resources.
+- [X] T073 [P] [US2] XLSX curator in `src/curate/xlsx.ts` (one artifact per sheet) → emits `data.ndjson` + `schema.json` per sheet under a sheet-named subdir. Dependency-free OOXML reader (ZIP central-directory + `node:zlib` inflate; workbook/sharedStrings/worksheet XML). Registered after `CsvCurator`; `CsvCurator.canHandle` now rejects ZIP-magic bytes so a mislabeled `.xlsx` routes here. Binary `.xls`/ZIP64 unsupported → `uncurated`.
 - [X] T074 [P] [US2] GeoJSON curator in `src/curate/geojson.ts` (validates FeatureCollection / Feature root) → emits `data.json` + `schema.json`.
 - [X] T075 [P] [US2] XML curator in `src/curate/xml.ts` (best-effort tabular flattening or hierarchical retention) → emits `data.json` + `schema.json`.
 - [X] T076 [P] [US2] Text-fallback curator in `src/curate/text.ts`: emits `data.txt` (UTF-8) + `schema.json` declaring opaque text.
@@ -231,13 +231,13 @@ Single-project layout per plan.md:
 - [X] T097 [P] [US2] Contract test in `tests/contract/curated-dataset.test.ts`: `danni mirror-info --json` output validates against `contracts/curated-dataset.schema.json`.
 - [X] T098 [P] [US2] Contract test in `tests/contract/curated-tabular-artifact.test.ts`: each tabular `data.ndjson` + `schema.json` validates against `contracts/curated-tabular-artifact.schema.json`.
 - [X] T099 [P] [US2] Unit tests for curator framework primitives in `tests/unit/curate/{sniff,encoding,normalize,schema,registry,uncurated}.test.ts`.
-- [X] T100 [P] [US2] Unit tests per format curator in `tests/unit/curate/{csv,json,xlsx,geojson,xml,text}.test.ts` over `tests/fixtures/resources/*` — XLSX deferred (T073).
+- [X] T100 [P] [US2] Unit tests per format curator in `tests/unit/curate/{csv,json,xlsx,geojson,xml,text}.test.ts` over `tests/fixtures/resources/*` — XLSX covered by `tests/unit/curate/xlsx.test.ts` against `tests/fixtures/xlsx/*` (built by `build-fixtures.ts`) + a LibreOffice golden file.
 - [X] T101 [P] [US2] Unit tests per extractor in `tests/unit/enrich/extractors/{ckan-organization,ckan-groups,ckan-tags,bg-admin-gazetteer,iso8601-dates,bg-month-dates,column-name-heuristics}.test.ts`.
 - [X] T102 [P] [US2] Unit tests for entity registrar + linker in `tests/unit/enrich/{register-entities,link-datasets}.test.ts` — dedupe across extractors, undirected-pair invariant, ambiguous-candidates retained.
 - [X] T103 [P] [US2] Unit tests for translators in `tests/unit/enrich/translators/{local-marianmt,hosted-api,translate}.test.ts` — original Bulgarian never replaced, low-confidence case retains original (FR-019c, SC-010).
 - [X] T104 [US2] Integration test: full curate cycle in `tests/integration/curate-cycle.test.ts` over a multi-format fixture set — every resource gets a curated artifact (or `uncurated` row + reason), entities + links persisted, translations stored, no portal HTTP calls (FR-011).
 - [X] T105 [US2] Integration test: re-curation idempotence — covered by `tests/integration/curate-cycle.test.ts` ("re-curate with same version is idempotent" + "bumping curator_version writes a fresh row").
-- [ ] T106 [US2] Integration test: enrichment guarantees in `tests/integration/enrichment-guarantees.test.ts` — ≥90% of curated datasets carry ≥1 entity (SC-009); ≥95% have a non-empty English title translation with original BG preserved byte-exact (SC-010); querying by a known municipality recovers every dataset linked to it (SC-011). **DEFERRED** — joint with T123 in Phase 6.
+- [X] T106 [US2] Integration test: enrichment guarantees in `tests/integration/enrichment-guarantees.test.ts` — ≥90% of curated datasets carry ≥1 entity (SC-009); ≥95% have a non-empty English title translation with original BG preserved byte-exact (SC-010); querying by a known municipality recovers every dataset linked to it (SC-011).
 - [X] T106a [US2] Author the search query-set fixture at `tests/fixtures/search/query-set.json` and `tests/fixtures/search/README.md` — ≥20 representative BG+EN queries with expected dataset_ids, with one-line rationale per entry.
 
 **Checkpoint**: `danni curate` produces curated artifacts validating against the JSON Schemas in `contracts/`; entities/links/translations rows present; coverage gate green over US2 modules.

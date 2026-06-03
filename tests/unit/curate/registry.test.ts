@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'bun:test';
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { CuratorRegistry } from '../../../src/curate/registry.ts';
 import { UncuratedMarker } from '../../../src/curate/uncurated.ts';
+import { XlsxCurator } from '../../../src/curate/xlsx.ts';
 import { ensureDir } from '../../../src/lib/fs.ts';
 import type { ResourceRow } from '../../../src/store/repos/resources.ts';
+
+const XLSX_FIX = fileURLToPath(new URL('../../fixtures/xlsx/', import.meta.url));
 
 function fakeResource(overrides: Partial<ResourceRow> = {}): ResourceRow {
   return {
@@ -92,6 +96,27 @@ describe('curate.registry', () => {
       curatorVersion: 'v',
     });
     expect(out.kind).toBe('json');
+  });
+
+  it('routes a zip/xlsx mislabeled declared_format=csv to the XLSX curator', async () => {
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const rawDir = join(storeRoot, 'raw', 'd1', 'r1');
+    ensureDir(rawDir);
+    const rawPath = join(rawDir, 'mislabeled.csv');
+    writeFileSync(rawPath, readFileSync(join(XLSX_FIX, 'simple.xlsx')));
+    const reg = new CuratorRegistry();
+    const ctx = {
+      storeRoot,
+      resource: fakeResource({ declared_format: 'csv', source_url: 'https://x/wrong.csv' }),
+      rawAbsPath: rawPath,
+      curatorVersion: 'v',
+    };
+    const selected = await reg.select(ctx);
+    expect(selected).toBeInstanceOf(XlsxCurator);
+    // And it produces a real per-sheet tabular artifact, not a mangled one.
+    const out = await reg.curate(ctx);
+    expect(out.kind).toBe('tabular');
+    expect(existsSync(join(storeRoot, 'curated', 'd1', 'r1', 'данни', 'data.ndjson'))).toBe(true);
   });
 
   it('uses provided fallback when nothing matches', async () => {

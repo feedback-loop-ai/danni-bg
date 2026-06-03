@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'bun:test';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { CsvCurator } from '../../src/curate/csv.ts';
+import { XlsxCurator } from '../../src/curate/xlsx.ts';
 import { ensureDir } from '../../src/lib/fs.ts';
 import type { ResourceRow } from '../../src/store/repos/resources.ts';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const FIX = fileURLToPath(new URL('../fixtures/resources/', import.meta.url));
+const XLSX_FIX = fileURLToPath(new URL('../fixtures/xlsx/', import.meta.url));
 
 const ColumnSchema = z
   .object({
@@ -100,4 +102,37 @@ describe('contract.curated-tabular-artifact', () => {
     void ROOT;
     void FIX;
   });
+
+  it.each(['simple.xlsx', 'multi-sheet.xlsx', 'header-only.xlsx'])(
+    'XLSX curator output + every per-sheet schema.json validates the tabular contract (%s)',
+    async (file) => {
+      const storeRoot = globalThis.__TEST_TMP_DIR__;
+      const out = await new XlsxCurator().curate({
+        storeRoot,
+        resource: fakeResource(),
+        rawAbsPath: join(XLSX_FIX, file),
+        curatorVersion: 'test',
+      });
+      // The schema returned in the artifact output (persisted to the DB row).
+      const outResult = TabularSchema.safeParse(out.schema);
+      if (!outResult.success) throw new Error(JSON.stringify(outResult.error.issues));
+      expect(outResult.success).toBe(true);
+      expect(out.path.endsWith('data.ndjson')).toBe(true);
+
+      // Every per-sheet schema.json written to disk must also conform.
+      const resourceDir = join(storeRoot, 'curated', 'd1', 'r1');
+      const sheetDirs = readdirSync(resourceDir, { withFileTypes: true }).filter((e) =>
+        e.isDirectory(),
+      );
+      expect(sheetDirs.length).toBeGreaterThan(0);
+      for (const dir of sheetDirs) {
+        const schema = JSON.parse(
+          readFileSync(join(resourceDir, dir.name, 'schema.json'), 'utf-8'),
+        );
+        const parsed = TabularSchema.safeParse(schema);
+        if (!parsed.success) throw new Error(`${dir.name}: ${JSON.stringify(parsed.error.issues)}`);
+        expect(parsed.success).toBe(true);
+      }
+    },
+  );
 });

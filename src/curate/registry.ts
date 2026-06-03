@@ -6,6 +6,7 @@ import { JsonCurator } from './json.ts';
 import { sniff } from './sniff.ts';
 import { TextCurator } from './text.ts';
 import { UncuratedMarker } from './uncurated.ts';
+import { XlsxCurator } from './xlsx.ts';
 import { XmlCurator } from './xml.ts';
 
 export interface RegistryOptions {
@@ -19,6 +20,7 @@ export class CuratorRegistry {
   constructor(opts: RegistryOptions = {}) {
     this.curators = [
       new CsvCurator(),
+      new XlsxCurator(),
       new GeoJsonCurator(),
       new JsonCurator(),
       new XmlCurator(),
