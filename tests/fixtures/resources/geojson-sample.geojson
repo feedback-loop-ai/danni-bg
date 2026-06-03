@@ -1,0 +1,10 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [23.3219, 42.6977] },
+      "properties": { "name": "София" }
+    }
+  ]
+}

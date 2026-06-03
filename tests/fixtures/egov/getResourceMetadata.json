@@ -1,0 +1,33 @@
+{
+  "success": true,
+  "resource": {
+    "id": 124345,
+    "uri": "f3a30929-0580-4d03-85a1-04367ee38108",
+    "dataset_uri": "2e634036-6ab9-4efd-bd8e-c8e14a931911",
+    "name": "22. Първоначално регистрирани ППС за период по клас на хибридно/електрическо ППС",
+    "description": "Първоначално регистрирани ППС за период по клас на хибридно/електрическо ППС за период от 01.01.2026 до 31.05.2026.",
+    "locale": "bg",
+    "version": "1",
+    "schema_description": null,
+    "schema_url": null,
+    "type": "Файл",
+    "resource_type": 1,
+    "resource_url": null,
+    "http_rq_type": null,
+    "authentication": null,
+    "http_headers": null,
+    "post_data": null,
+    "file_format": "CSV",
+    "reported": 0,
+    "created_at": "2026-06-01 10:15:46",
+    "created_by": 1574,
+    "updated_at": "2026-06-01 10:15:46",
+    "updated_by": null,
+    "upl_freq_type": null,
+    "upl_freq": null,
+    "signals": [],
+    "versions_list": [
+      "1"
+    ]
+  }
+}

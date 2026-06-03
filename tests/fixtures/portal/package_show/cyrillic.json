@@ -1,0 +1,24 @@
+{
+  "help": "https://data.egov.bg/api/3/action/help_show?name=package_show",
+  "success": true,
+  "result": {
+    "id": "00000000-0000-0000-0000-000000000002",
+    "name": "obshtina-sofia-byudzhet",
+    "title": "Бюджет на Столична община — кирилица",
+    "notes": "Заглавието съдържа кирилица: е, ѣ, й, ъ, ь.",
+    "license_id": "cc-by-4.0",
+    "metadata_created": "2024-02-01T00:00:00.000000",
+    "metadata_modified": "2025-11-01T00:00:00.000000",
+    "organization": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "obshtina-sofia",
+      "title": "Столична община",
+      "description": "Описание с кирилица."
+    },
+    "tags": [
+      { "name": "кирилица", "display_name": "кирилица" }
+    ],
+    "groups": [],
+    "resources": []
+  }
+}

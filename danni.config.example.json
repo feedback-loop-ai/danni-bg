@@ -1,0 +1,60 @@
+{
+  "portal": {
+    "baseUrl": "https://data.egov.bg/api/3/action/",
+    "api": "ckan",
+    "apiKeyEnv": null
+  },
+  "crawler": {
+    "userAgent": "danni-bg/0.1.0 (+https://github.com/your-org/danni-bg)",
+    "rateLimit": {
+      "requestsPerSecondPerHost": 1
+    },
+    "concurrency": {
+      "maxConcurrentRequestsPerHost": 4
+    },
+    "backoff": {
+      "initialMs": 500,
+      "maxMs": 60000,
+      "failureBudget": 20
+    },
+    "robots": {
+      "recheckIntervalSeconds": 86400,
+      "obey": true,
+      "allowHosts": []
+    }
+  },
+  "store": {
+    "root": "./store",
+    "freshnessSloSeconds": 86400
+  },
+  "schedule": {
+    "enabled": false,
+    "cron": null,
+    "timezone": "Europe/Sofia",
+    "onOverlap": "skip",
+    "failureRateThreshold": 0.05,
+    "notifier": {
+      "kind": "stderr",
+      "webhookUrl": null,
+      "webhookBearerEnv": null
+    }
+  },
+  "scope": {},
+  "enrichment": {
+    "translator": {
+      "provider": "local-marianmt",
+      "modelId": "Helsinki-NLP/opus-mt-bg-en",
+      "endpointUrl": null,
+      "apiKeyEnv": null
+    },
+    "embedder": {
+      "provider": "local-onnx",
+      "modelId": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+      "endpointUrl": null,
+      "apiKeyEnv": null
+    }
+  },
+  "index": {
+    "incremental": true
+  }
+}

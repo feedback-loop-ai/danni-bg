@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://danni.bg/contracts/manifest.schema.json",
+  "title": "Sync Run Manifest",
+  "description": "Authoritative record of what a single Sync Run captured. Written once to store/manifest/<run_id>.json after the run terminates. Mirrors the rows in sync_runs + sync_run_events for consumers that read from the file system rather than the DB.",
+  "type": "object",
+  "required": [
+    "manifestVersion",
+    "runId",
+    "trigger",
+    "scopeFilter",
+    "startedAt",
+    "endedAt",
+    "summaryOutcome",
+    "totals",
+    "datasets"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "manifestVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version of this manifest file."
+    },
+    "runId": { "type": "string", "description": "ULID matching sync_runs.id." },
+    "trigger": { "enum": ["manual", "scheduled"] },
+    "scopeFilter": { "$ref": "#/$defs/ScopeFilter" },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "endedAt": { "type": "string", "format": "date-time" },
+    "summaryOutcome": { "enum": ["success", "partial", "failed"] },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "discovered",
+        "captured",
+        "skippedUnchanged",
+        "failed",
+        "withdrawn",
+        "outOfScope"
+      ],
+      "properties": {
+        "discovered": { "type": "integer", "minimum": 0 },
+        "captured": { "type": "integer", "minimum": 0 },
+        "skippedUnchanged": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "withdrawn": { "type": "integer", "minimum": 0 },
+        "outOfScope": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "notes": { "type": "string" },
+    "datasets": {
+      "type": "array",
+      "description": "One entry per dataset touched by this Sync Run.",
+      "items": { "$ref": "#/$defs/DatasetEntry" }
+    }
+  },
+  "$defs": {
+    "ScopeFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Empty object {} means: every public dataset on the portal (FR-018).",
+      "properties": {
+        "publishers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "CKAN organization IDs."
+        },
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "CKAN group IDs."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "datasetIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "DatasetEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "datasetId",
+        "sourceUrl",
+        "outcome",
+        "lifecycleState",
+        "capturedAt",
+        "resources"
+      ],
+      "properties": {
+        "datasetId": { "type": "string" },
+        "sourceUrl": { "type": "string", "format": "uri" },
+        "outcome": {
+          "enum": [
+            "captured",
+            "skipped_unchanged",
+            "failed",
+            "withdrawn",
+            "out_of_scope"
+          ]
+        },
+        "lifecycleState": { "enum": ["active", "withdrawn", "out_of_scope"] },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "metadataHash": {
+          "type": "string",
+          "description": "Hash of the canonical metadata payload (Principle IX source_etag_or_hash)."
+        },
+        "failureReason": { "type": "string" },
+        "resources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ResourceEntry" }
+        }
+      }
+    },
+    "ResourceEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resourceId", "sourceUrl", "outcome"],
+      "properties": {
+        "resourceId": { "type": "string" },
+        "sourceUrl": { "type": "string", "format": "uri" },
+        "outcome": {
+          "enum": [
+            "captured",
+            "skipped_unchanged",
+            "failed",
+            "withdrawn",
+            "out_of_scope"
+          ]
+        },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rawPath": {
+          "type": "string",
+          "description": "Path under store/raw/."
+        },
+        "declaredFormat": { "type": "string" },
+        "detectedFormat": { "type": "string" },
+        "detectedContentType": { "type": "string" },
+        "etag": { "type": "string" },
+        "lastModified": { "type": "string" },
+        "httpStatus": { "type": "integer" },
+        "failureReason": { "type": "string" }
+      }
+    }
+  }
+}
