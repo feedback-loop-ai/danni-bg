@@ -9,11 +9,19 @@ Replace the current one-request-per-dataset embedding loop with a **batched
 embedding pass** so a real (hosted or local) embedder can re-index the whole
 ~12k-dataset corpus in `⌈N / batchSize⌉` requests instead of `N`. The embedder
 interface (`Embedder.embed(texts: string[])`) already accepts multiple texts;
-the change is entirely on the **caller side** — `src/index/run-index.ts` and a
-new batched builder in `src/index/vec.ts` — plus a small config addition
-(`enrichment.embedder.batchSize` / `maxBatchSize`), a transient-failure retry
-wrapper around the embedder, and a new `index_failures` table that persists
-per-dataset "not-embedded" reasons for later inspection.
+the change is entirely on the **caller side** — a new, **pure** batcher module
+`src/index/batch-embed.ts` (chunking + positional length-check + single-text
+retry + forced-single + 429/5xx backoff, returning a `BatchEmbedResult` and
+writing **no** DB state) plus the seam in 003's merged `src/index/run-index.ts`
+loop that hands the changed/selected set to the batcher and owns **all**
+persistence — plus a small config addition (`enrichment.embedder.batchSize` /
+`maxBatchSize`) and a new `index_failures` table that persists per-dataset
+"not-embedded" reasons for later inspection. `src/index/vec.ts` is **not**
+modified: its `composeEmbeddingText` is reused read-only to build each pair's
+text. The vector persistence (`upsertEmbedding` + 003's `IndexStateRepo.upsertEmbed`
+with `embed_fp`/`model_id`, the `index_failures` record/clear, and the single
+`embeddings_meta` write) all live in 003's per-dataset loop, **not** in the
+batcher — see `## Cross-Spec Coordination` below ("land 003 first").
 
 Batching is an **efficiency change only**: a dataset's stored vector MUST be
 byte-identical whether produced in a batch of 1 or 64 (FR-006/SC-002). The plan
@@ -125,7 +133,11 @@ src/index/
                                   #   mode (FR-005), 429/5xx backoff wrapper (FR-009),
                                   #   per-batch progress callback (FR-010). Returns
                                   #   {embedded, embedderRequests, skippedEmpty, failed,
-                                  #    failures[]}.
+                                  #    failures[]}. PURE — writes NO DB state (no
+                                  #   upsertEmbedding, no FTS, no index_failures, no
+                                  #   embeddings_meta); persistence is the caller's job
+                                  #   in run-index.ts (R2). Yields each {datasetId,vector}
+                                  #   via a callback so the caller persists as it lands.
 ```
 
 **Modify:**
@@ -135,20 +147,20 @@ src/config/schema.ts              # EmbedderConfigSchema: add batchSize (int 1�
                                   #   default 32) and optional maxBatchSize (int 1–256).
                                   #   effectiveBatchSize = min(batchSize, maxBatchSize ?? ∞).
 
-src/index/vec.ts                  # composeEmbeddingText: UNCHANGED. Replace the
-                                  #   per-dataset upsertEmbeddingFor call site usage with
-                                  #   a batched composer that yields {datasetId, text}
-                                  #   pairs and excludes empty text (FR-007). Persist via
-                                  #   the existing upsertEmbedding + meta-update logic,
-                                  #   refactored so batch-embed.ts can call it per result.
-
-src/index/run-index.ts            # Loop now: (1) FTS upsert per dataset (unchanged,
-                                  #   outside batching, FR-010); (2) collect non-empty
-                                  #   {datasetId,text} pairs; (3) hand them to
-                                  #   batch-embed.ts; (4) on success clear index_failures,
-                                  #   on per-text failure record it. RunIndexResult extended
-                                  #   with embedded/embedderRequests/skippedEmpty/failed +
-                                  #   failures[].
+src/index/run-index.ts            # 003's merged loop, extended at the embed-the-set seam:
+                                  #   (1) FTS upsert per dataset stays unchanged (outside
+                                  #   batching, FR-010); (2) build each pair's text via the
+                                  #   read-only composeEmbeddingText and collect non-empty
+                                  #   {datasetId,text} pairs (tagged content-changed vs
+                                  #   model-changed by 003's skip gate); (3) hand the set to
+                                  #   the pure batch-embed.ts; (4) OWN ALL PERSISTENCE — as
+                                  #   each {datasetId,vector} lands, call upsertEmbedding +
+                                  #   003's IndexStateRepo.upsertEmbed(embed_fp/model_id),
+                                  #   clear index_failures on success, record it on per-text
+                                  #   failure; write embeddings_meta once (003's behavior).
+                                  #   RunIndexResult extended with embedderRequests/
+                                  #   skippedEmpty/failed + failures[] (embedded/vectorsUpdated
+                                  #   come from merging BatchEmbedResult into 003's counters).
 
 src/index/embedder.ts             # Embedder interface: add optional readonly maxBatchSize?
                                   #   capability signal (maxBatchSize === 1 ⇒ forced single,
@@ -166,26 +178,47 @@ src/cli/index-cmd.ts              # buildEmbedder: pass batchSize/maxBatchSize f
                                   #   extended RunIndexResult (counts + failures) as JSON.
 ```
 
+**Read-only (reused, NOT modified):**
+
+```text
+src/index/vec.ts                  # composeEmbeddingText reused read-only to build each
+                                  #   pair's text (the trailing empty-text filter is the
+                                  #   FR-007 guard). NOT modified by 002; persistence lives
+                                  #   in run-index.ts, not in vec.ts.
+src/index/embeddings-store.ts     # upsertEmbedding/getEmbeddingsMeta/setEmbeddingsMeta
+                                  #   reused by run-index.ts's persistence step — unchanged.
+```
+
 **Test files (added by /speckit-tasks, listed here for structure):**
 
 ```text
 tests/unit/index/batch-embed.test.ts          # chunking, length-check fail, single-text
                                                #   retry, forced-single, backoff, progress
-tests/unit/index/run-index.test.ts            # EXTEND — new result fields, FTS-outside-batch
-tests/unit/store/repos/index-failures.test.ts # record/clear/list
+tests/unit/index/run-index.test.ts            # EXTEND — new result fields, FTS-outside-batch,
+                                               #   per-dataset persistence + index_failures
+                                               #   record/clear, content-vs-model partition
+tests/unit/index/embedders/local-onnx.test.ts  # EXTEND — maxBatchSize capability signal (T009)
+tests/unit/index/embedders/hosted-api.test.ts  # EXTEND — maxBatchSize capability signal (T009)
+tests/unit/store/repos/index-failures.test.ts # record/clear/list + migration shape
 tests/unit/config/schema.test.ts              # EXTEND — batchSize bounds, maxBatchSize cap
+tests/unit/cli/index-cmd.test.ts               # CLI batch-size wiring → runIndex; result JSON (T031)
 tests/integration/index-batched.test.ts        # SC-001 (⌈N/b⌉ requests), SC-002 (byte-identical
-                                               #   batch-1 vs batch-64), SC-004 (salvage on
-                                               #   transient batch failure), Cyrillic batch
+                                               #   batch-1 vs batch-64), SC-003 (no dataset left
+                                               #   un-embedded except empty-text), SC-004 (salvage
+                                               #   on transient batch failure), Cyrillic batch
 ```
 
 **Structure Decision**: The feature stays inside the existing `src/index/`
 pipeline stage from 001 (organized by data-flow, not by layer). The new
 `batch-embed.ts` is the single place that owns batch chunking, the positional
 length-check, the single-text retry, forced-single mode, and the 429/5xx
-backoff — keeping `run-index.ts` a thin orchestrator and leaving
-`composeEmbeddingText`, `upsertEmbedding`, and the entire FTS path untouched.
-The new `index_failures` repo lives beside the other `src/store/repos/*`.
+backoff — and is **pure** (it writes no DB state). All persistence
+(`upsertEmbedding` + 003's `IndexStateRepo.upsertEmbed`, `index_failures`
+record/clear, the single `embeddings_meta` write) lives in 003's merged
+`run-index.ts` loop at the embed-the-set seam, which also keeps
+`composeEmbeddingText` and the entire FTS path untouched (`vec.ts` is reused
+read-only, not modified). The new `index_failures` repo lives beside the other
+`src/store/repos/*`.
 
 ## Implementation Phases
 
@@ -225,13 +258,21 @@ Principle VIII):
    retries). Tests: happy path request count, short response → salvage, reorder
    → fail-whole-batch → salvage, all-single forced mode, empty pairs excluded.
    *(FR-001, FR-003, FR-004, FR-005, FR-007, FR-010, SC-001, SC-004)*
-6. **Persist results** in `vec.ts`/`run-index.ts`: per successful vector call
-   `upsertEmbedding` (unchanged) + clear `index_failures`; per failing text
-   record `index_failures` and add to in-memory `failures[]`; update
-   `embeddings_meta` once. Extend `RunIndexResult`. Tests: counts, persistence,
-   clear-on-later-success. *(FR-006, FR-008)*
-7. **Wire CLI** (`index-cmd.ts`): pass config batch sizes into the batcher; print
-   the extended result JSON.
+6. **Persist results at the seam** in 003's merged `run-index.ts` loop (the pure
+   batcher writes nothing): per successful vector call `upsertEmbedding`
+   (unchanged) + 003's `IndexStateRepo.upsertEmbed(embed_fp/model_id)` + clear
+   `index_failures`; per failing text record `index_failures` and add to the
+   in-memory `failures[]`; write `embeddings_meta` once (003's behavior).
+   Attribute each returned vector to 003's two counters by the pair's tag —
+   `content-changed → embedded`, `model-changed → reembeddedDueToModelChange`
+   (so `embedded` is the content-changed share, and `embedded +
+   reembeddedDueToModelChange === BatchEmbedResult.embedded === vectorsUpdated`).
+   Extend `RunIndexResult` (merge in `embedderRequests`/`skippedEmpty`/`failed`/
+   `failures[]`). Tests: counts, persistence, clear-on-later-success, content-vs-
+   model partition. *(FR-006, FR-008)*
+7. **Wire CLI** (`index-cmd.ts`): pass config batch sizes into `runIndex` (the
+   loop resolves `effectiveBatchSize`), **not** into the provider ctor; print the
+   extended result JSON.
 8. **Integration**: SC-001 (`⌈N/b⌉` requests via recording embedder), SC-002
    (byte-identical batch-1 vs batch-64, incl. Cyrillic), SC-003 (no dataset left
    un-embedded except empty-text), SC-004 (transient batch failure salvaged).
@@ -247,18 +288,20 @@ module, and one retry wrapper — all justified by explicit FRs. The inherited
 is not re-litigated here.
 
 **Cross-feature coordination (not a violation, but a release-blocking risk):**
-features 002, 003, and 004 each introduce a new migration and the next free
-numeric prefix is `004`. They MUST coordinate so exactly one claims `004`, the
-next `005`, etc. (see data-model.md §Migration). This plan reserves the table
-name `index_failures` and flags the numbering; the actual prefix is assigned at
-merge-ordering time.
-</content>
-</invoke>
-## Cross-Spec Coordination (review 2026-06-04)
+features 002, 003, and 004 each introduce a new migration from the same
+`003_index` baseline. The canonical, collision-free assignment is recorded in
+`## Cross-Spec Coordination` below (002 → `004_index_failures.sql`); the
+`src/store/migrate.ts` duplicate-prefix guard (added by 003's T002) protects the
+merge. See also data-model.md §5.
 
-Features 002/003/004 were planned in parallel and share infrastructure; a cross-spec review reconciled:
+## Cross-Spec Coordination
 
-- **Migration numbering (canonical, collision-free):** `004_index_failures.sql` (002), `005_index_state.sql` (003), `006_crawl_checkpoint.sql` (004). All are additive and order-independent; `src/store/migrate.ts` should also gain a duplicate-prefix guard.
-- **run-index composition (002 ↔ 003): land 003 first.** 003 owns the per-dataset incremental loop (fingerprint check → FTS upsert + `content_fp`; embed + `embed_fp`/`model_id`, each in its own transaction; model identity read once at run start). 002 then batches **only the changed/selected set** 003 yields, persisting each vector with its `embed_fp`/`model_id`. The two MUST share one merged `run-index` loop, not two competing rewrites.
-- **Orphan purge:** 003's every-run reconcile-vs-`listActive()` purge MUST also clear 002's `index_failures` rows for non-active datasets.
-- **004 orchestrator:** the egov crawl is wired through `src/crawler/run-sync.ts`, sharing the single `sync_runs_lock` (egov & CKAN mutually exclusive); egov exit codes mirror the CKAN path.
+> This section is part of the plan body (review 2026-06-04). Features 002/003/004
+> were planned in parallel from the same `003_index` baseline and share
+> infrastructure; the items below are the binding reconciliation. The two items
+> 002 actually owns are the migration prefix and the 002 ↔ 003 run-index seam;
+> the orphan-purge co-ownership is shared with 003.
+
+- **Migration numbering (canonical, collision-free):** `004_index_failures.sql` (002), `005_index_state.sql` (003), `006_crawl_checkpoint.sql` (004). All are additive and order-independent; `src/store/migrate.ts` gains a duplicate-prefix guard (added by 003's T002; 002 relies on it).
+- **run-index composition (002 ↔ 003): land 003 first.** 003 owns the per-dataset incremental loop (fingerprint check → FTS upsert + `content_fp`; embed + `embed_fp`/`model_id`, each in its own transaction; model identity read once at run start). 002 then batches **only the changed/selected set** 003 yields. The **pure** `batch-embed.ts` returns vectors; **003's loop owns all persistence** — it writes each vector with its `embed_fp`/`model_id` (`upsertEmbedding` + `IndexStateRepo.upsertEmbed`), records/clears `index_failures`, and writes `embeddings_meta` once, partitioning each returned vector into 003's `embedded` (content-changed) or `reembeddedDueToModelChange` (model-changed) counter. The two MUST share one merged `run-index` loop, not two competing rewrites; 002 changes only the *embed-the-set* call site, never 003's skip gate or the FTS leg.
+- **Orphan purge co-ownership:** 003's every-run reconcile-vs-`listActive()` purge MUST also clear 002's `index_failures` rows for non-active datasets (one-line extension by 002, co-owned with 003's reconciler).

@@ -257,4 +257,3 @@ be called out now.
 | Migration number | R8: `004_index_failures.sql`, next free is `004` but **must be coordinated with 003/004 specs** |
 
 All Phase 0 unknowns resolved. Phase 1 may proceed.
-</content>

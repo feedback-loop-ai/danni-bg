@@ -101,7 +101,7 @@ The operator can request a complete rebuild that ignores the incremental fingerp
 
 ### Measurable Outcomes
 
-- **SC-001**: A re-index over an unchanged corpus re-embeds zero datasets and completes in a small fraction of the time of a full rebuild.
+- **SC-001**: A re-index over an unchanged corpus re-embeds zero datasets (`embedded == 0`, the measurable proxy asserted in T011/T040: N point-lookups + N fingerprint computations, not N embedder calls), and therefore completes in a small fraction of the time of a full rebuild.
 - **SC-002**: When exactly K of N datasets changed since the last index, exactly those K are re-embedded.
 - **SC-003**: Switching embedding models causes 100% of active datasets to be re-embedded on the next run.
 - **SC-004**: After a re-sync that withdrew a dataset, that dataset is absent from both keyword and semantic search results without a full rebuild.

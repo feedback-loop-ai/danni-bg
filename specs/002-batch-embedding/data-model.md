@@ -52,12 +52,13 @@ codes (the batcher emits exactly one per recorded dataset):
 | `single_text_failed:<detail>` | The dataset's text failed even on the single-text retry after a batch fault | FR-004 |
 | `transient_exhausted:<status>` | The single-text retry hit a 429/5xx that exhausted the backoff budget | FR-009 |
 
-> `empty_text` rows are also counted in the run result's `skippedEmpty` (not
-> `failed`), but are still persisted here because the Key-Entities "Not-embedded
-> record" explicitly includes empty-text datasets. Implementers MAY gate
-> empty-text persistence behind a flag if product later wants `index_failures` to
-> hold only true failures; the spec's Key-Entities text persists both, so the
-> default is: persist `empty_text` too.
+> **Binding decision:** `empty_text` rows are counted in the run result's
+> `skippedEmpty` (not `failed`) **and** are persisted to `index_failures`. This is
+> not optional — the spec's Key-Entities "Not-embedded record" explicitly includes
+> empty-text datasets (FR-007), and tasks T015/T024 require persisting them. There
+> is **no** flag to suppress empty-text persistence (an unimplemented optional
+> branch would violate the Constitution VIII 100%-branch gate); a single, always-on
+> behavior is the decision here.
 
 ---
 
@@ -155,14 +156,37 @@ Existing fields kept; embedding counts added by merging the `BatchEmbedResult`:
 ```ts
 export interface RunIndexResult {
   ftsUpdated: number;        // existing (FTS upserts, per-dataset, outside batching)
-  vectorsUpdated: number;    // existing; == BatchEmbedResult.embedded
-  embedded: number;          // NEW (FR-008)
-  embedderRequests: number;  // NEW (FR-008)
-  skippedEmpty: number;      // NEW (FR-008)
-  failed: number;            // NEW (FR-008)
-  failures: NotEmbedded[];   // NEW (FR-008)
+  vectorsUpdated: number;    // existing; == BatchEmbedResult.embedded (the full persisted total)
+  embedded: number;          // 003-owned; the CONTENT-changed share (see note below)
+  embedderRequests: number;  // NEW 002 (FR-008)
+  skippedEmpty: number;      // NEW 002 (FR-008)
+  failed: number;            // NEW 002 (FR-008)
+  failures: NotEmbedded[];   // NEW 002 (FR-008)
+  // ...plus 003's skippedUnchanged / reembeddedDueToModelChange / purged
 }
 ```
+
+> **003-composition reconciliation of `embedded` (binding).** Standalone,
+> `BatchEmbedResult.embedded` is simply "datasets that got a vector this run"
+> (§4.1) — the full persisted-vector total. But 002 lands **into 003's merged
+> loop** (plan.md §Cross-Spec Coordination, "land 003 first"), and 003 already
+> owns a `RunIndexResult.embedded` that means **only the content-changed share**,
+> with model-only re-embeds counted in 003's separate
+> `reembeddedDueToModelChange`. When merged, the caller (tasks T024) partitions
+> each returned vector by the tag 003's skip gate assigned the pair:
+> `content-changed → embedded`, `model-changed → reembeddedDueToModelChange`.
+> Therefore in the merged result:
+>
+> ```
+> embedded + reembeddedDueToModelChange === BatchEmbedResult.embedded === vectorsUpdated
+> ```
+>
+> i.e. `RunIndexResult.embedded` is the **content-changed share**, NOT the raw
+> batch total. A model-change-only batched run reports `reembeddedDueToModelChange:N`,
+> `embedded:0` (consistent with 003's SC-003 / T026). `vectorsUpdated` remains the
+> full persisted-vector total and equals `BatchEmbedResult.embedded`. This is the
+> only place 002's "embedded" semantics shift, and it shifts only because 002 is
+> additive onto 003's pre-existing counter — see spec FR-008.
 
 ---
 
@@ -174,15 +198,19 @@ export interface RunIndexResult {
 
 > ⚠️ **MIGRATION-NUMBER COORDINATION (release-blocking).** Features
 > **002-batch-embedding** (`index_failures`), **003-incremental-indexing**
-> (`index_state`), and **004-crawl-checkpoint-resume** (`crawl_checkpoint`) are
-> being planned in parallel from the same `003_index` baseline and would **each
-> claim `004`**. The runner `src/store/migrate.ts` (`discoverMigrations`) keys
-> applied state by the integer prefix and **checksum-guards already-applied
-> files**, so two `004_*.sql` files — or reusing `004` after it ships — is a hard
-> error. Assign distinct ascending prefixes in merge order (e.g. first-merged →
-> `004`, next → `005`, next → `006`) and update the chosen filename accordingly.
-> This migration creates only `index_failures`; it is independent of `index_state`
-> and `crawl_checkpoint` and can take any free prefix.
+> (`index_state`), and **004-crawl-checkpoint-resume** (`crawl_checkpoint`) were
+> planned in parallel from the same `003_index` baseline. The runner
+> `src/store/migrate.ts` (`discoverMigrations`) keys applied state by the integer
+> prefix and **checksum-guards already-applied files**, so two `004_*.sql` files —
+> or reusing `004` after it ships — is a hard error. The **canonical, collision-free**
+> assignment (plan.md §Cross-Spec Coordination, review 2026-06-04) is fixed by table
+> ownership: `004_index_failures.sql` (002, this), `005_index_state.sql` (003),
+> `006_crawl_checkpoint.sql` (004) — not by merge order. This migration creates only
+> `index_failures`; it is independent of `index_state` and `crawl_checkpoint`. The
+> duplicate-prefix guard added by 003's T002 (`src/store/migrate.ts`) protects the
+> merge; 002 relies on it and does not re-add it. The merging engineer MUST still
+> re-confirm the next free prefix at merge time (`ls migrations/`) and renumber only
+> if the merge order changes which sibling lands first.
 
 **What it creates** (DDL, exact):
 
@@ -233,7 +261,9 @@ embeddings_meta (single row)               (existing; model id + dimension — u
 
 `index_failures.dataset_id` is intentionally **not** a foreign key (resilient to
 withdrawn/out-of-scope churn, like `sync_run_events`). A successful embed in a
-later run clears the row; an orphan-purge for non-active datasets is owned by 003
-(`index_state` reconciliation) and MAY be extended to also clear `index_failures`
-when 003 lands — recorded here as a cross-feature touchpoint, not built by 002.
-</content>
+later run clears the row; the orphan-purge for non-active datasets is 003's
+set-difference reconciler (over `datasets_fts`/`dataset_embeddings`/`index_state`),
+which 002 extends by **one store** to also clear `index_failures` for non-active
+datasets (tasks T026; plan.md §Cross-Spec Coordination "Orphan purge
+co-ownership"). 002 does not reimplement the purge — it adds `index_failures` as
+the 4th store the existing reconciler clears.

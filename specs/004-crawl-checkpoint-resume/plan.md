@@ -116,7 +116,7 @@ src/store/repos/
 └── crawl-checkpoints.ts     # Repo for crawl_checkpoints + crawl_checkpoint_datasets + crawl_checkpoint_resources (upsert, mark complete/failed, attempt counts, counts/remaining queries)
 
 migrations/
-└── 00N_crawl_checkpoint.sql # New table family (N = next free number — SEE Complexity Tracking: coordinate with 002/003)
+└── 006_crawl_checkpoint.sql # New table family (canonical prefix 006 — SEE Complexity Tracking / Cross-Spec Coordination: 002→004, 003→005, 004→006)
 ```
 
 Files to **modify**:
@@ -167,7 +167,7 @@ egov dataset-level validator (no HTTP ETag), the `beginSyncRun` wrapping seam, a
 atomic-capture swap. (Done in research.md.)
 
 **Phase 1 — Persistence + primitives** (no behavior change yet):
-1. Write migration `00N_crawl_checkpoint.sql` (data-model.md §2) — `crawl_checkpoints`,
+1. Write migration `006_crawl_checkpoint.sql` (data-model.md §2) — `crawl_checkpoints`,
    `crawl_checkpoint_datasets`, `crawl_checkpoint_resources` + indexes.
 2. `src/crawler/scope-hash.ts` — `computeScopeHash(scope)` (FR-003a). Unit-test the
    sort/dedupe/lowercase/"all"-sentinel rules and that a scope change yields a new hash.
@@ -216,13 +216,13 @@ endpoint), full `bun test --coverage` green.
 
 | Violation / Coordination item | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|--------------------------------------|
-| **Migration numbering must be coordinated across three concurrent features.** The next free numeric prefix is **004** (existing: `001_core`, `002_curate_enrich`, `003_index`). But sibling features `002-batch-embedding` and `003-incremental-indexing` are also in flight (each currently has only `spec.md`, no plan, so neither has claimed a migration yet). The migration runner (`src/store/migrate.ts`) enforces unique integer prefixes and a **checksum lock** — two features both shipping `004_*.sql` would collide, and editing an already-applied file fails the checksum check. | A durable cross-session checkpoint requires its own committed schema; it cannot reuse 001/002/003 without violating the checksum lock. | "Just grab 004" rejected as unsafe in isolation: whichever of the three features merges first takes 004; the others must rebase to 005/006. **This plan proposes `006_crawl_checkpoint.sql` but flags that the merge order decides the final number — the implementer MUST confirm the next free prefix at merge time and renumber if 002/003-batch/incremental land first.** Recorded here and in data-model.md so it is not silently assumed. |
+| **Migration numbering must be coordinated across three concurrent features.** The unused numeric prefixes on disk are **004/005/006** (existing applied: `001_core`, `002_curate_enrich`, `003_index`). Sibling features `002-batch-embedding` and `003-incremental-indexing` now each have a full plan + data-model + tasks that **claim** migrations: 002 → `004_index_failures.sql`, 003 → `005_index_state.sql` (verified in their `data-model.md` §2). The migration runner (`src/store/migrate.ts`) enforces unique integer prefixes and a **checksum lock** — two features both shipping `004_*.sql` would collide, and editing an already-applied file fails the checksum check. | A durable cross-session checkpoint requires its own committed schema; it cannot reuse 001/002/003 without violating the checksum lock. | "Just grab 004" rejected: 002 already claims `004` and 003 already claims `005`, so the **canonical, collision-free** prefix for this feature is **`006_crawl_checkpoint.sql`** (see the Cross-Spec Coordination block below). The implementer MUST still re-confirm the next free prefix at merge time (`ls migrations/`) and renumber only if the merge order changes which sibling lands first. Recorded here and in data-model.md so it is not silently assumed. |
 | Refactoring `runEgovSync` into `beginSyncRun` touches a shipped code path. | FR-007 is explicit and resolves a real correctness gap (egov currently bypasses the lock → can race CKAN; loses all progress on interrupt). | "Add a second, egov-only lock" rejected: the spec (round-2 clarification) requires the **single** `sync_runs_lock` so egov and CKAN are mutually exclusive; a separate lock would let both run and corrupt shared store state. |
 ## Cross-Spec Coordination (review 2026-06-04)
 
 Features 002/003/004 were planned in parallel and share infrastructure; a cross-spec review reconciled:
 
-- **Migration numbering (canonical, collision-free):** `004_index_failures.sql` (002), `005_index_state.sql` (003), `006_crawl_checkpoint.sql` (004). All are additive and order-independent; `src/store/migrate.ts` should also gain a duplicate-prefix guard.
+- **Migration numbering (canonical, collision-free):** `004_index_failures.sql` (002), `005_index_state.sql` (003), `006_crawl_checkpoint.sql` (004). All are additive and order-independent; the `src/store/migrate.ts` duplicate-prefix guard is added by **003's T002** (003 is the SOLE owner); 004 relies on it (tasks T201 GATES on it, does not re-implement it) and does not re-add it.
 - **run-index composition (002 ↔ 003): land 003 first.** 003 owns the per-dataset incremental loop (fingerprint check → FTS upsert + `content_fp`; embed + `embed_fp`/`model_id`, each in its own transaction; model identity read once at run start). 002 then batches **only the changed/selected set** 003 yields, persisting each vector with its `embed_fp`/`model_id`. The two MUST share one merged `run-index` loop, not two competing rewrites.
 - **Orphan purge:** 003's every-run reconcile-vs-`listActive()` purge MUST also clear 002's `index_failures` rows for non-active datasets.
-- **004 orchestrator:** the egov crawl is wired through `src/crawler/run-sync.ts`, sharing the single `sync_runs_lock` (egov & CKAN mutually exclusive); egov exit codes mirror the CKAN path.
+- **004 orchestrator:** the egov crawl is wired through a **new** `src/crawler/run-egov-sync.ts` orchestrator that mirrors `src/crawler/run-sync.ts` (the existing CKAN path, which stays read-only — see plan.md Project Structure, research.md R4, tasks T216), sharing the single `sync_runs_lock` (egov & CKAN mutually exclusive); egov exit codes mirror the CKAN path.

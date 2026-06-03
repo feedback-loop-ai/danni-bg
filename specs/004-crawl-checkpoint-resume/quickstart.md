@@ -109,7 +109,10 @@ is `success`, so no datastore is fetched.
 bun run danni status                  # discovered / captured / failed / remaining for the campaign
 ```
 
-`remaining` excludes capped failures (FR-009). Cross-check directly:
+`remaining` excludes capped failures (FR-009). Cross-check directly — `remaining` is every
+in-scope dataset NOT yet `complete` MINUS rows capped at `attempts >= max_attempts` (this
+matches the shipped `remaining()` from T209, so a sub-cap `failed` row that is still
+retry-eligible is still counted as remaining):
 
 ```bash
 sqlite3 store/danni.sqlite \
@@ -117,7 +120,10 @@ sqlite3 store/danni.sqlite \
      (SELECT total_datasets FROM crawl_checkpoints LIMIT 1) AS total,
      SUM(outcome='complete') AS complete,
      SUM(outcome='failed')   AS failed,
-     SUM(outcome='pending')  AS remaining
+     SUM(outcome != 'complete'
+         AND NOT (outcome = 'failed'
+                  AND attempts >= (SELECT max_attempts FROM crawl_checkpoints LIMIT 1)))
+       AS remaining
    FROM crawl_checkpoint_datasets;"
 ```
 

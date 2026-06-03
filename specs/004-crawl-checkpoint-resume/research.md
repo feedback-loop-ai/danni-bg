@@ -226,11 +226,14 @@ resource is one small `UPDATE` against a rate-limited fetch — negligible cost,
 
 **Decision**: A normal resume **skips** recorded failures — the cursor advances past a failed
 dataset/resource so it never blocks progression. Each failure increments a per-row
-`attempts` count on the checkpoint resource (and dataset) row, capped by a configured
-`maxAttempts` (default proposed: 3). `--retry-failed` re-attempts rows whose `outcome='failed'`
-and `attempts < maxAttempts`; rows at the cap are **not** retried. The `status` "remaining"
-count = in-scope datasets not yet `success` **minus** capped failures (FR-009: "remaining
-excludes capped failures").
+`attempts` count on the checkpoint resource (and dataset) row, capped by `max_attempts`,
+which is a **fixed internal default of 3** for this feature (FR-009): the migration sets the
+`crawl_checkpoints.max_attempts` column `DEFAULT 3` and no CLI flag or config overrides it.
+The column is **reserved** so a later feature can make the cap operator-configurable without a
+schema change. `--retry-failed` re-attempts rows whose `outcome='failed'` and
+`attempts < max_attempts`; rows at the cap (`attempts >= max_attempts`) are **not** retried.
+The `status` "remaining" count = in-scope datasets not yet `complete` **minus** capped
+failures (FR-009: "remaining excludes capped failures").
 
 **Rationale**: Direct from the round-2 clarification. The attempt cap prevents a persistently
 failing unit from being hammered (Constitution XI) and keeps "remaining" honest so an
@@ -270,19 +273,23 @@ Validating JSON columns on read is the standard boundary check (data-model §5 o
 
 ## R9 — Migration numbering coordination (process decision)
 
-**Decision**: This feature needs one new migration. The next free numeric prefix **today** is
-**004** (existing: `001_core`, `002_curate_enrich`, `003_index` in `migrations/`). The plan
-proposes `006_crawl_checkpoint.sql`. **But** two sibling features are concurrently in flight —
-`specs/002-batch-embedding/` and `specs/003-incremental-indexing/` (each currently has only
-`spec.md`, so neither has authored a migration yet). The in-house runner
+**Decision**: This feature needs one new migration. The unused numeric prefixes on disk
+**today** are **004/005/006** (existing applied: `001_core`, `002_curate_enrich`,
+`003_index` in `migrations/`). Two sibling features are concurrently in flight —
+`specs/002-batch-embedding/` and `specs/003-incremental-indexing/` — and both now have a
+full plan + data-model + tasks that **claim** migrations: 002 → `004_index_failures.sql`,
+003 → `005_index_state.sql` (verified in their `data-model.md` §2). The in-house runner
 (`src/store/migrate.ts:16,52–96`) requires a **unique integer prefix** and enforces a
 **checksum lock** (editing an applied file throws `MigrationError`). Two features both
 shipping `004_*.sql` would collide.
 
-**Resolution**: Whichever feature merges first claims `004`; the others rebase to `005`/`006`.
-The implementer MUST re-confirm the next free prefix at merge time (`ls migrations/`) and
-renumber the file accordingly. This is recorded in plan.md Complexity Tracking and
-data-model.md §2 so it is never silently assumed.
+**Resolution**: With 002 holding `004` and 003 holding `005`, the **canonical,
+collision-free** prefix for this feature is **`006_crawl_checkpoint.sql`** (the
+Cross-Spec Coordination block in plan.md ratifies the 004/005/006 split). The implementer
+MUST still re-confirm the next free prefix at merge time (`ls migrations/`) and renumber
+only if the merge order changes which sibling lands first. This is recorded in plan.md
+Complexity Tracking + Cross-Spec Coordination and data-model.md §2 so it is never silently
+assumed.
 
 **Rationale**: Forward-only, prefix-ordered, checksum-locked migrations are deliberately rigid
 (Constitution: schema migrations checked into the repo). The rigidity is what makes the
@@ -308,6 +315,6 @@ coordination flag necessary — it is a process note, not a design flaw.
 | `--max` + cursor + per-resource commit | R6: `--max` = per-session dataset batch; commit cursor per dataset, completion per resource (≤1 lost) |
 | Retry policy / "remaining" | R7: skip failures on normal resume; `--retry-failed` re-attempts up to maxAttempts; remaining excludes capped failures |
 | Lost/corrupt checkpoint | R8: validate-on-read; degrade to safe re-scan with on-disk content reuse |
-| Migration numbering | R9: propose `006_crawl_checkpoint.sql`; coordinate with 002/003-batch/incremental at merge time |
+| Migration numbering | R9: canonical collision-free prefix is `006_crawl_checkpoint.sql` (002 claims `004`, 003 claims `005`); re-confirm at merge time |
 
 All Phase 0 unknowns are resolved. Phase 1 may proceed.

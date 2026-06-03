@@ -238,7 +238,7 @@ clean; quickstart.md commands pass end-to-end; confirm composition seam with 002
 
 Features 002/003/004 were planned in parallel and share infrastructure; a cross-spec review reconciled:
 
-- **Migration numbering (canonical, collision-free):** `004_index_failures.sql` (002), `005_index_state.sql` (003), `006_crawl_checkpoint.sql` (004). All are additive and order-independent; `src/store/migrate.ts` should also gain a duplicate-prefix guard.
+- **Migration numbering (canonical, collision-free):** `004_index_failures.sql` (002), `005_index_state.sql` (003), `006_crawl_checkpoint.sql` (004). All are additive and order-independent; `src/store/migrate.ts` gains a duplicate-prefix guard added by **this feature's T002** (003 is the SOLE owner of the guard and its `migrate.test.ts` case); 002 and 004 rely on it and do not re-add it.
 - **run-index composition (002 ↔ 003): land 003 first.** 003 owns the per-dataset incremental loop (fingerprint check → FTS upsert + `content_fp`; embed + `embed_fp`/`model_id`, each in its own transaction; model identity read once at run start). 002 then batches **only the changed/selected set** 003 yields, persisting each vector with its `embed_fp`/`model_id`. The two MUST share one merged `run-index` loop, not two competing rewrites.
 - **Orphan purge:** 003's every-run reconcile-vs-`listActive()` purge MUST also clear 002's `index_failures` rows for non-active datasets.
-- **004 orchestrator:** the egov crawl is wired through `src/crawler/run-sync.ts`, sharing the single `sync_runs_lock` (egov & CKAN mutually exclusive); egov exit codes mirror the CKAN path.
+- **004 orchestrator:** the egov crawl is wired through a **new** `src/crawler/run-egov-sync.ts` that mirrors `src/crawler/run-sync.ts` (the existing CKAN orchestrator, which stays unchanged), sharing the single `sync_runs_lock` (egov & CKAN mutually exclusive); egov exit codes mirror the CKAN path.

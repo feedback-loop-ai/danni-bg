@@ -176,4 +176,3 @@ reason in both `failures[]` and `index_failures`.
 - **Choosing/bundling a real embedding model** — out of scope (spec Assumptions);
   the bundled deterministic stub is used for CI and is exercised through the
   batched path.
-</content>

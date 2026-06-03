@@ -27,7 +27,7 @@ bun run -e "import {openDb} from './src/store/db.ts'; const db=openDb({storeRoot
 ## 1. Build the full index once (baseline)
 
 ```bash
-bun run src/cli/index.ts --full
+bun run src/cli/danni.ts index --full
 # expect JSON like:
 # {"ftsUpdated":N,"vectorsUpdated":N,"embedded":N,"skippedUnchanged":0,"reembeddedDueToModelChange":0,"purged":0}
 ```
@@ -40,7 +40,7 @@ bun run src/cli/index.ts --full
 Run the indexer again immediately, incrementally (the default):
 
 ```bash
-bun run src/cli/index.ts
+bun run src/cli/danni.ts index
 # expect:
 # {"ftsUpdated":0,"vectorsUpdated":0,"embedded":0,"skippedUnchanged":N,"reembeddedDueToModelChange":0,"purged":0}
 ```
@@ -61,7 +61,7 @@ Touch one dataset's indexable content (e.g. via a re-sync, or directly for the
 test). Then:
 
 ```bash
-bun run src/cli/index.ts
+bun run src/cli/danni.ts index
 # expect (for a content change touching the embedding input):
 # {"ftsUpdated":1,"vectorsUpdated":1,"embedded":1,"skippedUnchanged":N-1,"reembeddedDueToModelChange":0,"purged":0}
 ```
@@ -75,7 +75,7 @@ Change only a dataset's `tags_json` (tags are in the FTS row but not in
 `composeEmbeddingText`):
 
 ```bash
-bun run src/cli/index.ts
+bun run src/cli/danni.ts index
 # expect:
 # {"ftsUpdated":1,"vectorsUpdated":0,"embedded":0,"skippedUnchanged":N,"reembeddedDueToModelChange":0,"purged":0}
 ```
@@ -85,11 +85,16 @@ bun run src/cli/index.ts
 
 ## 4. Switch the embedder — re-embed the whole corpus (SC-003, US-2)
 
-Edit `danni.config.json` so `enrichment.embedder.modelId` (or provider/dimension)
-differs from the prior run, then:
+Edit `danni.config.json` so the resulting `modelIdOf(embedder)` =
+`` `${embedder.id}#${embedder.dimension}` `` differs from the prior run (data-model §2.3,
+T004). Concretely, change any config field that feeds `embedder.id` or
+`embedder.dimension`: `enrichment.embedder.modelId` (the embedder builds
+`id = "<provider>:<modelId>"`, e.g. `local-onnx:<modelId>`), `enrichment.embedder.provider`
+(flips the `<provider>:` prefix of `id`), or the embedder's `dimension`. Any of these flips
+the recorded identity; leaving all three unchanged does NOT. Then:
 
 ```bash
-bun run src/cli/index.ts
+bun run src/cli/danni.ts index
 # expect:
 # {"ftsUpdated":0,"vectorsUpdated":N,"embedded":0,"skippedUnchanged":0,"reembeddedDueToModelChange":N,"purged":0}
 ```
@@ -106,7 +111,7 @@ bun run -e "import {openDb} from './src/store/db.ts'; const db=openDb({storeRoot
 Re-running with the same embedder must report `0` re-embeds (US-2 scenario 2):
 
 ```bash
-bun run src/cli/index.ts
+bun run src/cli/danni.ts index
 # expect: skippedUnchanged == N, reembeddedDueToModelChange == 0
 ```
 
@@ -116,7 +121,7 @@ Withdraw a dataset upstream (or set `lifecycle_state='withdrawn'` for the test),
 then run incrementally:
 
 ```bash
-bun run src/cli/index.ts
+bun run src/cli/danni.ts index
 # expect: "purged":1 (the withdrawn dataset)
 ```
 
@@ -133,7 +138,7 @@ bun run -e "import {openDb} from './src/store/db.ts'; const db=openDb({storeRoot
 Withdraw a dataset, then run a subset re-index that does NOT name it:
 
 ```bash
-bun run src/cli/index.ts --datasets some-other-id
+bun run src/cli/danni.ts index --datasets some-other-id
 # expect: the withdrawn dataset is STILL purged (purge is full-corpus),
 #         while only `some-other-id` is considered for recompute (FR-006).
 ```
@@ -143,7 +148,7 @@ bun run src/cli/index.ts --datasets some-other-id
 Set `index.incremental = false` in `danni.config.json` and run without `--full`:
 
 ```bash
-bun run src/cli/index.ts
+bun run src/cli/danni.ts index
 # expect: every active dataset recomputed (no skipping), but NOT a destructive
 #         full-store clear (that is --full only). Precedence: --full > config > default true.
 ```
@@ -156,7 +161,7 @@ is `true`).
 Simulate an interrupted run (kill mid-index), then re-run incrementally:
 
 ```bash
-bun run src/cli/index.ts
+bun run src/cli/danni.ts index
 # expect: the run converges — any dataset whose fingerprint was recorded WITHOUT
 #         its store row is recomputed (presence guard, FR-001); no --full needed.
 ```
@@ -167,7 +172,7 @@ vector content hash after incremental convergence, running `--full`, and compari
 
 ```bash
 # 1) hash after incremental runs (FTS rows + vectors), 2) run --full, 3) re-hash, 4) compare
-bun run src/cli/index.ts --full
+bun run src/cli/danni.ts index --full
 # the FTS-row set and the per-dataset vector set MUST be identical to the pre-full state
 ```
 

@@ -31,7 +31,7 @@ three tables: one campaign row, one per in-scope dataset, one per resource (the 
 | `frozen_ids_json` | TEXT | NOT NULL DEFAULT '[]' | Frozen **sorted** in-scope dataset-uri array (FR-003); Zod `string[]` on read |
 | `cursor_uri` | TEXT | | Last completed dataset uri (the high-water-mark); NULL before the first dataset completes |
 | `total_datasets` | INTEGER | NOT NULL DEFAULT 0 | `length(frozen_ids_json)` snapshot for fast progress (FR-006) |
-| `max_attempts` | INTEGER | NOT NULL DEFAULT 3 CHECK (max_attempts >= 1) | Per-row failure cap (FR-009) |
+| `max_attempts` | INTEGER | NOT NULL DEFAULT 3 CHECK (max_attempts >= 1) | Per-row failure cap (FR-009). This feature uses the **fixed default of 3** — no CLI flag/config sets it; the column is **reserved** so a later feature can make the cap configurable without a schema change. A row is capped when `attempts >= max_attempts`. |
 | `status` | TEXT | NOT NULL DEFAULT 'active' CHECK (status IN ('active','completed')) | `completed` once cursor passes the last frozen id |
 | `created_at` | TEXT | NOT NULL | Campaign start |
 | `updated_at` | TEXT | NOT NULL | Last session that advanced the checkpoint |
@@ -90,13 +90,15 @@ three tables: one campaign row, one per in-scope dataset, one per resource (the 
 
 **File**: `migrations/006_crawl_checkpoint.sql`
 
-> **⚠ Numbering coordination (research.md R9 / plan.md Complexity Tracking)**: the next free
-> prefix **today** is `004` (existing: `001_core`, `002_curate_enrich`, `003_index`). Sibling
-> features `002-batch-embedding` and `003-incremental-indexing` are concurrently in flight and
-> have **not** yet authored migrations. The runner (`src/store/migrate.ts`) requires unique
-> integer prefixes and checksum-locks applied files. **The implementer MUST re-confirm the
-> next free prefix at merge time (`ls migrations/`) and renumber to `005`/`006` if a sibling
-> feature's migration lands first.**
+> **⚠ Numbering coordination (research.md R9 / plan.md Complexity Tracking + Cross-Spec
+> Coordination)**: the unused prefixes on disk **today** are `004/005/006` (existing applied:
+> `001_core`, `002_curate_enrich`, `003_index`). Sibling features `002-batch-embedding` and
+> `003-incremental-indexing` now each have a full plan + data-model + tasks and **claim**
+> migrations: 002 → `004_index_failures.sql`, 003 → `005_index_state.sql`. The canonical,
+> collision-free prefix for this feature is therefore **`006_crawl_checkpoint.sql`**. The
+> runner (`src/store/migrate.ts`) requires unique integer prefixes and checksum-locks applied
+> files. **The implementer MUST re-confirm the next free prefix at merge time (`ls
+> migrations/`) and renumber only if the merge order changes which sibling lands first.**
 
 **Creates**:
 - Table `crawl_checkpoints` (§1.1) + index `idx_crawl_checkpoints_status`.
@@ -173,7 +175,15 @@ pending ──(validator unchanged AND all resources success)──► complete
    │                                                            └─(upstream validator changes)─► pending (re-fetch)
    └──(visit fails, attempts < max)──► pending (retry-eligible)
    └──(visit fails, attempts = max)──► failed (skipped on normal resume; --retry-failed ineligible at cap)
+                                          │
+                                          └─(--retry-failed AND attempts < max_attempts)─► pending (re-open; matches §3.2)
 ```
+
+> A dataset's `failed` rollup is itself derived from its resources' outcomes (it goes
+> `failed` once a constituent resource hits its cap). `--retry-failed` re-opens a dataset row
+> whose `attempts < max_attempts` back to `pending` for re-attempt (mirrors the §3.2 resource
+> edge and FR-009 / research.md R7); rows already at the cap stay `failed` and are excluded
+> from `remaining`.
 
 ### 3.2 Checkpoint resource outcome
 

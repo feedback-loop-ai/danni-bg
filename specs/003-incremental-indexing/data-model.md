@@ -117,8 +117,18 @@ identity differs from `index_state.model_id` (NULL or mismatch = changed; FR-004
 |---|---|---|---|
 | yes | yes | yes | skip (`skippedUnchanged`) |
 | yes | no | any | re-embed (`reembeddedDueToModelChange`) |
-| yes | yes | no | re-embed (presence guard) |
-| no / NULL | any | any | re-embed (content changed / new) |
+| yes | yes | no | re-embed (presence guard) — counted `embedded` |
+| no / NULL | yes | any | re-embed (content changed / new) — counted `embedded` |
+| no / NULL | no | any | re-embed (content **and** model changed) — counted `embedded` |
+
+**Count precedence (the two re-embed reasons are mutually exclusive)**: a re-embed is
+counted as `reembeddedDueToModelChange` **only** when `embed_fp` matches but `model_id`
+differs (a *pure* model change). Whenever `embed_fp` is mismatched/NULL the content changed,
+so the re-embed is counted as `embedded` regardless of `model_id` — content takes precedence.
+Thus a dataset whose content **and** model both changed in the same run is counted once,
+under `embedded`, never double-counted; `reembeddedDueToModelChange` is reserved for the
+model-only case. (The presence-guard re-embed, where `embed_fp`/`model_id` both match but the
+embedding row is missing, is likewise counted `embedded`.)
 
 `--full` ignores this table entirely and rebuilds all three stores (R7).
 
@@ -153,20 +163,25 @@ Existing applied migrations: `001_core.sql`, `002_curate_enrich.sql`,
 checksum change on an already-applied version — so two branches that both claim `004`
 will collide on merge (duplicate `version = 4`).
 
-**Three in-flight features each add one migration and MUST coordinate the prefix:**
+**Three in-flight features each add one migration; the canonical, collision-free
+assignment (plan.md §Cross-Spec Coordination, review 2026-06-04) is:**
 
-| Feature | Branch | New table | Proposed file |
+| Feature | Branch | New table | Migration file |
 |---|---|---|---|
-| 002-batch-embedding | `002-batch-embedding` | `index_failures(dataset_id, reason, updated_at)` | `00X_index_failures.sql` |
-| 003-incremental-indexing (this) | `003-incremental-indexing` | `index_state(dataset_id, content_fp, embed_fp, model_id, updated_at)` | `00X_index_state.sql` |
-| 004-crawl-checkpoint-resume | `004-crawl-checkpoint-resume` | (its own table[s]) | `00X_crawl_checkpoint.sql` |
+| 002-batch-embedding | `002-batch-embedding` | `index_failures(dataset_id, reason, updated_at)` | `004_index_failures.sql` |
+| 003-incremental-indexing (this) | `003-incremental-indexing` | `index_state(dataset_id, content_fp, embed_fp, model_id, updated_at)` | `005_index_state.sql` |
+| 004-crawl-checkpoint-resume | `004-crawl-checkpoint-resume` | `crawl_checkpoint{,_datasets,_resources}` | `006_crawl_checkpoint.sql` |
 
-**Resolution rule**: assign 004/005/006 in *merge order* — the first feature to merge
-takes 004, the next rebases to 005, the next to 006. Do **not** infer the migration
-number from the feature/branch number: branch `003-*` does **not** imply migration
-`003_*` (that prefix is already `003_index.sql`). This plan writes `005_index_state.sql`
-as the proposed name but the merging engineer MUST renumber to the next actually-free
-prefix at merge time.
+**Resolution rule**: the assignment above is canonical and fixed by table ownership
+(002 → `004`, 003 → `005`, 004 → `006`), not by merge order — all three features'
+Cross-Spec Coordination blocks agree. Do **not** infer the migration number from the
+feature/branch number: branch `003-*` does **not** imply migration `003_*` (that prefix
+is already `003_index.sql`). This feature ships `005_index_state.sql`; the merging
+engineer MUST still re-confirm the next free prefix at merge time (`ls migrations/`) and
+renumber only if the merge order changes which sibling lands first. The duplicate-prefix
+guard added by this feature's T002 (`src/store/migrate.ts`) is the SOLE owner of that
+guard; 002 and 004 rely on it and do not re-add it, so a `004`/`005`/`006` collision
+fails loudly at migrate time.
 
 ---
 
