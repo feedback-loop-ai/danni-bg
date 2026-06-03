@@ -76,7 +76,9 @@ export async function runCurate(opts: RunCurateOptions): Promise<RunCurateResult
   for (const dataset of targets) {
     const resources = resourcesRepo.listByDataset(dataset.id);
     for (const r of resources) {
-      if (!r.raw_path) continue;
+      // Skip resources without a successful capture — a prior raw_path may be
+      // stale (upstream withdrawn/emptied on re-sync) and must not be re-curated.
+      if (!r.raw_path || r.last_outcome !== 'success') continue;
       const rawAbs = join(opts.storeRoot, 'raw', r.raw_path);
       if (!existsSync(rawAbs)) {
         log.warn('curate.skip-missing-raw', { datasetId: dataset.id, resourceId: r.id });

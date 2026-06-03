@@ -153,41 +153,48 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
 
     for (const r of resList.resources) {
       resources++;
-      resourcesRepo.upsert({
+      const formatHint = r.file_format ? r.file_format.toLowerCase() : null;
+      const baseResource = {
         id: r.uri,
         datasetId: d.uri,
         sourceUrl: r.resource_url || `https://data.egov.bg/data/view/${d.uri}`,
-        declaredFormat: r.file_format ? r.file_format.toLowerCase() : null,
         name: r.name ?? null,
-      });
+      };
+      let rows: unknown[];
       try {
-        const rows = (await opts.client.getResourceData(r.uri)).data;
-        if (rows.length === 0) {
-          resourcesRepo.recordOutcome(r.uri, 'failure', 'empty datastore');
-          failures++;
-          continue;
-        }
-        const tabular = Array.isArray(rows[0]);
-        const ext = tabular ? 'csv' : 'json';
-        const content = tabular ? rowsToCsv(rows) : `${JSON.stringify(rows, null, 2)}\n`;
-        const rawPath = join(d.uri, r.uri, `raw.${ext}`);
-        ensureDir(join(opts.storeRoot, 'raw', d.uri, r.uri));
-        writeFileSync(join(opts.storeRoot, 'raw', rawPath), content);
-        const buf = Buffer.from(content, 'utf-8');
-        resourcesRepo.recordCapture({
-          id: r.uri,
-          bytes: buf.byteLength,
-          sha256: sha256Hex(buf),
-          rawPath,
-          detectedFormat: ext,
-          outcome: 'success',
-        });
-        captured++;
+        rows = (await opts.client.getResourceData(r.uri)).data;
       } catch (err) {
         log.warn('egov.capture.fail', { resource: r.uri, error: msg(err) });
+        resourcesRepo.upsert({ ...baseResource, declaredFormat: formatHint });
         resourcesRepo.recordOutcome(r.uri, 'failure', msg(err));
         failures++;
+        continue;
       }
+      if (rows.length === 0) {
+        resourcesRepo.upsert({ ...baseResource, declaredFormat: formatHint });
+        resourcesRepo.recordOutcome(r.uri, 'failure', 'empty datastore');
+        failures++;
+        continue;
+      }
+      // The serialized shape — not the portal's file_format — is authoritative for
+      // curator selection: array-of-arrays → CSV (tabular), else JSON. Set
+      // declared_format to what we actually wrote so the registry routes correctly.
+      const ext = Array.isArray(rows[0]) ? 'csv' : 'json';
+      const content = ext === 'csv' ? rowsToCsv(rows) : `${JSON.stringify(rows, null, 2)}\n`;
+      const rawPath = join(d.uri, r.uri, `raw.${ext}`);
+      ensureDir(join(opts.storeRoot, 'raw', d.uri, r.uri));
+      writeFileSync(join(opts.storeRoot, 'raw', rawPath), content);
+      const buf = Buffer.from(content, 'utf-8');
+      resourcesRepo.upsert({ ...baseResource, declaredFormat: ext });
+      resourcesRepo.recordCapture({
+        id: r.uri,
+        bytes: buf.byteLength,
+        sha256: sha256Hex(buf),
+        rawPath,
+        detectedFormat: ext,
+        outcome: 'success',
+      });
+      captured++;
     }
   }
 

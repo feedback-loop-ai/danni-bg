@@ -4,14 +4,18 @@ import { PortalHttp } from '../../../src/crawler/http.ts';
 import { RateLimiter } from '../../../src/crawler/rate-limit.ts';
 import { RobotsCache } from '../../../src/crawler/robots.ts';
 
-function makeHttp(fetcher: typeof fetch, robotsBody = 'User-agent: *\nAllow: /\n'): PortalHttp {
+function makeHttp(
+  fetcher: typeof fetch,
+  robotsBody = 'User-agent: *\nAllow: /\n',
+  failureBudget = 1,
+): PortalHttp {
   return new PortalHttp({
     userAgent: 'danni-bg/test',
     rateLimiter: new RateLimiter({ requestsPerSecond: 100, concurrency: 4 }),
     backoff: new BackoffRunner({
       initialMs: 5,
       maxMs: 20,
-      failureBudget: 1,
+      failureBudget,
       sleep: async () => {},
     }),
     robots: new RobotsCache({
@@ -65,5 +69,55 @@ describe('crawler.PortalHttp.postJson', () => {
     await expect(http.postJson('https://blocked.example/api/x', {})).rejects.toThrow(
       /robots\.txt disallows/,
     );
+  });
+
+  it('retries a 429 honoring Retry-After, then succeeds', async () => {
+    let calls = 0;
+    const fetcher = (async () => {
+      calls++;
+      if (calls === 1) {
+        return new Response('{}', {
+          status: 429,
+          headers: { 'retry-after': '0' },
+        }) as unknown as Response;
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+      }) as unknown as Response;
+    }) as unknown as typeof fetch;
+    const res = await makeHttp(fetcher, undefined, 3).postJson<{ success: boolean }>(
+      'https://data.egov.bg/api/x',
+      {},
+    );
+    expect(calls).toBe(2);
+    expect(res.body.success).toBe(true);
+  });
+
+  it('retries a 503 without Retry-After, then succeeds', async () => {
+    let calls = 0;
+    const fetcher = (async () => {
+      calls++;
+      return calls === 1
+        ? (new Response('err', { status: 503 }) as unknown as Response)
+        : (new Response('{"success":true}', { status: 200 }) as unknown as Response);
+    }) as unknown as typeof fetch;
+    await makeHttp(fetcher, undefined, 3).postJson('https://data.egov.bg/api/x', {});
+    expect(calls).toBe(2);
+  });
+
+  it('fails terminally (no retry) on a non-JSON body from a final response', async () => {
+    let calls = 0;
+    const fetcher = (async () => {
+      calls++;
+      return new Response('<html>Moved</html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }) as unknown as Response;
+    }) as unknown as typeof fetch;
+    // failureBudget 3, but a non-JSON final response must NOT be retried.
+    await expect(
+      makeHttp(fetcher, undefined, 3).postJson('https://data.egov.bg/api/3/action/x', {}),
+    ).rejects.toThrow(/returned non-JSON.*text\/html/);
+    expect(calls).toBe(1);
   });
 });

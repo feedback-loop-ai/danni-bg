@@ -1,6 +1,7 @@
 import { createWriteStream } from 'node:fs';
 import { rmSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { CkanApiError } from '../lib/errors.ts';
 import { ensureDir, tempPath } from '../lib/fs.ts';
 import { Sha256Stream } from '../lib/hash.ts';
 import type { BackoffRunner } from './backoff.ts';
@@ -111,9 +112,25 @@ export class PortalHttp {
             ? { ok: false, error: new Error(`HTTP ${res.status}`), retryAfterMs: retryAfter }
             : { ok: false, error: new Error(`HTTP ${res.status}`) };
         }
-        const body = (await res.json()) as T;
+        // A non-JSON body on a final (non-retryable) response is a deterministic
+        // failure (e.g. an HTML error/redirect page). Surface it terminally with
+        // status + content-type + a body excerpt instead of burning the retry
+        // budget on a parse error that will never succeed.
+        const text = await res.text();
+        let body: T;
+        try {
+          body = JSON.parse(text) as T;
+        } catch {
+          const ct = res.headers.get('content-type') ?? 'unknown';
+          throw new CkanApiError(
+            `POST ${url} returned non-JSON (status ${res.status}, content-type ${ct}): ${text.slice(0, 200)}`,
+            res.status,
+            { contentType: ct },
+          );
+        }
         return { ok: true, value: { status: res.status, body, headers: res.headers } };
       } catch (err) {
+        if (err instanceof CkanApiError) throw err; // terminal — do not retry
         return { ok: false, error: err };
       } finally {
         this.rateLimiter.release(host);

@@ -4,14 +4,14 @@
 // sync consumes and tolerate the rest.
 import { z } from 'zod';
 
+// The ONLY reliable discriminant is `success: false`. The error/errors payload
+// shape varies (object, array, or string), so keep them fully opaque — any
+// success:false body must be treated as an error regardless of their shape.
 export const EgovErrorEnvelopeSchema = z
   .object({
     success: z.literal(false),
-    errors: z.record(z.unknown()).optional(),
-    error: z
-      .object({ type: z.string().nullish(), message: z.string().nullish() })
-      .passthrough()
-      .optional(),
+    errors: z.unknown().optional(),
+    error: z.unknown().optional(),
   })
   .passthrough();
 

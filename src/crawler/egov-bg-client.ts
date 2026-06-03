@@ -43,16 +43,22 @@ export class EgovBgClient {
     schema: S,
   ): Promise<z.infer<S>> {
     const url = joinUrl(this.baseUrl, method);
-    const payload = this.apiKey ? { api_key: this.apiKey, ...body } : body;
+    // Configured api_key is authoritative — spread body first so it can't override.
+    const payload = this.apiKey ? { ...body, api_key: this.apiKey } : body;
     const res = await this.http.postJson<unknown>(url, payload);
     const err = EgovErrorEnvelopeSchema.safeParse(res.body);
     if (err.success) {
+      const errObj = err.data.error;
+      const type =
+        errObj && typeof errObj === 'object' && 'type' in errObj
+          ? String((errObj as { type: unknown }).type)
+          : typeof errObj === 'string'
+            ? errObj
+            : 'error';
       const fieldErrors = err.data.errors ? ` ${JSON.stringify(err.data.errors)}` : '';
-      throw new CkanApiError(
-        `egov-bg ${method} failed: ${err.data.error?.type ?? 'error'}${fieldErrors}`,
-        res.status,
-        { action: method },
-      );
+      throw new CkanApiError(`egov-bg ${method} failed: ${type}${fieldErrors}`, res.status, {
+        action: method,
+      });
     }
     try {
       return schema.parse(res.body);

@@ -38,6 +38,10 @@
     {
       "name": "resource_get",
       "testId": "tests/integration/sync-bootstrap-resync.test.ts#captures all resources fresh; second run skips unchanged content"
+    },
+    {
+      "name": "egov-bg-live-api",
+      "testId": "tests/unit/crawler/egov-bg-client.test.ts#lists datasets"
     }
   ],
   "datasetSchemas": [
