@@ -66,7 +66,8 @@ describe('crawler.egov-bg-client', () => {
 
   it('gets datastore rows (array-of-arrays with a header) and organisations', async () => {
     const data = await makeClient(fixtureResponder).getResourceData('f3a30929');
-    expect(Array.isArray(data.data[0])).toBe(true);
+    expect(Array.isArray(data.data)).toBe(true);
+    expect(Array.isArray((data.data as unknown[])[0])).toBe(true);
     const orgs = await makeClient(fixtureResponder).listOrganisations();
     expect(orgs.organisations.length).toBeGreaterThan(0);
   });

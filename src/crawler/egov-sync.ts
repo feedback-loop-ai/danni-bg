@@ -50,6 +50,94 @@ export function rowsToCsv(rows: unknown[]): string {
   return `${rows.map((r) => (Array.isArray(r) ? r.map(csvCell).join(',') : csvCell(r))).join('\n')}\n`;
 }
 
+function cellStr(v: unknown): string {
+  return v === null || v === undefined ? '' : String(v).trim();
+}
+
+function toRow(r: unknown): string[] {
+  return Array.isArray(r) ? r.map(cellStr) : [cellStr(r)];
+}
+
+function looksNumeric(s: string): boolean {
+  return s !== '' && !Number.isNaN(Number(s.replace(/\s/g, '').replace(',', '.')));
+}
+
+/** A header-like row has at least one label and no numeric (data) cells. */
+function isHeaderLike(row: string[]): boolean {
+  const nonEmpty = row.filter((c) => c !== '');
+  return nonEmpty.length > 0 && !nonEmpty.some(looksNumeric);
+}
+
+/**
+ * Detect merged-group spans in row 0: a non-empty label at `start` followed by
+ * ≥1 blank column that the sub-row labels (row1[i] non-empty). Returns the
+ * columns to forward-fill the group label into. Empty when there is no group —
+ * a label with only trailing/unlabeled blanks is NOT a merge.
+ */
+function groupFillColumns(row0: string[], row1: string[]): number[] {
+  const fill: number[] = [];
+  for (let i = 0; i < row0.length; i++) {
+    if (row0[i] === '') continue;
+    let j = i + 1;
+    while (j < row0.length && row0[j] === '' && (row1[j] ?? '') !== '') {
+      fill.push(j);
+      j++;
+    }
+  }
+  return fill;
+}
+
+/**
+ * Collapse a 2-row datastore header into one header row. data.egov.bg serves
+ * spreadsheet exports whose merged header cells span two rows (a top group label
+ * with gaps + a sub-label row). Merging is GATED on positive evidence to avoid
+ * ever consuming a real data row: row1 must be header-like (no numerics), the
+ * row AFTER it (row2) must be data-like (numeric — shape divergence), and row0
+ * must contain a genuine merged group whose blank columns are sub-labeled by
+ * row1. Otherwise row0 is used as a single-row header (no rows dropped).
+ *
+ * Known limitation: 3+ band headers and right-edge-only groups are not merged
+ * (treated as single-row header); a pathological all-text data row immediately
+ * before a numeric row under a sub-labeled group could still be misread, but the
+ * row2-data-like gate eliminates the common cases.
+ */
+export function flattenHeader(rows: unknown[]): { header: string[]; dataStart: number } {
+  if (rows.length === 0) return { header: [], dataStart: 0 };
+  const sample = rows.slice(0, 10).map(toRow);
+  const width = Math.max(1, ...sample.map((r) => r.length));
+  const pad = (r: string[]): string[] => {
+    const a = r.slice();
+    while (a.length < width) a.push('');
+    return a;
+  };
+  const row0 = pad(toRow(rows[0]));
+  const row1 = rows.length > 1 ? pad(toRow(rows[1])) : null;
+  const row2 = rows.length > 2 ? pad(toRow(rows[2])) : null;
+
+  const fillCols = row1 ? groupFillColumns(row0, row1) : [];
+  const merge =
+    row1 !== null &&
+    row2 !== null &&
+    isHeaderLike(row1) &&
+    !isHeaderLike(row2) && // the row after the sub-row must be data
+    fillCols.length > 0; // row0 has a genuine sub-labeled merged group
+
+  if (!merge || row1 === null) return { header: row0, dataStart: 1 };
+
+  const top = [...row0];
+  for (const c of fillCols) {
+    // fill from the nearest non-empty label to the left (the group's label)
+    for (let k = c - 1; k >= 0; k--) {
+      if (top[k] !== '') {
+        top[c] = top[k] as string;
+        break;
+      }
+    }
+  }
+  const header = top.map((t, i) => [t, row1[i] ?? ''].filter((x) => x !== '').join(' '));
+  return { header, dataStart: 2 };
+}
+
 function msg(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
@@ -160,9 +248,9 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
         sourceUrl: r.resource_url || `https://data.egov.bg/data/view/${d.uri}`,
         name: r.name ?? null,
       };
-      let rows: unknown[];
+      let data: unknown[] | Record<string, unknown>;
       try {
-        rows = (await opts.client.getResourceData(r.uri)).data;
+        data = (await opts.client.getResourceData(r.uri)).data;
       } catch (err) {
         log.warn('egov.capture.fail', { resource: r.uri, error: msg(err) });
         resourcesRepo.upsert({ ...baseResource, declaredFormat: formatHint });
@@ -170,17 +258,30 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
         failures++;
         continue;
       }
-      if (rows.length === 0) {
+      const isEmptyData =
+        (Array.isArray(data) && data.length === 0) ||
+        (data !== null &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          Object.keys(data).length === 0);
+      if (isEmptyData) {
         resourcesRepo.upsert({ ...baseResource, declaredFormat: formatHint });
         resourcesRepo.recordOutcome(r.uri, 'failure', 'empty datastore');
         failures++;
         continue;
       }
       // The serialized shape — not the portal's file_format — is authoritative for
-      // curator selection: array-of-arrays → CSV (tabular), else JSON. Set
-      // declared_format to what we actually wrote so the registry routes correctly.
-      const ext = Array.isArray(rows[0]) ? 'csv' : 'json';
-      const content = ext === 'csv' ? rowsToCsv(rows) : `${JSON.stringify(rows, null, 2)}\n`;
+      // curator selection. Tabular datastore (array-of-arrays) → CSV; an
+      // array-of-objects or a single structured document (e.g. OCDS) → JSON.
+      const ext = Array.isArray(data) && Array.isArray(data[0]) ? 'csv' : 'json';
+      let content: string;
+      if (ext === 'csv') {
+        const rows = data as unknown[];
+        const { header, dataStart } = flattenHeader(rows);
+        content = rowsToCsv([header, ...rows.slice(dataStart)]);
+      } else {
+        content = `${JSON.stringify(data, null, 2)}\n`;
+      }
       const rawPath = join(d.uri, r.uri, `raw.${ext}`);
       ensureDir(join(opts.storeRoot, 'raw', d.uri, r.uri));
       writeFileSync(join(opts.storeRoot, 'raw', rawPath), content);

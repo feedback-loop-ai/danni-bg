@@ -1,11 +1,27 @@
 import { describe, expect, it } from 'bun:test';
-import { canonicalizeName, inferColumnType } from '../../../src/curate/schema.ts';
+import {
+  canonicalizeName,
+  inferColumnType,
+  transliterateCyrillic,
+} from '../../../src/curate/schema.ts';
 
 describe('curate.schema', () => {
   it('canonicalizeName turns Cyrillic header into snake_case', () => {
     const taken = new Set<string>();
     const c = canonicalizeName('Бюджет 2025', taken);
     expect(/^[a-z][a-z0-9_]*$/.test(c)).toBe(true);
+  });
+
+  it('canonicalizeName transliterates Bulgarian into readable Latin identifiers', () => {
+    const t = new Set<string>();
+    expect(canonicalizeName('Бюджет 2025', t)).toBe('byudzhet_2025');
+    expect(canonicalizeName('Час на тръгване', t)).toBe('chas_na_tragvane');
+    expect(canonicalizeName('Пореден №', t)).toBe('poreden_no');
+  });
+
+  it('transliterateCyrillic maps multigraphs and preserves non-Cyrillic text/case', () => {
+    expect(transliterateCyrillic('Щъркел ABC 7')).toBe('Shtarkel ABC 7');
+    expect(transliterateCyrillic('жчшщюя')).toBe('zhchshshtyuya');
   });
 
   it('canonicalizeName de-duplicates', () => {

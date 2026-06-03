@@ -83,9 +83,10 @@ export const ListResourcesResponseSchema = z
 export const ResourceDataResponseSchema = z
   .object({
     success: z.literal(true),
-    // The datastore returns rows as an array (array-of-arrays with a header row,
-    // or array-of-objects for some resources). Kept opaque; the sync handles both.
-    data: z.array(z.unknown()),
+    // The datastore returns either tabular rows (array-of-arrays with a header
+    // row, or array-of-objects) OR a single structured document (e.g. an OCDS
+    // JSON object for contracting datasets). Kept opaque; the sync handles all.
+    data: z.union([z.array(z.unknown()), z.record(z.unknown())]),
   })
   .passthrough();
 

@@ -19,8 +19,61 @@ export interface ColumnInference {
 
 const ID_RE = /^[a-z][a-z0-9_]*$/;
 
+// Official Bulgarian "Streamlined System" transliteration. Applied before
+// slugifying so Cyrillic headers become meaningful ASCII identifiers (e.g.
+// "Пореден №" → "poreden") instead of being stripped to "c_". The original
+// Cyrillic is preserved separately in the column's sourceName/labelBg.
+const CYRILLIC_TO_LATIN: Record<string, string> = {
+  а: 'a',
+  б: 'b',
+  в: 'v',
+  г: 'g',
+  д: 'd',
+  е: 'e',
+  ж: 'zh',
+  з: 'z',
+  и: 'i',
+  й: 'y',
+  к: 'k',
+  л: 'l',
+  м: 'm',
+  н: 'n',
+  о: 'o',
+  п: 'p',
+  р: 'r',
+  с: 's',
+  т: 't',
+  у: 'u',
+  ф: 'f',
+  х: 'h',
+  ц: 'ts',
+  ч: 'ch',
+  ш: 'sh',
+  щ: 'sht',
+  ъ: 'a',
+  ь: 'y',
+  ю: 'yu',
+  я: 'ya',
+};
+
+export function transliterateCyrillic(input: string): string {
+  let out = '';
+  for (const ch of input) {
+    const lower = ch.toLowerCase();
+    const mapped = CYRILLIC_TO_LATIN[lower];
+    if (mapped === undefined) {
+      out += ch;
+    } else if (ch === lower) {
+      out += mapped;
+    } else {
+      out += mapped.charAt(0).toUpperCase() + mapped.slice(1);
+    }
+  }
+  return out;
+}
+
 export function canonicalizeName(source: string, taken: Set<string>): string {
-  const decomposed = source
+  const decomposed = transliterateCyrillic(source)
     .normalize('NFKD')
     .toLowerCase()
     .replace(/[^\p{Letter}\p{Number}_]+/gu, '_')
