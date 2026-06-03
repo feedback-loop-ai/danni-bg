@@ -18,13 +18,13 @@ const FIX = fileURLToPath(new URL('../fixtures/portal/', import.meta.url));
 
 function makeConfig(storeRoot: string): DanniConfig {
   return {
-    portal: { baseUrl: 'https://data.egov.bg/api/3/action/' },
+    portal: { baseUrl: 'https://data.egov.bg/api/3/action/', api: 'ckan' },
     crawler: {
       userAgent: 'danni-bg/9.9.9 (+https://example.test/contact)',
       rateLimit: { requestsPerSecondPerHost: 50 },
       concurrency: { maxConcurrentRequestsPerHost: 4 },
       backoff: { initialMs: 10, maxMs: 100, failureBudget: 3 },
-      robots: { recheckIntervalSeconds: 86400 },
+      robots: { recheckIntervalSeconds: 86400, obey: true, allowHosts: [] },
     },
     store: { root: storeRoot, freshnessSloSeconds: 86400 },
     schedule: {

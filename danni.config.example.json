@@ -1,6 +1,8 @@
 {
   "portal": {
-    "baseUrl": "https://data.egov.bg/api/3/action/"
+    "baseUrl": "https://data.egov.bg/api/3/action/",
+    "api": "ckan",
+    "apiKeyEnv": null
   },
   "crawler": {
     "userAgent": "danni-bg/0.1.0 (+https://github.com/your-org/danni-bg)",
@@ -16,7 +18,9 @@
       "failureBudget": 20
     },
     "robots": {
-      "recheckIntervalSeconds": 86400
+      "recheckIntervalSeconds": 86400,
+      "obey": true,
+      "allowHosts": []
     }
   },
   "store": {

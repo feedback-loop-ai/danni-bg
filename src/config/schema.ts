@@ -3,6 +3,12 @@ import { z } from 'zod';
 export const PortalConfigSchema = z
   .object({
     baseUrl: z.string().url(),
+    // 'ckan' — standard CKAN Action API (default; documented contract + fixtures).
+    // 'egov-bg' — data.egov.bg's custom POST API (governmentbg/data-gov-bg).
+    api: z.enum(['ckan', 'egov-bg']).default('ckan'),
+    // Optional env var holding an api_key, sent to the portal when present.
+    // The data.egov.bg read endpoints are public, so this is usually unset.
+    apiKeyEnv: z.string().min(1).nullable().optional(),
   })
   .strict();
 
@@ -29,6 +35,12 @@ export const BackoffConfigSchema = z
 export const RobotsConfigSchema = z
   .object({
     recheckIntervalSeconds: z.number().int().min(60),
+    // When false, robots.txt is not consulted at all (operator opt-out for
+    // authorized crawling of sites whose robots.txt blanket-disallows, e.g.
+    // an official API meant for programmatic use). Default true.
+    obey: z.boolean().default(true),
+    // Hosts exempted from robots.txt even when `obey` is true (allowlist).
+    allowHosts: z.array(z.string().min(1)).default([]),
   })
   .strict();
 

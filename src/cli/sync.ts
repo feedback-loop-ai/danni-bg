@@ -5,6 +5,8 @@ import { loadConfig } from '../config/loader.ts';
 import { type ScopeConfig, ScopeConfigSchema } from '../config/schema.ts';
 import { BackoffRunner } from '../crawler/backoff.ts';
 import { CkanClient } from '../crawler/ckan-client.ts';
+import { EgovBgClient } from '../crawler/egov-bg-client.ts';
+import { runEgovSync } from '../crawler/egov-sync.ts';
 import { PortalHttp } from '../crawler/http.ts';
 import { RateLimiter } from '../crawler/rate-limit.ts';
 import { RobotsCache } from '../crawler/robots.ts';
@@ -17,6 +19,7 @@ export interface SyncFlags {
   scope?: ScopeConfig | undefined;
   manifestOut?: string | undefined;
   dryRun?: boolean | undefined;
+  max?: number | undefined;
 }
 
 export function parseScopeArg(
@@ -61,6 +64,11 @@ export function parseFlags(args: string[]): SyncFlags {
     } else if (a === '--scope') {
       flags.scope = parseScopeArg(args[i + 1]);
       i++;
+    } else if (a === '--max') {
+      const v = Number(args[i + 1]);
+      if (!Number.isInteger(v) || v <= 0) throw new Error('--max requires a positive integer');
+      flags.max = v;
+      i++;
     } else if (a === '--manifest-out') {
       flags.manifestOut = args[i + 1];
       i++;
@@ -102,6 +110,8 @@ export async function run(args: string[]): Promise<number> {
     });
     const robots = new RobotsCache({
       recheckIntervalSeconds: config.crawler.robots.recheckIntervalSeconds,
+      obey: config.crawler.robots.obey,
+      allowHosts: config.crawler.robots.allowHosts,
     });
     const http = new PortalHttp({
       userAgent: config.crawler.userAgent,
@@ -109,6 +119,22 @@ export async function run(args: string[]): Promise<number> {
       backoff,
       robots,
     });
+
+    // data.egov.bg's custom API: discover + capture via the egov-bg adapter.
+    if (config.portal.api === 'egov-bg') {
+      const apiKey = config.portal.apiKeyEnv ? process.env[config.portal.apiKeyEnv] : undefined;
+      const egov = new EgovBgClient({ baseUrl: config.portal.baseUrl, http, apiKey });
+      const result = await runEgovSync({
+        db,
+        storeRoot,
+        client: egov,
+        ...(flags.scope?.datasetIds ? { datasetUris: flags.scope.datasetIds } : {}),
+        ...(flags.max ? { maxDatasets: flags.max } : {}),
+      });
+      process.stdout.write(`${JSON.stringify(result)}\n`);
+      return result.captured > 0 || result.datasets > 0 ? 0 : 3;
+    }
+
     const client = new CkanClient({ baseUrl: config.portal.baseUrl, http });
     const notifier = createNotifier({ config: config.schedule.notifier });
 

@@ -88,6 +88,39 @@ export class PortalHttp {
     });
   }
 
+  async postJson<T>(
+    url: string,
+    payload: unknown,
+    extraHeaders: Record<string, string> = {},
+  ): Promise<JsonResponse<T>> {
+    if (!(await this.robots.isAllowed(url, this.userAgent))) {
+      throw new Error(`robots.txt disallows ${url}`);
+    }
+    return this.backoff.run(`POST ${url}`, async () => {
+      const host = hostOf(url);
+      await this.rateLimiter.acquire(host);
+      try {
+        const res = await this.fetcher(url, {
+          method: 'POST',
+          headers: this.headers({ 'content-type': 'application/json', ...extraHeaders }),
+          body: JSON.stringify(payload),
+        });
+        if (isRetryable(res.status)) {
+          const retryAfter = parseRetryAfter(res.headers.get('retry-after')) ?? undefined;
+          return retryAfter !== undefined
+            ? { ok: false, error: new Error(`HTTP ${res.status}`), retryAfterMs: retryAfter }
+            : { ok: false, error: new Error(`HTTP ${res.status}`) };
+        }
+        const body = (await res.json()) as T;
+        return { ok: true, value: { status: res.status, body, headers: res.headers } };
+      } catch (err) {
+        return { ok: false, error: err };
+      } finally {
+        this.rateLimiter.release(host);
+      }
+    });
+  }
+
   async download(
     url: string,
     targetPath: string,

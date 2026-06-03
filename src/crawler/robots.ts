@@ -12,6 +12,10 @@ export interface RobotsCacheOptions {
   recheckIntervalSeconds: number;
   fetcher?: (url: string) => Promise<{ status: number; body: string }>;
   now?: () => number;
+  /** When false, robots.txt is never fetched/consulted (operator opt-out). */
+  obey?: boolean;
+  /** Hosts exempted from robots.txt even when `obey` is true. */
+  allowHosts?: string[];
 }
 
 function parseRobotsTxt(body: string): RobotsRule[] {
@@ -77,11 +81,15 @@ export class RobotsCache {
   private readonly recheckIntervalMs: number;
   private readonly fetcher: (url: string) => Promise<{ status: number; body: string }>;
   private readonly now: () => number;
+  private readonly obey: boolean;
+  private readonly allowHosts: Set<string>;
 
   constructor(opts: RobotsCacheOptions) {
     this.recheckIntervalMs = Math.max(1000, opts.recheckIntervalSeconds * 1000);
     this.fetcher = opts.fetcher ?? defaultFetcher;
     this.now = opts.now ?? Date.now;
+    this.obey = opts.obey ?? true;
+    this.allowHosts = new Set((opts.allowHosts ?? []).map((h) => h.toLowerCase()));
   }
 
   private async load(origin: string): Promise<RobotsCacheEntry> {
@@ -98,12 +106,14 @@ export class RobotsCache {
   }
 
   async isAllowed(targetUrl: string, userAgent: string): Promise<boolean> {
+    if (!this.obey) return true;
     let url: URL;
     try {
       url = new URL(targetUrl);
     } catch {
       return false;
     }
+    if (this.allowHosts.has(url.host.toLowerCase())) return true;
     const origin = url.origin;
     let entry = this.cache.get(origin);
     if (!entry || this.now() - entry.fetchedAt > this.recheckIntervalMs) {

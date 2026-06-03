@@ -97,4 +97,31 @@ describe('crawler.RobotsCache', () => {
     });
     expect(await cache.isAllowed('not-a-url', 'a')).toBe(false);
   });
+
+  it('opt-out (obey=false) allows everything without fetching robots.txt', async () => {
+    let fetched = false;
+    const cache = new RobotsCache({
+      recheckIntervalSeconds: 60,
+      obey: false,
+      fetcher: async () => {
+        fetched = true;
+        return { status: 200, body: 'User-agent: *\nDisallow: /\n' };
+      },
+    });
+    // A site whose robots.txt blanket-disallows is still allowed under opt-out,
+    // and robots.txt is never even fetched.
+    expect(await cache.isAllowed('https://data.egov.bg/api/listDatasets', 'danni')).toBe(true);
+    expect(fetched).toBe(false);
+  });
+
+  it('allowHosts exempts a specific host while still enforcing robots elsewhere', async () => {
+    const cache = new RobotsCache({
+      recheckIntervalSeconds: 60,
+      allowHosts: ['data.egov.bg'],
+      fetcher: async () => ({ status: 200, body: 'User-agent: *\nDisallow: /\n' }),
+    });
+    expect(await cache.isAllowed('https://data.egov.bg/api/x', 'danni')).toBe(true);
+    // A different host with the same blanket-disallow is still blocked.
+    expect(await cache.isAllowed('https://other.example/x', 'danni')).toBe(false);
+  });
 });
