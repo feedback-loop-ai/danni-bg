@@ -2,10 +2,10 @@ import type { Database } from 'bun:sqlite';
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { composeView } from '../../src/cli/mirror-info.ts';
 import { LocalOnnxEmbedder } from '../../src/index/embedders/local-onnx.ts';
 import { search } from '../../src/index/query.ts';
 import { runIndex } from '../../src/index/run-index.ts';
+import { datasetView } from '../../src/read/dataset-view.ts';
 import { openDb } from '../../src/store/db.ts';
 import { runMigrations } from '../../src/store/migrate.ts';
 import { DatasetsRepo } from '../../src/store/repos/datasets.ts';
@@ -58,7 +58,7 @@ describe('integration.offline-read (SC-006)', () => {
     }) as unknown as typeof fetch;
 
     try {
-      const view = composeView(db, 'd1', 86400);
+      const view = datasetView(db, 'd1', 86400);
       expect(view.datasetId).toBe('d1');
       const embedder = new LocalOnnxEmbedder({ dimension: 8 });
       await runIndex({ db, embedder });
