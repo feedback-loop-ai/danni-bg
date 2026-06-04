@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-batch-embedding`  
 **Created**: 2026-06-03  
-**Status**: Draft  
+**Status**: Implemented (shipped in c58f1c7; verified by the test suite, 2026-06-04)  
 **Input**: User description: "When we re-index the vectors after a full crawl, embedding one dataset at a time means ~12k separate embedder calls. Embed in batches so a real (hosted or local) embedder can index the whole corpus efficiently."
 
 ## Clarifications

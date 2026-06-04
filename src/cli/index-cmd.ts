@@ -68,7 +68,13 @@ function buildEmbedder(config: ReturnType<typeof loadConfig>): Embedder {
       ...(e.modelId ? { modelId: e.modelId } : {}),
     });
   }
-  return new LocalOnnxEmbedder(e.modelId ? { modelId: e.modelId } : {});
+  const embedder = new LocalOnnxEmbedder(e.modelId ? { modelId: e.modelId } : {});
+  if (embedder.isStub) {
+    process.stderr.write(
+      `warning: embedder provider 'local-onnx' is a deterministic hash stub (${embedder.id}) — the resulting vectors are NOT semantic; only the FTS/keyword index is meaningful. Set enrichment.embedder.provider='hosted-api' for genuine semantic vectors.\n`,
+    );
+  }
+  return embedder;
 }
 
 export async function run(args: string[]): Promise<number> {

@@ -18,11 +18,14 @@ export class LocalOnnxEmbedder implements Embedder {
   readonly id: string;
   readonly dimension: number;
   readonly maxBatchSize?: number;
+  /** True when falling back to the deterministic hash stub (no real `embedFn` supplied). */
+  readonly isStub: boolean;
   private readonly fn: (texts: string[]) => Promise<Float32Array[]>;
 
   constructor(opts: LocalOnnxEmbedderOptions = {}) {
     this.id = `local-onnx:${opts.modelId ?? 'hash-stub-32'}`;
     this.dimension = opts.dimension ?? 32;
+    this.isStub = opts.embedFn === undefined;
     if (opts.maxBatchSize !== undefined) this.maxBatchSize = opts.maxBatchSize;
     this.fn =
       opts.embedFn ??

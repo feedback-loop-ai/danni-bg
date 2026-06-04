@@ -82,5 +82,11 @@ describe('contract.index-entry', () => {
       if (!parsed.success) throw new Error(JSON.stringify(parsed.error.issues));
       expect(parsed.success).toBe(true);
     }
+    // FR-013: curatedDatasetPath is a relative path under store/curated/. With no
+    // curated artifact it falls back to the dataset's canonical curated directory.
+    const hit = results.find((r) => r.datasetId === 'd1');
+    expect(hit?.curatedDatasetPath).toBe('d1');
+    expect(hit?.curatedDatasetPath.startsWith('/')).toBe(false);
+    expect(hit?.sourceUrl).toBe('https://x/d1');
   });
 });

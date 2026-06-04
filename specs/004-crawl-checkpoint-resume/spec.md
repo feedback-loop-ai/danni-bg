@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-crawl-checkpoint-resume`  
 **Created**: 2026-06-03  
-**Status**: Draft  
+**Status**: Implemented (shipped in 081b2dc; verified by the test suite, 2026-06-04)  
 **Input**: User description: "Crawling the whole data.egov.bg portal is ~12k datasets and tens of thousands of requests at a respectful rate — a long run. Make a full sync resumable: checkpoint progress so an interrupted crawl continues without re-fetching what it already captured, and let it run in batches across sessions."
 
 ## Clarifications

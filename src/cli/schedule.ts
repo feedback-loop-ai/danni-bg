@@ -1,11 +1,6 @@
 import { resolve } from 'node:path';
 import { loadConfig } from '../config/loader.ts';
-import { BackoffRunner } from '../crawler/backoff.ts';
-import { CkanClient } from '../crawler/ckan-client.ts';
-import { PortalHttp } from '../crawler/http.ts';
-import { RateLimiter } from '../crawler/rate-limit.ts';
-import { RobotsCache } from '../crawler/robots.ts';
-import { runSync } from '../crawler/run-sync.ts';
+import { buildPortalHttp, runPortalSync } from '../crawler/portal-sync.ts';
 import { withContext } from '../logging/logger.ts';
 import { LockContentionError } from '../manifest/sync-run.ts';
 import { createNotifier } from '../notify/notifier.ts';
@@ -51,25 +46,10 @@ export async function run(args: string[]): Promise<number> {
   const db = openDb({ storeRoot, loadVec: false });
   const log = withContext({ component: 'schedule' });
   try {
-    const rateLimiter = new RateLimiter({
-      requestsPerSecond: config.crawler.rateLimit.requestsPerSecondPerHost,
-      concurrency: config.crawler.concurrency.maxConcurrentRequestsPerHost,
-    });
-    const backoff = new BackoffRunner({
-      initialMs: config.crawler.backoff.initialMs,
-      maxMs: config.crawler.backoff.maxMs,
-      failureBudget: config.crawler.backoff.failureBudget,
-    });
-    const robots = new RobotsCache({
-      recheckIntervalSeconds: config.crawler.robots.recheckIntervalSeconds,
-    });
-    const http = new PortalHttp({
-      userAgent: config.crawler.userAgent,
-      rateLimiter,
-      backoff,
-      robots,
-    });
-    const client = new CkanClient({ baseUrl: config.portal.baseUrl, http });
+    // Dispatch on portal.api like the interactive `sync` CLI (shared runPortalSync) so a scheduled
+    // crawl of the live data.egov.bg portal uses the egov-bg adapter + robots opt-out instead of
+    // silently issuing CKAN calls that all fail. The HTTP stack persists across fires.
+    const http = buildPortalHttp(config);
     const notifier = createNotifier({ config: config.schedule.notifier });
 
     let exitCode = 0;
@@ -81,10 +61,9 @@ export async function run(args: string[]): Promise<number> {
       },
       fire: async () => {
         try {
-          await runSync({
+          await runPortalSync({
             db,
             config,
-            client,
             http,
             storeRoot,
             trigger: 'scheduled',
