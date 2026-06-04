@@ -1,11 +1,14 @@
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
 import { describe, expect, it } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { DanniConfig } from '../../../src/config/schema.ts';
 import type { EgovBgClient } from '../../../src/crawler/egov-bg-client.ts';
-import { flattenHeader, rowsToCsv, runEgovSync } from '../../../src/crawler/egov-sync.ts';
+import { flattenHeader, rowsToCsv } from '../../../src/crawler/egov-sync.ts';
+import { runEgovSyncRun } from '../../../src/crawler/run-egov-sync.ts';
 import { runCurate } from '../../../src/curate/run-curate.ts';
+import { openDb } from '../../../src/store/db.ts';
 import { runMigrations } from '../../../src/store/migrate.ts';
 import { CuratedArtifactsRepo } from '../../../src/store/repos/curated-artifacts.ts';
 import { DatasetsRepo } from '../../../src/store/repos/datasets.ts';
@@ -27,11 +30,39 @@ function fakeClient(overrides: Partial<Record<string, () => unknown>> = {}): Ego
   } as unknown as EgovBgClient;
 }
 
-function freshDb(): Database {
-  const db = new Database(':memory:');
-  db.exec('PRAGMA foreign_keys = ON;');
+function testConfig(): DanniConfig {
+  return {
+    schedule: {
+      onOverlap: 'skip',
+      failureRateThreshold: 0.5,
+      enabled: false,
+      timezone: 'Europe/Sofia',
+      notifier: { kind: 'stderr' },
+    },
+    scope: {},
+  } as unknown as DanniConfig;
+}
+
+function freshDb(storeRoot: string): Database {
+  const db = openDb({ storeRoot, loadVec: false });
   runMigrations(db, join(ROOT, 'migrations'));
   return db;
+}
+
+async function capture(
+  storeRoot: string,
+  db: Database,
+  overrides: Partial<Record<string, () => unknown>> = {},
+  scope: DanniConfig['scope'] = { datasetIds: [DATASET_URI] },
+) {
+  return runEgovSyncRun({
+    db,
+    config: testConfig(),
+    client: fakeClient(overrides),
+    storeRoot,
+    trigger: 'manual',
+    scope,
+  });
 }
 
 describe('crawler.egov-sync', () => {
@@ -52,26 +83,20 @@ describe('crawler.egov-sync', () => {
   });
 
   it('captures real-shaped datastore data into the store and DB (explicit URIs)', async () => {
-    const db = freshDb();
     const storeRoot = globalThis.__TEST_TMP_DIR__;
-    const result = await runEgovSync({
-      db,
-      storeRoot,
-      client: fakeClient(),
-      datasetUris: [DATASET_URI],
-    });
+    const db = freshDb(storeRoot);
+    const result = await capture(storeRoot, db);
 
-    expect(result.datasets).toBe(1);
-    expect(result.resources).toBe(3);
-    expect(result.captured).toBe(3);
-    expect(result.failures).toBe(0);
+    expect(result.totals.captured).toBe(3);
+    expect(result.totals.failed).toBe(0);
 
     const ds = new DatasetsRepo(db).get(DATASET_URI);
     expect(ds?.title_bg.length).toBeGreaterThan(0);
     expect(ds?.publisher_id).toBe('egov-org-113');
     expect(JSON.parse(ds?.tags_json ?? '[]')).toContain('ППС');
+    // dataset-level validator is written to source_etag_or_hash (FR-002)
+    expect(ds?.source_etag_or_hash).toBeTruthy();
 
-    // org row materialized (placeholder name when not in the org pages)
     expect(new OrganizationsRepo(db).get('egov-org-113')).not.toBeNull();
 
     const resources = new ResourcesRepo(db).listByDataset(DATASET_URI);
@@ -81,44 +106,45 @@ describe('crawler.egov-sync', () => {
     expect(r0?.last_outcome).toBe('success');
     expect(r0?.raw_path).toBeTruthy();
     expect(existsSync(join(storeRoot, 'raw', r0?.raw_path as string))).toBe(true);
-    // CSV starts with the datastore header row
     const csv = readFileSync(join(storeRoot, 'raw', r0?.raw_path as string), 'utf-8');
     expect(csv.startsWith('РЕГИОН,')).toBe(true);
     db.close();
   });
 
-  it('enumerates via listDatasets when no URIs are given (respects maxDatasets)', async () => {
-    const db = freshDb();
-    const result = await runEgovSync({
+  it('enumerates via listDatasets when no datasetIds scope is given (--max bounds the session)', async () => {
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const result = await runEgovSyncRun({
       db,
-      storeRoot: globalThis.__TEST_TMP_DIR__,
+      config: testConfig(),
       client: fakeClient(),
-      maxDatasets: 1,
+      storeRoot,
+      trigger: 'manual',
+      scope: {},
+      max: 1,
     });
-    expect(result.datasets).toBe(1);
-    expect(result.captured).toBe(3);
+    expect(result.totals.discovered).toBe(1);
+    expect(result.totals.captured).toBe(3);
     db.close();
   });
 
   it('records a failure for an empty datastore resource', async () => {
-    const db = freshDb();
-    const result = await runEgovSync({
-      db,
-      storeRoot: globalThis.__TEST_TMP_DIR__,
-      client: fakeClient({ getResourceData: () => ({ success: true, data: [] }) }),
-      datasetUris: [DATASET_URI],
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const result = await capture(storeRoot, db, {
+      getResourceData: () => ({ success: true, data: [] }),
     });
-    expect(result.captured).toBe(0);
-    expect(result.failures).toBe(3);
+    expect(result.totals.captured).toBe(0);
+    expect(result.totals.failed).toBe(3);
     const r0 = new ResourcesRepo(db).listByDataset(DATASET_URI)[0];
     expect(r0?.last_outcome).toBe('failure');
     db.close();
   });
 
   it('captured CSVs curate into tabular artifacts (end-to-end on real-shaped data)', async () => {
-    const db = freshDb();
     const storeRoot = globalThis.__TEST_TMP_DIR__;
-    await runEgovSync({ db, storeRoot, client: fakeClient(), datasetUris: [DATASET_URI] });
+    const db = freshDb(storeRoot);
+    await capture(storeRoot, db);
     const curated = await runCurate({ db, storeRoot, curatorVersion: 'egov-test' });
     expect(curated.curated).toBe(3);
     const artifacts = new CuratedArtifactsRepo(db).byDataset(DATASET_URI);
@@ -127,8 +153,8 @@ describe('crawler.egov-sync', () => {
   });
 
   it('captures array-of-objects datastore data as JSON (non-tabular shape)', async () => {
-    const db = freshDb();
     const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
     const objectData = {
       success: true,
       data: [
@@ -136,19 +162,12 @@ describe('crawler.egov-sync', () => {
         { a: 2, b: 'y' },
       ],
     };
-    await runEgovSync({
-      db,
-      storeRoot,
-      client: fakeClient({ getResourceData: () => objectData }),
-      datasetUris: [DATASET_URI],
-    });
+    await capture(storeRoot, db, { getResourceData: () => objectData });
     const r0 = new ResourcesRepo(db).listByDataset(DATASET_URI)[0];
-    // declared_format follows the ACTUAL serialized shape, not the portal hint.
     expect(r0?.declared_format).toBe('json');
     expect(r0?.detected_format).toBe('json');
     const raw = JSON.parse(readFileSync(join(storeRoot, 'raw', r0?.raw_path as string), 'utf-8'));
     expect(raw[0].a).toBe(1);
-    // and it curates as a json (not tabular) artifact
     await runCurate({ db, storeRoot, curatorVersion: 'v' });
     const art = new CuratedArtifactsRepo(db).byDataset(DATASET_URI)[0];
     expect(art?.kind).toBe('json');
@@ -156,56 +175,42 @@ describe('crawler.egov-sync', () => {
   });
 
   it('skips a dataset whose details fetch fails', async () => {
-    const db = freshDb();
-    const result = await runEgovSync({
-      db,
-      storeRoot: globalThis.__TEST_TMP_DIR__,
-      client: fakeClient({
-        getDatasetDetails: () => {
-          throw new Error('details boom');
-        },
-      }),
-      datasetUris: [DATASET_URI],
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const result = await capture(storeRoot, db, {
+      getDatasetDetails: () => {
+        throw new Error('details boom');
+      },
     });
-    expect(result.datasets).toBe(0);
-    expect(result.failures).toBe(1);
+    expect(result.totals.failed).toBe(1);
     expect(new DatasetsRepo(db).get(DATASET_URI)).toBeNull();
     db.close();
   });
 
   it('persists the dataset but no resources when listResources fails', async () => {
-    const db = freshDb();
-    const result = await runEgovSync({
-      db,
-      storeRoot: globalThis.__TEST_TMP_DIR__,
-      client: fakeClient({
-        listResources: () => {
-          throw new Error('list boom');
-        },
-      }),
-      datasetUris: [DATASET_URI],
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const result = await capture(storeRoot, db, {
+      listResources: () => {
+        throw new Error('list boom');
+      },
     });
-    expect(result.datasets).toBe(1);
-    expect(result.resources).toBe(0);
-    expect(result.captured).toBe(0);
+    expect(result.totals.captured).toBe(0);
+    expect(result.totals.failed).toBe(1);
     expect(new DatasetsRepo(db).get(DATASET_URI)).not.toBeNull();
     db.close();
   });
 
   it('records a failure (Error) for a throwing getResourceData', async () => {
-    const db = freshDb();
-    const result = await runEgovSync({
-      db,
-      storeRoot: globalThis.__TEST_TMP_DIR__,
-      client: fakeClient({
-        getResourceData: () => {
-          throw new Error('data boom');
-        },
-      }),
-      datasetUris: [DATASET_URI],
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const result = await capture(storeRoot, db, {
+      getResourceData: () => {
+        throw new Error('data boom');
+      },
     });
-    expect(result.captured).toBe(0);
-    expect(result.failures).toBe(3);
+    expect(result.totals.captured).toBe(0);
+    expect(result.totals.failed).toBe(3);
     const r0 = new ResourcesRepo(db).listByDataset(DATASET_URI)[0];
     expect(r0?.last_outcome).toBe('failure');
     expect(r0?.last_failure_reason).toBe('data boom');
@@ -213,55 +218,73 @@ describe('crawler.egov-sync', () => {
   });
 
   it('records a string failure reason for a non-Error throw (msg String branch)', async () => {
-    const db = freshDb();
-    const result = await runEgovSync({
-      db,
-      storeRoot: globalThis.__TEST_TMP_DIR__,
-      client: fakeClient({
-        getResourceData: () => {
-          const nonError: unknown = 'plain-string';
-          throw nonError;
-        },
-      }),
-      datasetUris: [DATASET_URI],
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const result = await capture(storeRoot, db, {
+      getResourceData: () => {
+        const nonError: unknown = 'plain-string';
+        throw nonError;
+      },
     });
-    expect(result.failures).toBe(3);
+    expect(result.totals.failed).toBe(3);
     expect(new ResourcesRepo(db).listByDataset(DATASET_URI)[0]?.last_failure_reason).toBe(
       'plain-string',
     );
     db.close();
   });
 
+  it('records a string failure reason for a non-Error details throw', async () => {
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const result = await capture(storeRoot, db, {
+      getDatasetDetails: () => {
+        const nonError: unknown = 'details-string';
+        throw nonError;
+      },
+    });
+    expect(result.totals.failed).toBe(1);
+    db.close();
+  });
+
+  it('records a non-Error listResources throw at the dataset level', async () => {
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const result = await capture(storeRoot, db, {
+      listResources: () => {
+        const nonError: unknown = 'list-string';
+        throw nonError;
+      },
+    });
+    expect(result.totals.failed).toBe(1);
+    db.close();
+  });
+
   it('stores a real string description (descript string branch)', async () => {
-    const db = freshDb();
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
     const det = JSON.parse(JSON.stringify(fix('getDatasetDetails')));
     det.data.descript = 'Описание на ресурса';
-    await runEgovSync({
-      db,
-      storeRoot: globalThis.__TEST_TMP_DIR__,
-      client: fakeClient({ getDatasetDetails: () => det }),
-      datasetUris: [DATASET_URI],
-    });
+    await capture(storeRoot, db, { getDatasetDetails: () => det });
     expect(new DatasetsRepo(db).get(DATASET_URI)?.description_bg).toBe('Описание на ресурса');
     db.close();
   });
 
   it('does not re-curate a resource whose latest outcome flipped to failure (stale guard)', async () => {
-    const db = freshDb();
     const storeRoot = globalThis.__TEST_TMP_DIR__;
-    await runEgovSync({ db, storeRoot, client: fakeClient(), datasetUris: [DATASET_URI] });
+    const db = freshDb(storeRoot);
+    await capture(storeRoot, db);
     const resources = new ResourcesRepo(db);
     const first = resources.listByDataset(DATASET_URI)[0];
     if (!first) throw new Error('expected a captured resource');
-    // Upstream withdrawn on a later sync: outcome → failure, stale raw_path stays.
     resources.recordOutcome(first.id, 'failure', 'withdrawn upstream');
     const curated = await runCurate({ db, storeRoot, curatorVersion: 'stale' });
-    expect(curated.curated).toBe(2); // 1 of 3 skipped as stale
+    expect(curated.curated).toBe(2);
     db.close();
   });
 
   it('paginates organisations to resolve a publisher beyond the first page', async () => {
-    const db = freshDb();
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
     const page1 = {
       success: true,
       total_records: 200,
@@ -278,33 +301,31 @@ describe('crawler.egov-sync', () => {
     };
     let call = 0;
     const client = {
+      listDatasets: async () => ({ success: true, datasets: [] }),
       getDatasetDetails: async () => fix('getDatasetDetails'),
       listResources: async () => ({ success: true, resources: [] }),
       getResourceData: async () => fix('getResourceData'),
       listOrganisations: async () => (++call === 1 ? page1 : page2),
     } as unknown as EgovBgClient;
-    await runEgovSync({
+    await runEgovSyncRun({
       db,
-      storeRoot: globalThis.__TEST_TMP_DIR__,
+      config: testConfig(),
       client,
-      datasetUris: [DATASET_URI],
+      storeRoot,
+      trigger: 'manual',
+      scope: { datasetIds: [DATASET_URI] },
     });
     expect(new OrganizationsRepo(db).get('egov-org-113')?.title_bg).toBe('Целева организация');
     db.close();
   });
 
   it('captures a structured JSON document (object data, e.g. OCDS) as JSON', async () => {
-    const db = freshDb();
     const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
     const doc = { success: true, data: { uri: 'x', version: '1.1', releases: [{ id: 'r1' }] } };
-    const result = await runEgovSync({
-      db,
-      storeRoot,
-      client: fakeClient({ getResourceData: () => doc }),
-      datasetUris: [DATASET_URI],
-    });
-    expect(result.captured).toBe(3);
-    expect(result.failures).toBe(0);
+    const result = await capture(storeRoot, db, { getResourceData: () => doc });
+    expect(result.totals.captured).toBe(3);
+    expect(result.totals.failed).toBe(0);
     const r0 = new ResourcesRepo(db).listByDataset(DATASET_URI)[0];
     expect(r0?.declared_format).toBe('json');
     expect(r0?.last_outcome).toBe('success');
@@ -336,8 +357,8 @@ describe('crawler.egov-sync', () => {
   });
 
   it('curates multi-row-header datastore data into meaningful transliterated columns', async () => {
-    const db = freshDb();
     const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
     const multi = {
       success: true,
       data: [
@@ -346,12 +367,7 @@ describe('crawler.egov-sync', () => {
         ['1', '08:00', '09:00', 'x'],
       ],
     };
-    await runEgovSync({
-      db,
-      storeRoot,
-      client: fakeClient({ getResourceData: () => multi }),
-      datasetUris: [DATASET_URI],
-    });
+    await capture(storeRoot, db, { getResourceData: () => multi });
     await runCurate({ db, storeRoot, curatorVersion: 'v' });
     const art = new CuratedArtifactsRepo(db).byDataset(DATASET_URI)[0];
     const cols = JSON.parse(art?.schema_json ?? '{}').columns as Array<{
@@ -359,24 +375,21 @@ describe('crawler.egov-sync', () => {
       sourceName: string;
     }>;
     const names = cols.map((c) => c.canonicalName);
-    // merged + transliterated, NOT degenerate "c_"/"c_c_" slugs
     expect(names).toContain('no_po_red');
     expect(names.some((n) => /grafik_na_obsluzhvane_chas_na_tragvane/.test(n))).toBe(true);
     expect(names.every((n) => n !== 'c_' && n !== 'c_c_')).toBe(true);
-    // the original Cyrillic header is preserved in sourceName
     expect(cols.some((c) => c.sourceName.includes('Час на тръгване'))).toBe(true);
     db.close();
   });
 
   it('flattenHeader does NOT merge an all-text data row (no silent row loss)', () => {
-    // row0 has a trailing unlabeled column; both "sub" rows are all-text DATA.
     const rows = [
       ['Област', 'Община', ''],
       ['Благоевград', 'Банско', 'планински'],
       ['Видин', 'Белоградчик', 'равнинен'],
     ];
     const { header, dataStart } = flattenHeader(rows);
-    expect(dataStart).toBe(1); // single-row header → no data row consumed
+    expect(dataStart).toBe(1);
     expect(header).toEqual(['Област', 'Община', '']);
   });
 
@@ -401,9 +414,13 @@ describe('crawler.egov-sync', () => {
     });
   });
 
+  it('flattenHeader returns an empty header for empty rows', () => {
+    expect(flattenHeader([])).toEqual({ header: [], dataStart: 0 });
+  });
+
   it('preserves every data row when a multi-row header is NOT merged', async () => {
-    const db = freshDb();
     const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
     const allText = {
       success: true,
       data: [
@@ -412,29 +429,21 @@ describe('crawler.egov-sync', () => {
         ['Видин', 'Белоградчик', 'равнинен'],
       ],
     };
-    await runEgovSync({
-      db,
-      storeRoot,
-      client: fakeClient({ getResourceData: () => allText }),
-      datasetUris: [DATASET_URI],
-    });
+    await capture(storeRoot, db, { getResourceData: () => allText });
     await runCurate({ db, storeRoot, curatorVersion: 'v' });
     const art = new CuratedArtifactsRepo(db).byDataset(DATASET_URI)[0];
-    // 2 data rows after the single header row — neither dropped.
     expect(JSON.parse(art?.schema_json ?? '{}').rowCount).toBe(2);
     db.close();
   });
 
   it('records a failure for an empty object datastore ({}), symmetric with empty array', async () => {
-    const db = freshDb();
-    const result = await runEgovSync({
-      db,
-      storeRoot: globalThis.__TEST_TMP_DIR__,
-      client: fakeClient({ getResourceData: () => ({ success: true, data: {} }) }),
-      datasetUris: [DATASET_URI],
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const result = await capture(storeRoot, db, {
+      getResourceData: () => ({ success: true, data: {} }),
     });
-    expect(result.captured).toBe(0);
-    expect(result.failures).toBe(3);
+    expect(result.totals.captured).toBe(0);
+    expect(result.totals.failed).toBe(3);
     expect(new ResourcesRepo(db).listByDataset(DATASET_URI)[0]?.last_failure_reason).toBe(
       'empty datastore',
     );

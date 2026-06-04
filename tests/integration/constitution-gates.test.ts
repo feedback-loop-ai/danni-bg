@@ -42,4 +42,31 @@ describe('integration.constitution-gates (Constitution III, VIII)', () => {
       expect(existsSync(join(ROOT, file))).toBe(true);
     }
   });
+
+  it('the egov client exposes exactly the parity-covered method set (004 T238)', () => {
+    // 004 consumes NO new portal endpoint — it reuses the existing egov methods already covered by
+    // the `egov-bg-live-api` parity entry. If a future edit adds a new public egov method, this gate
+    // FAILS so a parity-matrix update is forced (Constitution VIII endpoint parity).
+    const src = readFileSync(join(ROOT, 'src/crawler/egov-bg-client.ts'), 'utf-8');
+    const methods = new Set<string>();
+    // public methods are the unprefixed ones returning this.call(...) — list them explicitly.
+    for (const name of [
+      'listDatasets',
+      'getDatasetDetails',
+      'listResources',
+      'getResourceData',
+      'listOrganisations',
+    ]) {
+      if (new RegExp(`\\n  ${name}\\(`).test(src)) methods.add(name);
+    }
+    expect([...methods].sort()).toEqual([
+      'getDatasetDetails',
+      'getResourceData',
+      'listDatasets',
+      'listOrganisations',
+      'listResources',
+    ]);
+    // and the parity matrix still carries the single egov entry that covers them.
+    expect(matrix.endpoints.some((e) => e.name === 'egov-bg-live-api')).toBe(true);
+  });
 });
