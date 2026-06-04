@@ -30,4 +30,14 @@ describe('index.embedders.local-onnx', () => {
     const [v] = await e.embed(['']);
     expect(v?.length).toBe(4);
   });
+
+  it('leaves maxBatchSize unset by default (CI exercises real multi-text batching)', () => {
+    const e = new LocalOnnxEmbedder({ dimension: 8 });
+    expect(e.maxBatchSize).toBeUndefined();
+  });
+
+  it('surfaces maxBatchSize === 1 when constructed with it (forced single, FR-005)', () => {
+    const e = new LocalOnnxEmbedder({ dimension: 8, maxBatchSize: 1 });
+    expect(e.maxBatchSize).toBe(1);
+  });
 });

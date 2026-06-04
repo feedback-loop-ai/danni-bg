@@ -15,16 +15,21 @@ interface IndexFlags {
 /**
  * Resolve the runIndex mode from CLI flags + config (FR-009 precedence:
  * `--full` > `config.index.incremental` > default true). `--full` is a one-shot override and
- * never mutates config.
+ * never mutates config. The embedder batch sizes (002, FR-002) are threaded from config into the
+ * loop (resolved to `effectiveBatchSize` inside it alongside the provider cap) — NOT into the
+ * provider constructor.
  */
 export function resolveMode(
   flags: IndexFlags,
   index: DanniConfig['index'],
+  embedder?: DanniConfig['enrichment']['embedder'],
 ): Omit<RunIndexOptions, 'db' | 'embedder'> {
   return {
     incremental: index.incremental,
     ...(flags.datasets ? { datasetIds: flags.datasets } : {}),
     ...(flags.full ? { full: true } : {}),
+    ...(embedder ? { batchSize: embedder.batchSize } : {}),
+    ...(embedder?.maxBatchSize != null ? { maxBatchSize: embedder.maxBatchSize } : {}),
   };
 }
 
@@ -82,7 +87,7 @@ export async function run(args: string[]): Promise<number> {
     const result = await runIndex({
       db,
       embedder: buildEmbedder(config),
-      ...resolveMode(flags, config.index),
+      ...resolveMode(flags, config.index, config.enrichment.embedder),
     });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return 0;

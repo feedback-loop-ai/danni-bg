@@ -68,4 +68,18 @@ describe('index.embedders.hosted-api', () => {
     expect(e.id).toBe('hosted-api:multilingual-mini');
     expect(e.dimension).toBe(384);
   });
+
+  it('leaves maxBatchSize unset when not supplied', () => {
+    const fetcher = (async () =>
+      new Response('{}', { status: 200 }) as unknown as Response) as unknown as typeof fetch;
+    const e = new HostedApiEmbedder({ endpointUrl: 'https://api/x', fetcher });
+    expect(e.maxBatchSize).toBeUndefined();
+  });
+
+  it('surfaces a constructor-supplied maxBatchSize (provider hard cap, FR-005)', () => {
+    const fetcher = (async () =>
+      new Response('{}', { status: 200 }) as unknown as Response) as unknown as typeof fetch;
+    const e = new HostedApiEmbedder({ endpointUrl: 'https://api/x', fetcher, maxBatchSize: 128 });
+    expect(e.maxBatchSize).toBe(128);
+  });
 });

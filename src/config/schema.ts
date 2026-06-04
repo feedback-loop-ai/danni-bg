@@ -113,8 +113,32 @@ export const EmbedderConfigSchema = z
     modelId: z.string().nullable().optional(),
     endpointUrl: z.string().url().nullable().optional(),
     apiKeyEnv: z.string().min(1).nullable().optional(),
+    // FR-002 / clarification Q2: number of texts per embedder request. Default 32, range 1–256.
+    batchSize: z.number().int().min(1).max(256).default(32),
+    // Optional provider-request cap; effective size = min(batchSize, maxBatchSize, providerCap).
+    // `maxBatchSize === 1` forces single-text mode (FR-005). Unset/null means no cap.
+    maxBatchSize: z.number().int().min(1).max(256).nullable().optional(),
   })
   .strict();
+
+/**
+ * Resolve the effective embedding batch size (FR-002, data-model §2): the smallest of the
+ * configured `batchSize`, the optional config `maxBatchSize` cap, and the optional provider
+ * capability cap (`Embedder.maxBatchSize`). A `null`/`undefined` cap is treated as no cap
+ * (`Infinity`), so omitting both caps yields `batchSize` unchanged. A cap of 1 (config or
+ * provider) yields 1, statically forcing single-text mode (FR-005).
+ */
+export function effectiveBatchSize(
+  batchSize: number,
+  configMax?: number | null,
+  providerMax?: number | null,
+): number {
+  return Math.min(
+    batchSize,
+    configMax ?? Number.POSITIVE_INFINITY,
+    providerMax ?? Number.POSITIVE_INFINITY,
+  );
+}
 
 export const EnrichmentConfigSchema = z
   .object({

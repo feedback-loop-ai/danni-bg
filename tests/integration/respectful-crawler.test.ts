@@ -38,7 +38,7 @@ function makeConfig(storeRoot: string): DanniConfig {
     scope: {},
     enrichment: {
       translator: { provider: 'local-marianmt' },
-      embedder: { provider: 'local-onnx' },
+      embedder: { provider: 'local-onnx', batchSize: 32 },
     },
     index: { incremental: true },
   };

@@ -5,6 +5,8 @@ export interface LocalOnnxEmbedderOptions {
   dimension?: number;
   /** Override the embedding function (used in tests). */
   embedFn?: (texts: string[]) => Promise<Float32Array[]>;
+  /** Optional provider cap (FR-005); left unset by default so CI exercises real batching. */
+  maxBatchSize?: number;
 }
 
 /**
@@ -15,11 +17,13 @@ export interface LocalOnnxEmbedderOptions {
 export class LocalOnnxEmbedder implements Embedder {
   readonly id: string;
   readonly dimension: number;
+  readonly maxBatchSize?: number;
   private readonly fn: (texts: string[]) => Promise<Float32Array[]>;
 
   constructor(opts: LocalOnnxEmbedderOptions = {}) {
     this.id = `local-onnx:${opts.modelId ?? 'hash-stub-32'}`;
     this.dimension = opts.dimension ?? 32;
+    if (opts.maxBatchSize !== undefined) this.maxBatchSize = opts.maxBatchSize;
     this.fn =
       opts.embedFn ??
       ((texts) => Promise.resolve(texts.map((t) => hashEmbedding(t, this.dimension))));
