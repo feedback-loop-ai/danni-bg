@@ -16,28 +16,28 @@ Each stage is independent, idempotent, and re-runnable; the store on disk is the
 
 ```mermaid
 flowchart TD
-  CFG[danni.config.json\nportal.api · scope · rate/robots · embedder · translator]
-  PORTAL[(data.egov.bg\nlive portal)]
+  CFG["danni.config.json<br/>portal.api · scope · rate/robots · embedder · translator"]
+  PORTAL[("data.egov.bg<br/>live portal")]
 
-  subgraph CLIENTS[Portal clients]
-    CKAN[CkanClient\nGET /api/3/action]
-    EGOV[EgovBgClient\nPOST /api/&lt;method&gt;]
+  subgraph CLIENTS["Portal clients"]
+    CKAN["CkanClient<br/>GET /api/3/action"]
+    EGOV["EgovBgClient<br/>POST /api/{method}"]
   end
-  HTTP[PortalHttp\nRateLimiter · BackoffRunner · RobotsCache obey/allowHosts]
+  HTTP["PortalHttp<br/>RateLimiter · BackoffRunner · RobotsCache (obey / allowHosts)"]
 
   PORTAL --> CKAN --> HTTP
   PORTAL --> EGOV --> HTTP
   CFG -.-> CLIENTS
 
-  HTTP --> SYNC[1 · SYNC\ndanni sync]
-  SYNC --> CURATE[2 · CURATE\ndanni curate]
-  CURATE --> ENRICH[3 · ENRICH\nentities · links · translations]
-  ENRICH --> INDEX[4 · INDEX\ndanni index]
-  INDEX --> SEARCH[5 · SEARCH\ndanni search / mirror-info / status]
+  HTTP --> SYNC["1 · SYNC<br/>danni sync"]
+  SYNC --> CURATE["2 · CURATE<br/>danni curate"]
+  CURATE --> ENRICH["3 · ENRICH<br/>entities · links · translations"]
+  ENRICH --> INDEX["4 · INDEX<br/>danni index"]
+  INDEX --> SEARCH["5 · SEARCH<br/>danni search · mirror-info · status"]
 
-  SYNC --> RAW[(store/raw/*\nbyte-faithful)]
-  CURATE --> CUR[(store/curated/*\ndata.ndjson|json + schema.json)]
-  SYNC --- DB[(store/danni.sqlite)]
+  SYNC --> RAW[("store/raw/*<br/>byte-faithful")]
+  CURATE --> CUR[("store/curated/*<br/>data.ndjson / json + schema.json")]
+  SYNC --- DB[("store/danni.sqlite")]
   CURATE --- DB
   ENRICH --- DB
   INDEX --- DB
