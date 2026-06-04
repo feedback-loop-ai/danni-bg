@@ -79,6 +79,16 @@ describe('crawler.egov-bg-client', () => {
     expect(res.data).toBeUndefined();
   });
 
+  it('accepts a plain-string datastore response (free-text/ASCII table)', async () => {
+    // Some resources return `data` as a pre-formatted text table (a string), not rows/object.
+    const text = '   +----+\n   | No |\n   +----+\n';
+    const res = await makeClient(() => ({ json: { success: true, data: text } })).getResourceData(
+      'txt',
+    );
+    expect(res.success).toBe(true);
+    expect(res.data).toBe(text);
+  });
+
   it('sends method as the URL path segment and POSTs a JSON body', async () => {
     const captured: Captured[] = [];
     await makeClient(fixtureResponder, captured).listDatasets({ recordsPerPage: 7, pageNumber: 2 });

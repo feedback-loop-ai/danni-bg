@@ -332,7 +332,7 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
         sourceUrl: r.resource_url || `https://data.egov.bg/data/view/${d.uri}`,
         name: r.name ?? null,
       };
-      let data: unknown[] | Record<string, unknown>;
+      let data: unknown[] | Record<string, unknown> | string;
       try {
         // An absent `data` field — the live API returns `{"success":true}` for an empty
         // datastore — normalizes to an empty array, captured below as a valid empty artifact.
@@ -369,11 +369,19 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
       // per-resource failure rate (~38% of a live sample) and tripped the SC-001 ≥95% SLO for
       // a non-error condition.
       // The serialized shape — not the portal's file_format — is authoritative for
-      // curator selection. Tabular datastore (array-of-arrays) → CSV; an
-      // array-of-objects or a single structured document (e.g. OCDS) → JSON.
-      const ext = Array.isArray(data) && Array.isArray(data[0]) ? 'csv' : 'json';
+      // curator selection. Tabular datastore (array-of-arrays) → CSV; an array-of-objects
+      // or a single structured document (e.g. OCDS) → JSON; a plain-string datastore
+      // (a pre-formatted free-text/ASCII table) → TXT, written verbatim.
+      const ext =
+        typeof data === 'string'
+          ? 'txt'
+          : Array.isArray(data) && Array.isArray(data[0])
+            ? 'csv'
+            : 'json';
       let content: string;
-      if (ext === 'csv') {
+      if (ext === 'txt') {
+        content = data as string;
+      } else if (ext === 'csv') {
         const rows = data as unknown[];
         const { header, dataStart } = flattenHeader(rows);
         content = rowsToCsv([header, ...rows.slice(dataStart)]);

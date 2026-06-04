@@ -159,6 +159,24 @@ describe('crawler.egov-sync', () => {
     db.close();
   });
 
+  it('captures a plain-string datastore as a verbatim .txt artifact (free-text/ASCII table)', async () => {
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    // Some live resources return `data` as a pre-formatted text table (a plain string),
+    // not rows/object — it must be captured as text, not rejected as a schema violation.
+    const text = 'Izdadeni dokumenti\n+----+------+\n| No | Vid  |\n';
+    const result = await capture(storeRoot, db, {
+      getResourceData: () => ({ success: true, data: text }),
+    });
+    expect(result.totals.captured).toBe(3);
+    expect(result.totals.failed).toBe(0);
+    const r0 = new ResourcesRepo(db).listByDataset(DATASET_URI)[0];
+    expect(r0?.last_outcome).toBe('success');
+    expect(r0?.raw_path?.endsWith('.txt')).toBe(true);
+    expect(readFileSync(join(storeRoot, 'raw', r0?.raw_path as string), 'utf-8')).toBe(text);
+    db.close();
+  });
+
   it('captured CSVs curate into tabular artifacts (end-to-end on real-shaped data)', async () => {
     const storeRoot = globalThis.__TEST_TMP_DIR__;
     const db = freshDb(storeRoot);
