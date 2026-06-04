@@ -30,6 +30,20 @@ export function discoverMigrations(dir: string): Migration[] {
     migrations.push({ version: Number.parseInt(versionStr, 10), name, path, sql, checksum });
   }
   migrations.sort((a, b) => a.version - b.version);
+  // Duplicate-prefix guard (003 T002 / research.md R10): two files that share a numeric
+  // prefix (e.g. two `004_*.sql` landed from different feature branches) would both apply
+  // locally yet collide on the `schema_migrations.version` PK at merge. Fail loudly here so
+  // the collision surfaces at discovery time rather than as a silent double-apply.
+  for (let i = 1; i < migrations.length; i++) {
+    const prev = migrations[i - 1];
+    const cur = migrations[i];
+    if (prev && cur && prev.version === cur.version) {
+      throw new MigrationError(
+        `Duplicate migration prefix ${cur.version}: ${prev.version}_${prev.name} and ${cur.version}_${cur.name} share a numeric prefix`,
+        { version: cur.version, names: [prev.name, cur.name] },
+      );
+    }
+  }
   return migrations;
 }
 

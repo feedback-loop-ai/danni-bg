@@ -6,10 +6,10 @@ import { type ScopeConfig, ScopeConfigSchema } from '../config/schema.ts';
 import { BackoffRunner } from '../crawler/backoff.ts';
 import { CkanClient } from '../crawler/ckan-client.ts';
 import { EgovBgClient } from '../crawler/egov-bg-client.ts';
-import { runEgovSync } from '../crawler/egov-sync.ts';
 import { PortalHttp } from '../crawler/http.ts';
 import { RateLimiter } from '../crawler/rate-limit.ts';
 import { RobotsCache } from '../crawler/robots.ts';
+import { runEgovSyncRun } from '../crawler/run-egov-sync.ts';
 import { runSync } from '../crawler/run-sync.ts';
 import { LockContentionError } from '../manifest/sync-run.ts';
 import { createNotifier } from '../notify/notifier.ts';
@@ -20,6 +20,7 @@ export interface SyncFlags {
   manifestOut?: string | undefined;
   dryRun?: boolean | undefined;
   max?: number | undefined;
+  retryFailed?: boolean | undefined;
 }
 
 export function parseScopeArg(
@@ -61,6 +62,8 @@ export function parseFlags(args: string[]): SyncFlags {
       // accepted for compatibility; trigger=manual is implicit
     } else if (a === '--dry-run') {
       flags.dryRun = true;
+    } else if (a === '--retry-failed') {
+      flags.retryFailed = true;
     } else if (a === '--scope') {
       flags.scope = parseScopeArg(args[i + 1]);
       i++;
@@ -74,7 +77,9 @@ export function parseFlags(args: string[]): SyncFlags {
       i++;
     } else if (a === '--help' || a === '-h') {
       process.stdout.write(
-        'danni sync [--scope <json|@file>] [--once] [--manifest-out <path>] [--dry-run]\n',
+        'danni sync [--scope <json|@file>] [--once] [--manifest-out <path>] [--dry-run] [--max <n>] [--retry-failed]\n' +
+          '  --max <n>        per-session dataset batch (egov): advances and persists the resume cursor\n' +
+          '  --retry-failed   re-attempt recorded failures up to the fixed max-attempts cap (egov)\n',
       );
       throw new Error('__HELP__');
     } else {
@@ -120,23 +125,38 @@ export async function run(args: string[]): Promise<number> {
       robots,
     });
 
-    // data.egov.bg's custom API: discover + capture via the egov-bg adapter.
+    const notifier = createNotifier({ config: config.schedule.notifier });
+
+    // data.egov.bg's custom API: discover + capture via the egov-bg adapter, now inside the Sync
+    // Run machinery (FR-007) so it shares the single lock with the CKAN path.
     if (config.portal.api === 'egov-bg') {
       const apiKey = config.portal.apiKeyEnv ? process.env[config.portal.apiKeyEnv] : undefined;
       const egov = new EgovBgClient({ baseUrl: config.portal.baseUrl, http, apiKey });
-      const result = await runEgovSync({
-        db,
-        storeRoot,
-        client: egov,
-        ...(flags.scope?.datasetIds ? { datasetUris: flags.scope.datasetIds } : {}),
-        ...(flags.max ? { maxDatasets: flags.max } : {}),
-      });
-      process.stdout.write(`${JSON.stringify(result)}\n`);
-      return result.captured > 0 || result.datasets > 0 ? 0 : 3;
+      try {
+        const result = await runEgovSyncRun({
+          db,
+          config,
+          client: egov,
+          storeRoot,
+          trigger: 'manual',
+          scope: flags.scope ?? config.scope,
+          notifier,
+          ...(flags.max !== undefined ? { max: flags.max } : {}),
+          ...(flags.retryFailed !== undefined ? { retryFailed: flags.retryFailed } : {}),
+        });
+        process.stdout.write(`${JSON.stringify(result)}\n`);
+        return result.summaryOutcome === 'failed' ? 3 : 0;
+      } catch (err) {
+        if (err instanceof LockContentionError) {
+          process.stderr.write(`sync rejected: ${err.message}\n`);
+          return 5;
+        }
+        process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+        return 4;
+      }
     }
 
     const client = new CkanClient({ baseUrl: config.portal.baseUrl, http });
-    const notifier = createNotifier({ config: config.schedule.notifier });
 
     try {
       const result = await runSync({

@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { loadConfig } from '../config/loader.ts';
 import { diffSeconds, nowIso } from '../lib/time.ts';
 import { openDb } from '../store/db.ts';
+import { CrawlCheckpointsRepo } from '../store/repos/crawl-checkpoints.ts';
 import { SyncRunsLockRepo } from '../store/repos/sync-runs-lock.ts';
 import { type SyncRunRow, SyncRunsRepo } from '../store/repos/sync-runs.ts';
 
@@ -52,6 +53,33 @@ function toJson(row: SyncRunRow): SyncRunJsonView {
   };
 }
 
+interface CampaignProgressView {
+  scopeHash: string;
+  status: 'active' | 'completed';
+  cursorUri: string | null;
+  total: number;
+  discovered: number;
+  captured: number;
+  failed: number;
+  remaining: number;
+}
+
+function campaignViews(repo: CrawlCheckpointsRepo): CampaignProgressView[] {
+  return repo.listActive().map((c) => {
+    const counts = repo.counts(c.scope_hash);
+    return {
+      scopeHash: c.scope_hash,
+      status: c.status,
+      cursorUri: c.cursor_uri,
+      total: counts.total,
+      discovered: counts.discovered,
+      captured: counts.captured,
+      failed: counts.failed,
+      remaining: repo.remaining(c.scope_hash),
+    };
+  });
+}
+
 export interface StatusFlags {
   limit?: number;
   json?: boolean;
@@ -99,9 +127,12 @@ export async function run(args: string[]): Promise<number> {
   try {
     const runs = new SyncRunsRepo(db).recent(flags.limit ?? 10);
     const lock = new SyncRunsLockRepo(db).state();
+    const campaigns = campaignViews(new CrawlCheckpointsRepo(db));
 
     if (flags.json) {
-      process.stdout.write(`${JSON.stringify(runs.map(toJson), null, 2)}\n`);
+      process.stdout.write(
+        `${JSON.stringify({ runs: runs.map(toJson), crawlCampaigns: campaigns }, null, 2)}\n`,
+      );
       return 0;
     }
 
@@ -125,6 +156,15 @@ export async function run(args: string[]): Promise<number> {
       process.stdout.write(
         `  ${row.id}  ${row.started_at}  ${row.summary_outcome ?? 'running'}  d=${row.discovered_count} c=${row.captured_count} s=${row.skipped_unchanged_count} f=${row.failed_count}  ${duration}\n`,
       );
+    }
+
+    if (campaigns.length > 0) {
+      process.stdout.write('crawlCampaigns:\n');
+      for (const c of campaigns) {
+        process.stdout.write(
+          `  ${c.scopeHash.slice(0, 12)}  ${c.status}  total=${c.total} discovered=${c.discovered} captured=${c.captured} failed=${c.failed} remaining=${c.remaining}  cursor=${c.cursorUri ?? '(start)'}\n`,
+        );
+      }
     }
 
     const robotsCachePath = join(storeRoot, 'robots-cache.json');

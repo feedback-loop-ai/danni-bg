@@ -6,6 +6,8 @@ export interface HostedApiEmbedderOptions {
   fetcher?: typeof fetch;
   modelId?: string;
   dimension?: number;
+  /** Provider hard per-request cap (FR-005); `=== 1` forces single-text mode in the batcher. */
+  maxBatchSize?: number;
 }
 
 interface OpenAiEmbeddingResponse {
@@ -15,6 +17,7 @@ interface OpenAiEmbeddingResponse {
 export class HostedApiEmbedder implements Embedder {
   readonly id: string;
   readonly dimension: number;
+  readonly maxBatchSize?: number;
   private readonly endpoint: string;
   private readonly bearer?: string;
   private readonly fetcher: typeof fetch;
@@ -27,6 +30,7 @@ export class HostedApiEmbedder implements Embedder {
     this.modelId = opts.modelId ?? 'unknown';
     this.id = `hosted-api:${this.modelId}`;
     this.dimension = opts.dimension ?? 384;
+    if (opts.maxBatchSize !== undefined) this.maxBatchSize = opts.maxBatchSize;
   }
 
   async embed(texts: string[]): Promise<Float32Array[]> {

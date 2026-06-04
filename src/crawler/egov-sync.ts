@@ -1,22 +1,36 @@
 import type { Database } from 'bun:sqlite';
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ensureDir } from '../lib/fs.ts';
+import { atomicWriteFile } from '../lib/fs.ts';
 import { sha256Hex } from '../lib/hash.ts';
+import { nowIso } from '../lib/time.ts';
 import { withContext } from '../logging/logger.ts';
+import type { SyncRunHandle } from '../manifest/sync-run.ts';
+import type {
+  ManifestDatasetEntry,
+  ManifestResourceEntry,
+  ManifestTotals,
+} from '../manifest/writer.ts';
+import { CrawlCheckpointsRepo } from '../store/repos/crawl-checkpoints.ts';
 import { DatasetsRepo } from '../store/repos/datasets.ts';
 import { OrganizationsRepo } from '../store/repos/organizations.ts';
 import { ResourcesRepo } from '../store/repos/resources.ts';
+import { decideDatasetSkip } from './crawl-checkpoint.ts';
 import type { EgovBgClient } from './egov-bg-client.ts';
+import { datasetValidator } from './egov-validator.ts';
 
 export interface EgovSyncOptions {
   db: Database;
   storeRoot: string;
   client: EgovBgClient;
-  /** Explicit dataset URIs to pull (from scope.datasetIds). */
-  datasetUris?: string[];
-  /** Cap when enumerating the whole portal (ignored when datasetUris given). */
-  maxDatasets?: number;
+  /** The Sync Run lifecycle handle (FR-007); events/totals flow through it. */
+  handle: SyncRunHandle;
+  /** Campaign key (FR-003a) under which checkpoint progress is recorded. */
+  scopeHash: string;
+  /** Ordered dataset uris to process this session (from the resume planner). */
+  uris: string[];
+  /** Re-attempt sub-cap recorded failures (FR-009). */
+  retryFailed?: boolean | undefined;
   locale?: string;
 }
 
@@ -24,7 +38,10 @@ export interface EgovSyncResult {
   datasets: number;
   resources: number;
   captured: number;
+  skippedUnchanged: number;
   failures: number;
+  totals: ManifestTotals;
+  datasetEntries: ManifestDatasetEntry[];
 }
 
 const MAX_ORG_PAGES = 12;
@@ -143,16 +160,19 @@ function msg(e: unknown): string {
 }
 
 /**
- * Discover datasets from data.egov.bg's custom API and capture each resource's
- * datastore content into the store so the existing curate→enrich→index pipeline
- * can run over real portal data. Off-portal file fetching (resource_url) reuses
- * the CKAN download path and is out of scope here.
+ * Discover datasets from data.egov.bg's custom API and capture each resource's datastore content
+ * into the store. Runs INSIDE a Sync Run (FR-007): events/totals flow through the passed
+ * `SyncRunHandle`, captures are atomic (temp + fsync + rename — FR-005), and per-dataset/
+ * per-resource progress is recorded in `crawl_checkpoints` so an interrupted crawl resumes without
+ * re-fetching captured-unchanged content (FR-001/2/3). The cursor advances per dataset; completion
+ * is recorded per resource so an interruption loses at most one in-flight resource (SC-004).
  */
 export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult> {
-  const log = withContext({ component: 'egov-sync' });
+  const log = withContext({ component: 'egov-sync', run_id: opts.handle.runId });
   const datasetsRepo = new DatasetsRepo(opts.db);
   const resourcesRepo = new ResourcesRepo(opts.db);
   const orgsRepo = new OrganizationsRepo(opts.db);
+  const checkpoint = new CrawlCheckpointsRepo(opts.db);
   const locale = opts.locale ?? 'bg';
 
   const orgCache = new Map<number, { uri: string; name: string }>();
@@ -184,39 +204,53 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
     return id;
   };
 
-  let uris: string[];
-  if (opts.datasetUris && opts.datasetUris.length > 0) {
-    uris = opts.datasetUris;
-  } else {
-    uris = [];
-    const cap = opts.maxDatasets ?? 50;
-    let page = 1;
-    while (uris.length < cap) {
-      const resp = await opts.client.listDatasets({ recordsPerPage: PAGE_SIZE, pageNumber: page });
-      for (const d of resp.datasets) {
-        uris.push(d.uri);
-        if (uris.length >= cap) break;
-      }
-      if (resp.datasets.length < PAGE_SIZE) break;
-      page++;
+  const totals: ManifestTotals = {
+    discovered: 0,
+    captured: 0,
+    skippedUnchanged: 0,
+    failed: 0,
+    withdrawn: 0,
+    outOfScope: 0,
+  };
+  const datasetEntries: ManifestDatasetEntry[] = [];
+  let datasets = 0;
+  let resources = 0;
+
+  // --retry-failed: re-open sub-cap recorded failures back to pending so they are re-attempted.
+  if (opts.retryFailed) {
+    for (const uri of checkpoint.listRetryableFailed(opts.scopeHash)) {
+      checkpoint.reopenDataset(opts.scopeHash, uri);
     }
   }
 
-  let datasets = 0;
-  let resources = 0;
-  let captured = 0;
-  let failures = 0;
+  for (const uri of opts.uris) {
+    totals.discovered += 1;
+    opts.handle.recordEvent({ datasetId: uri, outcome: 'discovered' });
 
-  for (const uri of uris) {
     let details: Awaited<ReturnType<EgovBgClient['getDatasetDetails']>>;
     try {
       details = await opts.client.getDatasetDetails(uri, locale);
     } catch (err) {
       log.warn('egov.dataset.skip', { uri, error: msg(err) });
-      failures++;
+      totals.failed += 1;
+      checkpoint.upsertDataset({ scopeHash: opts.scopeHash, datasetUri: uri });
+      checkpoint.markDatasetFailed(opts.scopeHash, uri, msg(err));
+      opts.handle.recordEvent({ datasetId: uri, outcome: 'failed', failureReason: msg(err) });
+      checkpoint.advanceCursor(opts.scopeHash, uri, opts.handle.runId);
       continue;
     }
     const d = details.data;
+    const validator = datasetValidator(details);
+
+    // Dataset-level skip (FR-002): validator unchanged AND all resources captured.
+    if (decideDatasetSkip({ db: opts.db, scopeHash: opts.scopeHash, datasetUri: uri, validator })) {
+      datasets += 1;
+      totals.skippedUnchanged += 1;
+      opts.handle.recordEvent({ datasetId: uri, outcome: 'skipped_unchanged' });
+      checkpoint.advanceCursor(opts.scopeHash, uri, opts.handle.runId);
+      continue;
+    }
+
     const publisherId = await resolveOrg(d.org_id);
     datasetsRepo.upsert({
       id: d.uri,
@@ -228,19 +262,69 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
       tags: (d.tags ?? []).map((t) => t.name),
       groups: [],
       sourceUrl: `https://data.egov.bg/data/view/${d.uri}`,
+      sourceEtagOrHash: validator,
     });
-    datasets++;
+    datasets += 1;
 
     let resList: Awaited<ReturnType<EgovBgClient['listResources']>>;
     try {
       resList = await opts.client.listResources(d.uri);
     } catch (err) {
       log.warn('egov.resources.skip', { uri, error: msg(err) });
+      checkpoint.upsertDataset({ scopeHash: opts.scopeHash, datasetUri: uri, validator });
+      checkpoint.markDatasetFailed(opts.scopeHash, uri, msg(err));
+      totals.failed += 1;
+      opts.handle.recordEvent({ datasetId: uri, outcome: 'failed', failureReason: msg(err) });
+      datasetEntries.push({
+        datasetId: uri,
+        sourceUrl: `https://data.egov.bg/data/view/${uri}`,
+        outcome: 'failed',
+        lifecycleState: 'active',
+        capturedAt: nowIso(),
+        metadataHash: validator,
+        failureReason: msg(err),
+        resources: [],
+      });
+      checkpoint.advanceCursor(opts.scopeHash, uri, opts.handle.runId);
       continue;
     }
 
+    checkpoint.upsertDataset({
+      scopeHash: opts.scopeHash,
+      datasetUri: uri,
+      validator,
+      resourceCount: resList.resources.length,
+    });
+
+    const resourceEntries: ManifestResourceEntry[] = [];
+    let datasetOutcome: 'captured' | 'skipped_unchanged' | 'failed' = 'skipped_unchanged';
+    let datasetHadFailure = false;
+
     for (const r of resList.resources) {
-      resources++;
+      resources += 1;
+      checkpoint.upsertResource({
+        scopeHash: opts.scopeHash,
+        datasetUri: uri,
+        resourceUri: r.uri,
+      });
+
+      // Per-resource skip: an already-success row under the CURRENT validator is reused (FR-002).
+      const prior = checkpoint.getResource(opts.scopeHash, uri, r.uri);
+      if (prior && prior.outcome === 'success' && prior.validator === validator) {
+        totals.skippedUnchanged += 1;
+        opts.handle.recordEvent({
+          datasetId: uri,
+          resourceId: r.uri,
+          outcome: 'skipped_unchanged',
+        });
+        resourceEntries.push({
+          resourceId: r.uri,
+          sourceUrl: r.resource_url || `https://data.egov.bg/data/view/${uri}`,
+          outcome: 'skipped_unchanged',
+        });
+        continue;
+      }
+
       const formatHint = r.file_format ? r.file_format.toLowerCase() : null;
       const baseResource = {
         id: r.uri,
@@ -255,7 +339,26 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
         log.warn('egov.capture.fail', { resource: r.uri, error: msg(err) });
         resourcesRepo.upsert({ ...baseResource, declaredFormat: formatHint });
         resourcesRepo.recordOutcome(r.uri, 'failure', msg(err));
-        failures++;
+        checkpoint.markResourceFailed({
+          scopeHash: opts.scopeHash,
+          datasetUri: uri,
+          resourceUri: r.uri,
+          reason: msg(err),
+        });
+        totals.failed += 1;
+        datasetHadFailure = true;
+        opts.handle.recordEvent({
+          datasetId: uri,
+          resourceId: r.uri,
+          outcome: 'failed',
+          failureReason: msg(err),
+        });
+        resourceEntries.push({
+          resourceId: r.uri,
+          sourceUrl: baseResource.sourceUrl,
+          outcome: 'failed',
+          failureReason: msg(err),
+        });
         continue;
       }
       const isEmptyData =
@@ -267,7 +370,26 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
       if (isEmptyData) {
         resourcesRepo.upsert({ ...baseResource, declaredFormat: formatHint });
         resourcesRepo.recordOutcome(r.uri, 'failure', 'empty datastore');
-        failures++;
+        checkpoint.markResourceFailed({
+          scopeHash: opts.scopeHash,
+          datasetUri: uri,
+          resourceUri: r.uri,
+          reason: 'empty datastore',
+        });
+        totals.failed += 1;
+        datasetHadFailure = true;
+        opts.handle.recordEvent({
+          datasetId: uri,
+          resourceId: r.uri,
+          outcome: 'failed',
+          failureReason: 'empty datastore',
+        });
+        resourceEntries.push({
+          resourceId: r.uri,
+          sourceUrl: baseResource.sourceUrl,
+          outcome: 'failed',
+          failureReason: 'empty datastore',
+        });
         continue;
       }
       // The serialized shape — not the portal's file_format — is authoritative for
@@ -283,22 +405,85 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
         content = `${JSON.stringify(data, null, 2)}\n`;
       }
       const rawPath = join(d.uri, r.uri, `raw.${ext}`);
-      ensureDir(join(opts.storeRoot, 'raw', d.uri, r.uri));
-      writeFileSync(join(opts.storeRoot, 'raw', rawPath), content);
+      const absPath = join(opts.storeRoot, 'raw', rawPath);
       const buf = Buffer.from(content, 'utf-8');
+      const sha256 = sha256Hex(buf);
+      // FR-008 on-disk content reuse: if the file already holds these exact bytes (e.g. a safe
+      // re-scan after a lost checkpoint), skip the re-write entirely (reuse-on-match, mirrors
+      // BlobStore.put). Otherwise FR-005/SC-003: temp + fsync + rename, recording ONLY after rename.
+      const onDiskMatches = existsSync(absPath) && sha256Hex(readFileSync(absPath)) === sha256;
+      if (!onDiskMatches) {
+        atomicWriteFile(absPath, content);
+      }
       resourcesRepo.upsert({ ...baseResource, declaredFormat: ext });
       resourcesRepo.recordCapture({
         id: r.uri,
         bytes: buf.byteLength,
-        sha256: sha256Hex(buf),
+        sha256,
         rawPath,
         detectedFormat: ext,
         outcome: 'success',
       });
-      captured++;
+      checkpoint.markResourceSuccess({
+        scopeHash: opts.scopeHash,
+        datasetUri: uri,
+        resourceUri: r.uri,
+        sha256,
+        validator,
+      });
+      totals.captured += 1;
+      datasetOutcome = 'captured';
+      opts.handle.recordEvent({
+        datasetId: uri,
+        resourceId: r.uri,
+        outcome: 'captured',
+        bytes: buf.byteLength,
+        sha256,
+      });
+      resourceEntries.push({
+        resourceId: r.uri,
+        sourceUrl: baseResource.sourceUrl,
+        outcome: 'captured',
+        bytes: buf.byteLength,
+        sha256,
+        rawPath,
+        declaredFormat: ext,
+      });
     }
+
+    if (datasetHadFailure) {
+      checkpoint.markDatasetFailed(opts.scopeHash, uri, 'one or more resources failed');
+      datasetOutcome = 'failed';
+    } else {
+      checkpoint.markDatasetComplete(opts.scopeHash, uri);
+    }
+    datasetEntries.push({
+      datasetId: uri,
+      sourceUrl: `https://data.egov.bg/data/view/${uri}`,
+      outcome: datasetOutcome,
+      lifecycleState: 'active',
+      capturedAt: nowIso(),
+      metadataHash: validator,
+      resources: resourceEntries,
+    });
+    // Advance the cursor only after the dataset fully completes (clean session boundary, R6).
+    checkpoint.advanceCursor(opts.scopeHash, uri, opts.handle.runId);
   }
 
-  log.info('egov.completed', { datasets, resources, captured, failures });
-  return { datasets, resources, captured, failures };
+  log.info('egov.completed', {
+    datasets,
+    resources,
+    captured: totals.captured,
+    skipped: totals.skippedUnchanged,
+    failures: totals.failed,
+  });
+  return {
+    datasets,
+    resources,
+    captured: totals.captured,
+    skippedUnchanged: totals.skippedUnchanged,
+    failures: totals.failed,
+    totals,
+    datasetEntries,
+  };
 }
