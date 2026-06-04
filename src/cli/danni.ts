@@ -11,6 +11,7 @@ COMMANDS
   index         Build / update FTS5 + vector index over the curated mirror
   status        Print health and recent run history
   search        Run a query against the index
+  eval          Measure search recall@K against a labelled query set (SC-004)
   schedule      Manage the scheduler (install | disable | show)
   mirror-info   Print the curated-dataset record for a single dataset
 
@@ -28,6 +29,7 @@ const commandLoaders: Record<string, () => Promise<{ run: CommandHandler }>> = {
   index: () => import('./index-cmd.ts').then((m) => ({ run: m.run })),
   status: () => import('./status.ts').then((m) => ({ run: m.run })),
   search: () => import('./search.ts').then((m) => ({ run: m.run })),
+  eval: () => import('./eval.ts').then((m) => ({ run: m.run })),
   schedule: () => import('./schedule.ts').then((m) => ({ run: m.run })),
   'mirror-info': () => import('./mirror-info.ts').then((m) => ({ run: m.run })),
 };

@@ -1,8 +1,6 @@
 import { resolve } from 'node:path';
 import { loadConfig } from '../config/loader.ts';
-import type { Embedder } from '../index/embedder.ts';
-import { HostedApiEmbedder } from '../index/embedders/hosted-api.ts';
-import { LocalOnnxEmbedder } from '../index/embedders/local-onnx.ts';
+import { buildEmbedder } from '../index/embedders/factory.ts';
 import { search } from '../index/query.ts';
 import { openDb } from '../store/db.ts';
 
@@ -42,26 +40,6 @@ export function parseFlags(args: string[]): SearchFlags {
   return flags;
 }
 
-function buildEmbedder(config: ReturnType<typeof loadConfig>): Embedder {
-  const e = config.enrichment.embedder;
-  if (e.provider === 'hosted-api') {
-    if (!e.endpointUrl) throw new Error('embedder.endpointUrl is required for hosted-api');
-    const bearer = e.apiKeyEnv ? process.env[e.apiKeyEnv] : undefined;
-    return new HostedApiEmbedder({
-      endpointUrl: e.endpointUrl,
-      ...(bearer ? { bearer } : {}),
-      ...(e.modelId ? { modelId: e.modelId } : {}),
-    });
-  }
-  const embedder = new LocalOnnxEmbedder(e.modelId ? { modelId: e.modelId } : {});
-  if (embedder.isStub) {
-    process.stderr.write(
-      `warning: embedder provider 'local-onnx' is a deterministic hash stub (${embedder.id}) — semantic ranking is NOT meaningful; only the FTS/keyword leg is real. Set enrichment.embedder.provider='hosted-api' for genuine semantic vectors.\n`,
-    );
-  }
-  return embedder;
-}
-
 export async function run(args: string[]): Promise<number> {
   let flags: SearchFlags;
   try {
@@ -75,7 +53,7 @@ export async function run(args: string[]): Promise<number> {
   const storeRoot = resolve(process.cwd(), config.store.root);
   const db = openDb({ storeRoot, loadVec: false });
   try {
-    const embedder = buildEmbedder(config);
+    const embedder = buildEmbedder(config.enrichment.embedder);
     const results = await search({
       db,
       embedder,

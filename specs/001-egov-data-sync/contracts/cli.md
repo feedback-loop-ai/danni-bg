@@ -128,6 +128,29 @@ behavior. The production-facing surface is the (future) MCP read interface.
 
 ---
 
+## `danni eval`
+
+Measure search **recall@K** against a labelled query set — the instrument for SC-004
+("locate the most relevant dataset within the top 5 for ≥90% of a representative query set",
+Bulgarian or English). See [`docs/semantic-search.md`](../../../docs/semantic-search.md).
+
+```text
+danni eval --query-set <path> [--limit <n>] [--min-recall <r>] [--json]
+```
+
+| Flag | Type | Notes |
+|---|---|---|
+| `--query-set` | path (required) | JSON `{ queries: [{ query, lang: bg\|en, expected: [datasetId], rationale? }] }`. |
+| `--limit` | integer (1–50) | Top-K cutoff for a hit. Default: 5 (the SC-004 "top 5"). |
+| `--min-recall` | number (0–1) | Gate: exit `3` if recall@K is below this (e.g. `0.9` for SC-004). |
+| `--json` | boolean | Emit the full recall report as JSON. |
+
+Reports recall@K overall and split by language, listing the misses (expected vs. retrieved)
+so failures are diagnosable. Exit codes: `0` success; `2` bad flag or invalid query-set file;
+`3` recall@K below `--min-recall` (ran fine but did not meet the target).
+
+---
+
 ## `danni mirror-info <dataset_id>`
 
 Print the curated-dataset record for a single dataset.
