@@ -83,12 +83,13 @@ export const ListResourcesResponseSchema = z
 export const ResourceDataResponseSchema = z
   .object({
     success: z.literal(true),
-    // The datastore returns either tabular rows (array-of-arrays with a header
-    // row, or array-of-objects) OR a single structured document (e.g. an OCDS
-    // JSON object for contracting datasets). Kept opaque; the sync handles all.
+    // The datastore returns tabular rows (array-of-arrays with a header row, or
+    // array-of-objects), a single structured document (e.g. an OCDS JSON object for
+    // contracting datasets), OR a plain string (some resources return a pre-formatted
+    // free-text/ASCII table). Kept opaque; the sync serializes each shape accordingly.
     // An empty resource omits `data` entirely (the live API responds `{"success":true}`),
     // so `data` is optional — the sync normalizes a missing value to an empty datastore.
-    data: z.union([z.array(z.unknown()), z.record(z.unknown())]).optional(),
+    data: z.union([z.array(z.unknown()), z.record(z.unknown()), z.string()]).optional(),
   })
   .passthrough();
 

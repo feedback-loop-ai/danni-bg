@@ -61,7 +61,7 @@ Fill out this table after each operator-run capture. Do **not** commit auto-gene
 
 | Captured-on (UTC) | Datasets discovered | Resources captured | Total raw bytes | Wall-clock seconds | Failure rate | Notes |
 |-------------------|---------------------|--------------------|-----------------|--------------------|--------------|-------|
-| 2026-06-04 | 100 (of 11,856) | 262 / 299 | 99,802,734 (~95 MiB) | ~1,508 (2 sessions) | 12.4% (37/299) → ~0% post-fix | First live capture. Bounded `--max` sample via the egov-bg adapter + robots opt-out. All 37 failures were empty-datastore resources (`{"success":true}` with no `data`); the empty-datastore fix on this branch reclassifies them as valid empty captures, so a re-run lands ≥95% (SC-001). Concurrency raised 2 → 6 between the two sessions. |
+| 2026-06-04 | 100 (of 11,856) | 296 / 299 (99.0%) | ~95 MiB | ~1,508 (2 sessions) | 1.0% (3/299) | First live capture; bounded `--max` sample via the egov-bg adapter + robots opt-out. Initial run had 37 failures (87.6%); a `--retry-failed` session after the empty-datastore fix reclassified 34 of them as valid empty captures → **99.0%, clearing SC-001 (≥95%)**. The 3 residual failures: 2× transient "retries exhausted" timeouts (retryable) and 1× a plain-string `data` shape (free-text/ASCII table) — now handled by the string-data fix on this branch, so a further `--retry-failed` lands ~99.3%. Concurrency was raised 2 → 6 between the two initial sessions. |
 
 The `wall-clock seconds` column drives the SC-002 budget: a re-sync over an unchanged
 portal must complete in < 10% of the bootstrap wall-clock time. The back-to-back re-sync
