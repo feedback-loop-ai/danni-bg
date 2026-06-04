@@ -1,14 +1,31 @@
 import { resolve } from 'node:path';
 import { loadConfig } from '../config/loader.ts';
+import type { DanniConfig } from '../config/schema.ts';
 import type { Embedder } from '../index/embedder.ts';
 import { HostedApiEmbedder } from '../index/embedders/hosted-api.ts';
 import { LocalOnnxEmbedder } from '../index/embedders/local-onnx.ts';
-import { runIndex } from '../index/run-index.ts';
+import { type RunIndexOptions, runIndex } from '../index/run-index.ts';
 import { openDb } from '../store/db.ts';
 
 interface IndexFlags {
   full?: boolean;
   datasets?: string[];
+}
+
+/**
+ * Resolve the runIndex mode from CLI flags + config (FR-009 precedence:
+ * `--full` > `config.index.incremental` > default true). `--full` is a one-shot override and
+ * never mutates config.
+ */
+export function resolveMode(
+  flags: IndexFlags,
+  index: DanniConfig['index'],
+): Omit<RunIndexOptions, 'db' | 'embedder'> {
+  return {
+    incremental: index.incremental,
+    ...(flags.datasets ? { datasetIds: flags.datasets } : {}),
+    ...(flags.full ? { full: true } : {}),
+  };
 }
 
 export function parseFlags(args: string[]): IndexFlags {
@@ -65,8 +82,7 @@ export async function run(args: string[]): Promise<number> {
     const result = await runIndex({
       db,
       embedder: buildEmbedder(config),
-      ...(flags.datasets ? { datasetIds: flags.datasets } : {}),
-      ...(flags.full ? { full: true } : {}),
+      ...resolveMode(flags, config.index),
     });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return 0;
