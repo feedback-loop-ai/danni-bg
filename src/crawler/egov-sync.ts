@@ -334,7 +334,9 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
       };
       let data: unknown[] | Record<string, unknown>;
       try {
-        data = (await opts.client.getResourceData(r.uri)).data;
+        // An absent `data` field — the live API returns `{"success":true}` for an empty
+        // datastore — normalizes to an empty array, captured below as a valid empty artifact.
+        data = (await opts.client.getResourceData(r.uri)).data ?? [];
       } catch (err) {
         log.warn('egov.capture.fail', { resource: r.uri, error: msg(err) });
         resourcesRepo.upsert({ ...baseResource, declaredFormat: formatHint });
@@ -361,37 +363,11 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
         });
         continue;
       }
-      const isEmptyData =
-        (Array.isArray(data) && data.length === 0) ||
-        (data !== null &&
-          typeof data === 'object' &&
-          !Array.isArray(data) &&
-          Object.keys(data).length === 0);
-      if (isEmptyData) {
-        resourcesRepo.upsert({ ...baseResource, declaredFormat: formatHint });
-        resourcesRepo.recordOutcome(r.uri, 'failure', 'empty datastore');
-        checkpoint.markResourceFailed({
-          scopeHash: opts.scopeHash,
-          datasetUri: uri,
-          resourceUri: r.uri,
-          reason: 'empty datastore',
-        });
-        totals.failed += 1;
-        datasetHadFailure = true;
-        opts.handle.recordEvent({
-          datasetId: uri,
-          resourceId: r.uri,
-          outcome: 'failed',
-          failureReason: 'empty datastore',
-        });
-        resourceEntries.push({
-          resourceId: r.uri,
-          sourceUrl: baseResource.sourceUrl,
-          outcome: 'failed',
-          failureReason: 'empty datastore',
-        });
-        continue;
-      }
+      // An empty datastore (no rows, `{}`, or an absent `data` field) is a VALID empty
+      // resource, not a failure: it serializes to an empty artifact (`[]`/`{}`) below and is
+      // recorded as a successful capture. Counting it as a failure previously inflated the
+      // per-resource failure rate (~38% of a live sample) and tripped the SC-001 ≥95% SLO for
+      // a non-error condition.
       // The serialized shape — not the portal's file_format — is authoritative for
       // curator selection. Tabular datastore (array-of-arrays) → CSV; an
       // array-of-objects or a single structured document (e.g. OCDS) → JSON.

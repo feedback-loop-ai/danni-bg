@@ -86,7 +86,9 @@ export const ResourceDataResponseSchema = z
     // The datastore returns either tabular rows (array-of-arrays with a header
     // row, or array-of-objects) OR a single structured document (e.g. an OCDS
     // JSON object for contracting datasets). Kept opaque; the sync handles all.
-    data: z.union([z.array(z.unknown()), z.record(z.unknown())]),
+    // An empty resource omits `data` entirely (the live API responds `{"success":true}`),
+    // so `data` is optional — the sync normalizes a missing value to an empty datastore.
+    data: z.union([z.array(z.unknown()), z.record(z.unknown())]).optional(),
   })
   .passthrough();
 

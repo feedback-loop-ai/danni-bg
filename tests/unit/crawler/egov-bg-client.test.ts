@@ -72,6 +72,13 @@ describe('crawler.egov-bg-client', () => {
     expect(orgs.organisations.length).toBeGreaterThan(0);
   });
 
+  it('accepts an empty datastore response with no data field (live {success:true})', async () => {
+    // The live API omits `data` for an empty resource — it must parse, not raise a schema violation.
+    const res = await makeClient(() => ({ json: { success: true } })).getResourceData('empty');
+    expect(res.success).toBe(true);
+    expect(res.data).toBeUndefined();
+  });
+
   it('sends method as the URL path segment and POSTs a JSON body', async () => {
     const captured: Captured[] = [];
     await makeClient(fixtureResponder, captured).listDatasets({ recordsPerPage: 7, pageNumber: 2 });

@@ -128,16 +128,34 @@ describe('crawler.egov-sync', () => {
     db.close();
   });
 
-  it('records a failure for an empty datastore resource', async () => {
+  it('captures an empty datastore resource as a valid empty artifact (not a failure)', async () => {
     const storeRoot = globalThis.__TEST_TMP_DIR__;
     const db = freshDb(storeRoot);
     const result = await capture(storeRoot, db, {
       getResourceData: () => ({ success: true, data: [] }),
     });
-    expect(result.totals.captured).toBe(0);
-    expect(result.totals.failed).toBe(3);
+    // An empty datastore is a valid empty resource, not a failure (it serializes to `[]`).
+    expect(result.totals.captured).toBe(3);
+    expect(result.totals.failed).toBe(0);
     const r0 = new ResourcesRepo(db).listByDataset(DATASET_URI)[0];
-    expect(r0?.last_outcome).toBe('failure');
+    expect(r0?.last_outcome).toBe('success');
+    expect(r0?.raw_path?.endsWith('.json')).toBe(true);
+    expect(readFileSync(join(storeRoot, 'raw', r0?.raw_path as string), 'utf-8').trim()).toBe('[]');
+    db.close();
+  });
+
+  it('treats a datastore response with no data field as an empty capture (live {success:true})', async () => {
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    // The live egov API returns `{"success":true}` with no `data` for an empty resource —
+    // the fake client mirrors that shape; the sync must normalize it to an empty capture.
+    const result = await capture(storeRoot, db, {
+      getResourceData: () => ({ success: true }),
+    });
+    expect(result.totals.captured).toBe(3);
+    expect(result.totals.failed).toBe(0);
+    const r0 = new ResourcesRepo(db).listByDataset(DATASET_URI)[0];
+    expect(r0?.last_outcome).toBe('success');
     db.close();
   });
 
@@ -436,17 +454,17 @@ describe('crawler.egov-sync', () => {
     db.close();
   });
 
-  it('records a failure for an empty object datastore ({}), symmetric with empty array', async () => {
+  it('captures an empty object datastore ({}) as a valid empty artifact, symmetric with empty array', async () => {
     const storeRoot = globalThis.__TEST_TMP_DIR__;
     const db = freshDb(storeRoot);
     const result = await capture(storeRoot, db, {
       getResourceData: () => ({ success: true, data: {} }),
     });
-    expect(result.totals.captured).toBe(0);
-    expect(result.totals.failed).toBe(3);
-    expect(new ResourcesRepo(db).listByDataset(DATASET_URI)[0]?.last_failure_reason).toBe(
-      'empty datastore',
-    );
+    expect(result.totals.captured).toBe(3);
+    expect(result.totals.failed).toBe(0);
+    const r0 = new ResourcesRepo(db).listByDataset(DATASET_URI)[0];
+    expect(r0?.last_outcome).toBe('success');
+    expect(readFileSync(join(storeRoot, 'raw', r0?.raw_path as string), 'utf-8').trim()).toBe('{}');
     db.close();
   });
 });
