@@ -3,14 +3,7 @@ import { resolve } from 'node:path';
 import { ZodError } from 'zod';
 import { loadConfig } from '../config/loader.ts';
 import { type ScopeConfig, ScopeConfigSchema } from '../config/schema.ts';
-import { BackoffRunner } from '../crawler/backoff.ts';
-import { CkanClient } from '../crawler/ckan-client.ts';
-import { EgovBgClient } from '../crawler/egov-bg-client.ts';
-import { PortalHttp } from '../crawler/http.ts';
-import { RateLimiter } from '../crawler/rate-limit.ts';
-import { RobotsCache } from '../crawler/robots.ts';
-import { runEgovSyncRun } from '../crawler/run-egov-sync.ts';
-import { runSync } from '../crawler/run-sync.ts';
+import { buildPortalHttp, runPortalSync } from '../crawler/portal-sync.ts';
 import { LockContentionError } from '../manifest/sync-run.ts';
 import { createNotifier } from '../notify/notifier.ts';
 import { openDb } from '../store/db.ts';
@@ -104,74 +97,32 @@ export async function run(args: string[]): Promise<number> {
 
   const db = openDb({ storeRoot, loadVec: false });
   try {
-    const rateLimiter = new RateLimiter({
-      requestsPerSecond: config.crawler.rateLimit.requestsPerSecondPerHost,
-      concurrency: config.crawler.concurrency.maxConcurrentRequestsPerHost,
-    });
-    const backoff = new BackoffRunner({
-      initialMs: config.crawler.backoff.initialMs,
-      maxMs: config.crawler.backoff.maxMs,
-      failureBudget: config.crawler.backoff.failureBudget,
-    });
-    const robots = new RobotsCache({
-      recheckIntervalSeconds: config.crawler.robots.recheckIntervalSeconds,
-      obey: config.crawler.robots.obey,
-      allowHosts: config.crawler.robots.allowHosts,
-    });
-    const http = new PortalHttp({
-      userAgent: config.crawler.userAgent,
-      rateLimiter,
-      backoff,
-      robots,
-    });
-
+    // Both the egov-bg and CKAN paths share one HTTP stack + sync runner via runPortalSync, so the
+    // interactive and scheduled entry points stay in lockstep (FR-007: single lock, one dispatch).
+    const http = buildPortalHttp(config);
     const notifier = createNotifier({ config: config.schedule.notifier });
 
-    // data.egov.bg's custom API: discover + capture via the egov-bg adapter, now inside the Sync
-    // Run machinery (FR-007) so it shares the single lock with the CKAN path.
-    if (config.portal.api === 'egov-bg') {
-      const apiKey = config.portal.apiKeyEnv ? process.env[config.portal.apiKeyEnv] : undefined;
-      const egov = new EgovBgClient({ baseUrl: config.portal.baseUrl, http, apiKey });
-      try {
-        const result = await runEgovSyncRun({
-          db,
-          config,
-          client: egov,
-          storeRoot,
-          trigger: 'manual',
-          scope: flags.scope ?? config.scope,
-          notifier,
-          ...(flags.max !== undefined ? { max: flags.max } : {}),
-          ...(flags.retryFailed !== undefined ? { retryFailed: flags.retryFailed } : {}),
-        });
-        process.stdout.write(`${JSON.stringify(result)}\n`);
-        return result.summaryOutcome === 'failed' ? 3 : 0;
-      } catch (err) {
-        if (err instanceof LockContentionError) {
-          process.stderr.write(`sync rejected: ${err.message}\n`);
-          return 5;
-        }
-        process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
-        return 4;
-      }
-    }
-
-    const client = new CkanClient({ baseUrl: config.portal.baseUrl, http });
-
     try {
-      const result = await runSync({
+      const sync = await runPortalSync({
         db,
         config,
-        client,
         http,
         storeRoot,
         trigger: 'manual',
-        ...(flags.scope ? { scopeFilterOverride: flags.scope } : {}),
         notifier,
+        scope: flags.scope,
+        ...(flags.max !== undefined ? { max: flags.max } : {}),
+        ...(flags.retryFailed !== undefined ? { retryFailed: flags.retryFailed } : {}),
         ...(flags.dryRun ? { dryRun: true } : {}),
-        ...(flags.manifestOut ? { manifestOutOverride: flags.manifestOut } : {}),
+        ...(flags.manifestOut ? { manifestOut: flags.manifestOut } : {}),
       });
-      return result.summaryOutcome === 'success' ? 0 : 3;
+      // The egov path emits its (resumable) run record to stdout; `completed:false` means more
+      // sessions remain. Exit code semantics are preserved per path.
+      if (sync.api === 'egov-bg') {
+        process.stdout.write(`${JSON.stringify(sync.result)}\n`);
+        return sync.result.summaryOutcome === 'failed' ? 3 : 0;
+      }
+      return sync.result.summaryOutcome === 'success' ? 0 : 3;
     } catch (err) {
       if (err instanceof LockContentionError) {
         process.stderr.write(`sync rejected: ${err.message}\n`);

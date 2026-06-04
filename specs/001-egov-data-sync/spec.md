@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-egov-data-sync`
 **Created**: 2026-05-08
-**Status**: Draft
+**Status**: Implemented (134/136 tasks; T127/T133 are recorded decisions, not pending work — see tasks.md)
 **Input**: User description: "I would like to have a sync of the data in https://data.egov.bg/ locally, that will be curated and indexed for faster 'machine' reading downstream."
 
 ## User Scenarios & Testing *(mandatory)*

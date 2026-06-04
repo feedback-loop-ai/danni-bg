@@ -1,4 +1,5 @@
 import type { Database } from 'bun:sqlite';
+import { type CuratedArtifactRow, CuratedArtifactsRepo } from '../store/repos/curated-artifacts.ts';
 import { DatasetsRepo } from '../store/repos/datasets.ts';
 import { EntitiesRepo } from '../store/repos/entities.ts';
 import { OrganizationsRepo } from '../store/repos/organizations.ts';
@@ -84,6 +85,20 @@ interface ScoredCandidate {
   vecRank?: number | undefined;
 }
 
+/**
+ * Relative path under store/curated/ to the dataset's curated record (FR-013).
+ * Curated artifacts live at `<datasetId>/<resourceId>/data.*`, so the dataset-level
+ * record is that directory; a consumer enumerates the per-resource artifacts within it
+ * (see `danni mirror-info`). Derived from a real curated artifact when one exists so the
+ * pointer is grounded in actual on-disk output, falling back to the dataset id (the
+ * canonical curated directory) when the dataset has no curated artifacts yet.
+ */
+function resolveCuratedDatasetPath(artifacts: CuratedArtifactRow[], datasetId: string): string {
+  const withPath = artifacts.find((a) => a.path.length > 0);
+  const top = withPath?.path.split(/[/\\]/)[0];
+  return top && top.length > 0 ? top : datasetId;
+}
+
 const RRF_K = 60;
 
 export async function search(opts: QueryOptions): Promise<IndexEntry[]> {
@@ -133,6 +148,7 @@ export async function search(opts: QueryOptions): Promise<IndexEntry[]> {
   const datasets = new DatasetsRepo(opts.db);
   const orgs = new OrganizationsRepo(opts.db);
   const translations = new TranslationsRepo(opts.db);
+  const artifacts = new CuratedArtifactsRepo(opts.db);
 
   const out: IndexEntry[] = [];
   for (const { datasetId, score, c } of winners) {
@@ -170,7 +186,7 @@ export async function search(opts: QueryOptions): Promise<IndexEntry[]> {
           }
         : null,
       sourceUrl: ds.source_url,
-      curatedDatasetPath: `${ds.id}`,
+      curatedDatasetPath: resolveCuratedDatasetPath(artifacts.byDataset(datasetId), ds.id),
       freshness: {
         lastSyncedAt: ds.last_synced_at,
         sourceLastModified: ds.metadata_modified,
@@ -186,8 +202,11 @@ export async function search(opts: QueryOptions): Promise<IndexEntry[]> {
 export async function searchByEntity(opts: QueryOptions, entityId: string): Promise<IndexEntry[]> {
   const limit = opts.limit ?? 50;
   const sloSeconds = opts.freshnessSloSeconds ?? 86400;
-  const datasetIds = new EntitiesRepo(opts.db).datasetsForEntity(entityId);
+  const entities = new EntitiesRepo(opts.db);
+  const datasetIds = entities.datasetsForEntity(entityId);
   const datasets = new DatasetsRepo(opts.db);
+  const artifacts = new CuratedArtifactsRepo(opts.db);
+  const matchedEntity = entities.get(entityId);
   const out: IndexEntry[] = [];
   for (const id of datasetIds.slice(0, limit)) {
     const ds = datasets.get(id);
@@ -199,9 +218,18 @@ export async function searchByEntity(opts: QueryOptions, entityId: string): Prom
       title: { bg: ds.title_bg, en: null, translator: null, translationConfidence: null },
       snippet: null,
       publisher: null,
-      matchedEntities: [{ entityId, kind: 'unknown', label: { bg: '', en: null } }],
+      matchedEntities: [
+        {
+          entityId,
+          kind: matchedEntity?.kind ?? 'unknown',
+          label: {
+            bg: matchedEntity?.canonical_label_bg ?? '',
+            en: matchedEntity?.canonical_label_en ?? null,
+          },
+        },
+      ],
       sourceUrl: ds.source_url,
-      curatedDatasetPath: `${id}`,
+      curatedDatasetPath: resolveCuratedDatasetPath(artifacts.byDataset(id), id),
       freshness: {
         lastSyncedAt: ds.last_synced_at,
         sourceLastModified: ds.metadata_modified,

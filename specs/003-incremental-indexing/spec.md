@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-incremental-indexing`  
 **Created**: 2026-06-03  
-**Status**: Draft  
+**Status**: Implemented (shipped in 7659883; verified by the test suite, 2026-06-04)  
 **Input**: User description: "The indexer re-embeds every active dataset on every run, even when nothing changed. Make indexing incremental so a routine re-index only re-embeds datasets whose content (or the embedder model) actually changed, while keeping a way to force a full rebuild."
 
 ## Clarifications
