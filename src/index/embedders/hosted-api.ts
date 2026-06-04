@@ -49,6 +49,16 @@ export class HostedApiEmbedder implements Embedder {
     if (data.length !== texts.length) {
       throw new Error(`Embedder returned ${data.length} vectors, expected ${texts.length}`);
     }
-    return data.map((d) => Float32Array.from(d.embedding));
+    const vectors = data.map((d) => Float32Array.from(d.embedding));
+    // Fail loudly on a dimension mismatch rather than letting it degrade search silently:
+    // cosine() returns 0 for vectors of differing length, so a wrong `dimension` config would
+    // turn semantic ranking off without any error. The declared dimension is the contract.
+    const got = vectors[0]?.length;
+    if (got !== undefined && got !== this.dimension) {
+      throw new Error(
+        `Embedder returned ${got}-dim vectors but enrichment.embedder.dimension is ${this.dimension}; set dimension to ${got} to match the model`,
+      );
+    }
+    return vectors;
   }
 }

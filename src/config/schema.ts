@@ -118,6 +118,11 @@ export const EmbedderConfigSchema = z
     // Optional provider-request cap; effective size = min(batchSize, maxBatchSize, providerCap).
     // `maxBatchSize === 1` forces single-text mode (FR-005). Unset/null means no cap.
     maxBatchSize: z.number().int().min(1).max(256).nullable().optional(),
+    // The model's embedding vector dimension (recorded in embeddings_meta; a change vs the
+    // stored value drives a full vector re-embed in run-index). Set it to match the configured
+    // model (e.g. 384 for paraphrase-multilingual-MiniLM-L12-v2, 4096 for Qwen3-Embedding-8B).
+    // Unset → the provider default (local-onnx: 32 stub; hosted-api: 384).
+    dimension: z.number().int().min(1).max(8192).nullable().optional(),
   })
   .strict();
 
