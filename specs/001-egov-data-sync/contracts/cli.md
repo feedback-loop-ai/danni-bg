@@ -160,5 +160,22 @@ danni mirror-info <dataset_id> [--json]
 ```
 
 `--json` emits a `curated-dataset.schema.json`-conforming record on stdout
-(useful for downstream consumers consuming the file system directly until the
-MCP layer ships).
+(useful for downstream consumers consuming the file system directly).
+
+---
+
+## `danni mcp`
+
+The production-facing read interface for downstream LLM-agent consumers: a **read-only**
+Model Context Protocol server over stdio (newline-delimited JSON-RPC 2.0). See
+[`docs/CONSUMERS.md`](../../../docs/CONSUMERS.md).
+
+```text
+danni mcp        # serves on stdin/stdout; point an MCP client at it
+```
+
+Implements the core MCP methods (`initialize`, `tools/list`, `tools/call`, `ping`) and exposes four
+read-only tools over the read API — `mirror_search`, `mirror_entity_search`, `mirror_info`,
+`read_resource`. Tool outputs are the existing contract shapes (`index-entry.schema.json` for
+search, `curated-dataset.schema.json` for info). No write tools are exposed (the store is the
+source of truth). Logs go to stderr; stdout carries only JSON-RPC. Runs until stdin closes.

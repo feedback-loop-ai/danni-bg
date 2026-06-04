@@ -14,6 +14,7 @@ COMMANDS
   eval          Measure search recall@K against a labelled query set (SC-004)
   schedule      Manage the scheduler (install | disable | show)
   mirror-info   Print the curated-dataset record for a single dataset
+  mcp           Run a read-only MCP server over stdio (for LLM-agent consumers)
 
 FLAGS
   --help        Show this help
@@ -32,6 +33,7 @@ const commandLoaders: Record<string, () => Promise<{ run: CommandHandler }>> = {
   eval: () => import('./eval.ts').then((m) => ({ run: m.run })),
   schedule: () => import('./schedule.ts').then((m) => ({ run: m.run })),
   'mirror-info': () => import('./mirror-info.ts').then((m) => ({ run: m.run })),
+  mcp: () => import('./mcp.ts').then((m) => ({ run: m.run })),
 };
 
 export async function main(argv: string[]): Promise<number> {

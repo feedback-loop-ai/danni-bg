@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { composeView } from '../../src/cli/mirror-info.ts';
+import { datasetView } from '../../src/read/dataset-view.ts';
 import { runMigrations } from '../../src/store/migrate.ts';
 import { CuratedArtifactsRepo } from '../../src/store/repos/curated-artifacts.ts';
 import { DatasetsRepo } from '../../src/store/repos/datasets.ts';
@@ -110,11 +110,7 @@ describe('contract.curated-dataset', () => {
       translator: 'local-marianmt:v1',
       confidence: 0.7,
     });
-    const view = composeView(
-      db as unknown as ReturnType<typeof import('../../src/store/db.ts').openDb>,
-      'd1',
-      86400,
-    );
+    const view = datasetView(db, 'd1', 86400);
     const r = CuratedDatasetSchema.safeParse(view);
     if (!r.success) throw new Error(JSON.stringify(r.error.issues));
     expect(r.success).toBe(true);
