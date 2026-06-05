@@ -13,13 +13,16 @@ municipalities), never by name — per Constitution X and research R5.
   validated against `specs/008-map-data-explorer/contracts/geo-crosswalk.schema.json`
 - `src/` — Zod loaders (`load.ts`), lookup class (`crosswalk.ts`), schemas (`schema.ts`)
 
-## ⚠️ Placeholder geometry
+## Geometry
 
-The polygons in the `.geojson` files are **deterministic placeholder squares**,
-not authoritative shapes — they exist so the crosswalk/join logic is exercisable
-offline. The **official codes** (`iso3166_2`, `ekatte`) ARE authoritative and
-drive the real join. Bundling real GISCO NUTS3/LAU geometry and extending
-municipality coverage to all ~265 obshtinas is the tracked R5 gap (task T062).
+- **Oblasts** — **real** geometry from Eurostat GISCO NUTS3 (1:20M, EPSG:4326),
+  filtered to Bulgaria and committed under `data/source/nuts3-bg.geojson`, joined
+  to the gazetteer by the authoritative Cyrillic oblast name.
+- **Municipalities** — still **deterministic placeholder squares**. Real GISCO LAU
+  geometry + extending coverage to all ~265 obshtinas is the tracked R5 gap (T062).
+
+The **official codes** (`iso3166_2`, `ekatte`) are authoritative and drive the
+join regardless of geometry source.
 
 Regenerate the data from the gazetteer (single source of truth,
 `src/enrich/gazetteer/bg-admin.ts`):

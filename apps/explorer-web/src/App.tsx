@@ -58,40 +58,46 @@ export function App() {
 
   return (
     <div className="app">
-      <aside className="panel">
-        <FilterPanel />
-        <button
-          type="button"
-          aria-pressed={showNational}
-          onClick={() => setShowNational((v) => !v)}
-        >
-          {showNational ? '← Към регионите' : 'Национални набори (без регион)'}
-        </button>
-        {selectedDataset ? (
-          <DatasetDetail datasetId={selectedDataset} onClose={() => setSelectedDataset(null)} />
-        ) : (
-          <DatasetList
-            datasets={datasets}
-            total={total}
-            hasMore={hasMore(datasets.length, total)}
-            onSelect={setSelectedDataset}
-            onLoadMore={loadMore}
-          />
-        )}
-      </aside>
-      <main className="map">
-        <MapErrorBoundary>
-          <MapView
-            boundaries={boundaries}
-            regions={regions}
-            highlightGeoIds={highlight.geoEntityIds}
-            onSelect={selectRegion}
-          />
-        </MapErrorBoundary>
-      </main>
-      <aside className="panel">
-        <ChatPanel onSelectDataset={setSelectedDataset} />
-      </aside>
+      <header className="app-header">
+        <h1>danni.bg</h1>
+        <span className="tagline">Интерактивна карта на отворените данни на България</span>
+      </header>
+      <div className="app-body">
+        <aside className="panel">
+          <FilterPanel />
+          <button
+            type="button"
+            aria-pressed={showNational}
+            onClick={() => setShowNational((v) => !v)}
+          >
+            {showNational ? '← Към регионите' : 'Национални набори (без регион)'}
+          </button>
+          {selectedDataset ? (
+            <DatasetDetail datasetId={selectedDataset} onClose={() => setSelectedDataset(null)} />
+          ) : (
+            <DatasetList
+              datasets={datasets}
+              total={total}
+              hasMore={hasMore(datasets.length, total)}
+              onSelect={setSelectedDataset}
+              onLoadMore={loadMore}
+            />
+          )}
+        </aside>
+        <main className="map">
+          <MapErrorBoundary>
+            <MapView
+              boundaries={boundaries}
+              regions={regions}
+              highlightGeoIds={highlight.geoEntityIds}
+              onSelect={selectRegion}
+            />
+          </MapErrorBoundary>
+        </main>
+        <aside className="panel">
+          <ChatPanel onSelectDataset={setSelectedDataset} />
+        </aside>
+      </div>
     </div>
   );
 }

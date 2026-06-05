@@ -1,20 +1,23 @@
 // MapLibre choropleth render glue (US1). Per the constitution's sanctioned render-glue exception
-// (Principle VIII v1.1.0), this module contains no business logic — the join/enrichment lives in
-// lib/choropleth.ts (100% unit-tested) — and is validated behaviorally by Playwright E2E, not line
-// coverage. It only wires data-driven paint, click selection, and highlight to the GPU canvas.
+// (Principle VIII v1.1.0), the join/enrichment logic lives in lib/choropleth.ts (100% unit-tested);
+// this module only wires data-driven paint, fit-to-Bulgaria, hover, and click selection to the GPU
+// canvas, validated behaviorally by Playwright E2E.
 
 import maplibregl, { type GeoJSONSource, type Map as MlMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { type BoundaryCollection, boundaryToEntity, enrichBoundaries } from '../lib/choropleth.ts';
 import type { RegionSummary } from '../types.ts';
 
+const BG_BOUNDS: [[number, number], [number, number]] = [
+  [22.3, 41.2],
+  [28.7, 44.3],
+];
 const BLANK_STYLE = {
   version: 8 as const,
   sources: {},
-  layers: [{ id: 'bg', type: 'background' as const, paint: { 'background-color': '#0b1021' } }],
+  layers: [{ id: 'bg', type: 'background' as const, paint: { 'background-color': '#dfe7ef' } }],
 };
-
 interface MapViewProps {
   boundaries: BoundaryCollection;
   regions: RegionSummary[];
@@ -22,12 +25,18 @@ interface MapViewProps {
   onSelect: (entityId: string | null) => void;
 }
 
+interface Hover {
+  label: string;
+  count: number;
+  x: number;
+  y: number;
+}
+
 export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapViewProps) {
   const container = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MlMap | null>(null);
+  const [hover, setHover] = useState<Hover | null>(null);
 
-  // Init once. Guarded so a missing WebGL context (e.g. headless CI) degrades gracefully rather than
-  // crashing the SPA — the rest of the explorer (filters, lists, chat) stays usable.
   useEffect(() => {
     const el = container.current;
     if (!el) return;
@@ -36,8 +45,8 @@ export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapV
       map = new maplibregl.Map({
         container: el,
         style: BLANK_STYLE,
-        center: [25.4, 42.7],
-        zoom: 5.5,
+        bounds: BG_BOUNDS,
+        fitBoundsOptions: { padding: 24 },
       });
     } catch {
       el.setAttribute('data-map-unavailable', 'true');
@@ -51,25 +60,38 @@ export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapV
         type: 'fill',
         source: 'regions',
         paint: {
+          // Counts are small (single digits), so emphasise the low end: any region with data reads
+          // clearly blue, deepening with volume.
           'fill-color': [
             'interpolate',
             ['linear'],
             ['get', 'count'],
             0,
-            '#1f2937',
+            '#edf2f7',
             1,
-            '#0e7490',
-            50,
-            '#22d3ee',
+            '#9ecae1',
+            2,
+            '#4292c6',
+            3,
+            '#2171b5',
+            6,
+            '#08519c',
           ],
-          'fill-opacity': 0.8,
+          'fill-opacity': 0.9,
         },
       });
       map.addLayer({
         id: 'regions-outline',
         type: 'line',
         source: 'regions',
-        paint: { 'line-color': '#e2e8f0', 'line-width': 0.5 },
+        paint: { 'line-color': '#ffffff', 'line-width': 1 },
+      });
+      map.addLayer({
+        id: 'regions-hover',
+        type: 'line',
+        source: 'regions',
+        paint: { 'line-color': '#1f2937', 'line-width': 1.5 },
+        filter: ['in', 'boundaryFeatureId', ''],
       });
       map.addLayer({
         id: 'regions-highlight',
@@ -99,18 +121,40 @@ export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapV
     else map.once('load', apply);
   }, [boundaries, regions]);
 
-  // Click → translate the clicked boundary back to its mirror entity id.
+  // Hover (tooltip + outline + cursor) and click selection.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    const byBoundary = new Map(regions.map((r) => [r.boundaryFeatureId, r]));
     const lookup = boundaryToEntity(regions);
-    const handler = (e: maplibregl.MapLayerMouseEvent) => {
+
+    const onMove = (e: maplibregl.MapLayerMouseEvent) => {
+      const id = e.features?.[0]?.properties?.boundaryFeatureId as string | undefined;
+      map.getCanvas().style.cursor = id ? 'pointer' : '';
+      if (map.getLayer('regions-hover'))
+        map.setFilter('regions-hover', ['in', 'boundaryFeatureId', id ?? '']);
+      const region = id ? byBoundary.get(id) : undefined;
+      if (region)
+        setHover({ label: region.labelBg, count: region.datasetCount, x: e.point.x, y: e.point.y });
+      else setHover(null);
+    };
+    const onLeave = () => {
+      map.getCanvas().style.cursor = '';
+      if (map.getLayer('regions-hover'))
+        map.setFilter('regions-hover', ['in', 'boundaryFeatureId', '']);
+      setHover(null);
+    };
+    const onClick = (e: maplibregl.MapLayerMouseEvent) => {
       const id = e.features?.[0]?.properties?.boundaryFeatureId as string | undefined;
       if (id) onSelect(lookup.get(id) ?? null);
     };
-    map.on('click', 'regions-fill', handler);
+    map.on('mousemove', 'regions-fill', onMove);
+    map.on('mouseleave', 'regions-fill', onLeave);
+    map.on('click', 'regions-fill', onClick);
     return () => {
-      map.off('click', 'regions-fill', handler);
+      map.off('mousemove', 'regions-fill', onMove);
+      map.off('mouseleave', 'regions-fill', onLeave);
+      map.off('click', 'regions-fill', onClick);
     };
   }, [regions, onSelect]);
 
@@ -121,7 +165,6 @@ export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapV
     const ids = regions
       .filter((r) => r.entityId && highlightGeoIds.includes(r.entityId))
       .map((r) => r.boundaryFeatureId);
-    // The legacy `in` filter needs >=1 value; use an unmatchable sentinel when nothing is highlighted.
     map.setFilter('regions-highlight', [
       'in',
       'boundaryFeatureId',
@@ -129,5 +172,15 @@ export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapV
     ]);
   }, [highlightGeoIds, regions]);
 
-  return <div ref={container} className="map-canvas" aria-label="Карта на България" />;
+  return (
+    <div className="map-wrap">
+      <div ref={container} className="map-canvas" aria-label="Карта на България" />
+      {hover && (
+        <div className="map-tooltip" style={{ left: hover.x + 12, top: hover.y + 12 }}>
+          <strong>{hover.label}</strong>
+          <span>{hover.count} набора</span>
+        </div>
+      )}
+    </div>
+  );
 }

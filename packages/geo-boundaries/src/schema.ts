@@ -81,8 +81,8 @@ export const boundaryFeatureSchema = z.object({
     iso3166_2: z.string().regex(ISO_RE).optional(),
   }),
   geometry: z.object({
-    type: z.literal('Polygon'),
-    coordinates: z.array(z.array(z.array(z.number()))),
+    type: z.enum(['Polygon', 'MultiPolygon']),
+    coordinates: z.array(z.unknown()),
   }),
 });
 export type BoundaryFeature = z.infer<typeof boundaryFeatureSchema>;
