@@ -47,7 +47,9 @@ export function main(): void {
   app.get('*', serveStatic({ path: `${SPA_ROOT}/index.html` }));
   const port = Number.parseInt(process.env.EXPLORER_API_PORT ?? '8790', 10);
   log.info('explorer_api_listening', { port });
-  Bun.serve({ port, fetch: app.fetch });
+  // Bun's default idleTimeout is 10s — too short for streaming chat where a large model can take
+  // longer than that to emit its first token. Use the max (255s) so SSE connections aren't dropped.
+  Bun.serve({ port, fetch: app.fetch, idleTimeout: 255 });
 }
 
 if (import.meta.main) main();
