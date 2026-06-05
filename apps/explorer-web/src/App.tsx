@@ -6,6 +6,7 @@ import { DatasetList } from './datasets/DatasetList.tsx';
 import { FilterPanel } from './filters/FilterPanel.tsx';
 import { fetchDatasets, fetchNational, fetchRegions } from './lib/api.ts';
 import type { BoundaryCollection } from './lib/choropleth.ts';
+import { hasMore, mergePage } from './lib/pagination.ts';
 import { MapErrorBoundary } from './map/MapErrorBoundary.tsx';
 import { MapView } from './map/MapView.tsx';
 import { useExplorer } from './store/explorerStore.ts';
@@ -18,10 +19,13 @@ export function App() {
 
   const [regions, setRegions] = useState<RegionSummary[]>([]);
   const [datasets, setDatasets] = useState<DatasetPointer[]>([]);
+  const [total, setTotal] = useState(0);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
   const [showNational, setShowNational] = useState(false);
 
   const boundaries = useMemo(() => JSON.parse(oblastsRaw) as BoundaryCollection, []);
+  const PAGE = 50;
+  const loader = showNational ? fetchNational : fetchDatasets;
 
   useEffect(() => {
     let cancelled = false;
@@ -30,16 +34,27 @@ export function App() {
         if (!cancelled) setRegions(r.regions);
       })
       .catch(() => undefined);
-    const load = showNational ? fetchNational(filters, 50, 0) : fetchDatasets(filters, 50, 0);
-    load
+    loader(filters, PAGE, 0)
       .then((r) => {
-        if (!cancelled) setDatasets(r.datasets);
+        if (!cancelled) {
+          setDatasets(r.datasets);
+          setTotal(r.total);
+        }
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [filters, showNational]);
+  }, [filters, loader]);
+
+  function loadMore() {
+    loader(filters, PAGE, datasets.length)
+      .then((r) => {
+        setDatasets((prev) => mergePage(prev, r.datasets));
+        setTotal(r.total);
+      })
+      .catch(() => undefined);
+  }
 
   return (
     <div className="app">
@@ -55,7 +70,13 @@ export function App() {
         {selectedDataset ? (
           <DatasetDetail datasetId={selectedDataset} onClose={() => setSelectedDataset(null)} />
         ) : (
-          <DatasetList datasets={datasets} onSelect={setSelectedDataset} />
+          <DatasetList
+            datasets={datasets}
+            total={total}
+            hasMore={hasMore(datasets.length, total)}
+            onSelect={setSelectedDataset}
+            onLoadMore={loadMore}
+          />
         )}
       </aside>
       <main className="map">

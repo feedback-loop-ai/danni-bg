@@ -3,16 +3,22 @@ import type { DatasetPointer } from '../types.ts';
 
 interface DatasetListProps {
   datasets: DatasetPointer[];
+  total?: number;
+  hasMore?: boolean;
   onSelect: (datasetId: string) => void;
+  onLoadMore?: () => void;
 }
 
-export function DatasetList({ datasets, onSelect }: DatasetListProps) {
+export function DatasetList({ datasets, total, hasMore, onSelect, onLoadMore }: DatasetListProps) {
   if (datasets.length === 0) {
     return <p>Няма набори от данни за текущия изглед.</p>;
   }
   return (
     <section>
-      <h2>Набори от данни ({datasets.length})</h2>
+      <h2>
+        Набори от данни ({datasets.length}
+        {total !== undefined && total > datasets.length ? ` от ${total}` : ''})
+      </h2>
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
         {datasets.map((d) => {
           const fresh = freshnessDisplay(d.freshness);
@@ -30,6 +36,11 @@ export function DatasetList({ datasets, onSelect }: DatasetListProps) {
           );
         })}
       </ul>
+      {hasMore && onLoadMore && (
+        <button type="button" onClick={onLoadMore}>
+          Зареди още
+        </button>
+      )}
     </section>
   );
 }

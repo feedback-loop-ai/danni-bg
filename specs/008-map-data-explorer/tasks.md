@@ -186,10 +186,10 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
 - [ ] T062 [P] Complete municipality crosswalk: extend `src/enrich/gazetteer/bg-admin.ts` + `packages/geo-boundaries/data/crosswalk.json` toward all ~265 obshtinas, shrinking `knownGaps` (research R5 tracked gap); update `crosswalk-integrity.test.ts`
-- [ ] T063 [P] Pagination/virtualization for large region/filter result sets in `apps/explorer-web/src/datasets/` (FR-030, SC-010)
+- [x] T063 [P] Pagination/virtualization for large region/filter result sets in `apps/explorer-web/src/datasets/` (FR-030, SC-010)
 - [ ] T064 [P] Enforce the coverage gate: 100% line+branch on `apps/explorer-api` + `packages/geo-boundaries`; confirm every `tests/parity-matrix.json` row has a contract-test id (CI)
 - [x] T065 [P] Cyrillic round-trip + freshness-present assertions across dataset/citation payloads in `apps/explorer-api/tests/invariants.test.ts` (Constitution IX/X)
-- [ ] T066 [P] Verify structured logging and no-secrets-in-logs (provider `apiKey` redaction) in `apps/explorer-api/tests/logging.test.ts` (FR-024, Constitution IV)
+- [x] T066 [P] Verify structured logging and no-secrets-in-logs (provider `apiKey` redaction) in `apps/explorer-api/tests/logging.test.ts` (FR-024, Constitution IV)
 - [ ] T067 Run `specs/008-map-data-explorer/quickstart.md` validation end-to-end (US1–US5 journeys) against a populated mirror
 - [x] T068 [P] Production build: backend serves the built SPA as static assets from `apps/explorer-api/src/server.ts`; document run in quickstart
 - [x] T070 [P] Stale-degradation coverage (closes U1, Constitution IV): dataset/region routes serve the last-synced corpus with `is_stale` flags when the mirror is stale; add tests in `apps/explorer-api/tests/stale-degradation.test.ts` asserting `is_stale` propagation on `/api/datasets`, `/api/regions`, and detail payloads (not just `/healthz`)
