@@ -84,10 +84,14 @@ Query-set format:
 A query is a **hit** when any id in its `expected` appears in the top-K (`--limit`, default 5).
 
 - The committed fixture set, `tests/fixtures/search/query-set.json` (20 paired BG/EN queries), uses
-  the **fixture corpus ids** and powers the offline CI smoke (`tests/integration/search-cross-lang`).
+  the **fixture corpus ids** and powers the offline CI smokes (`tests/integration/search-cross-lang`
+  and `tests/integration/eval-smoke`, which runs `evaluateRecall` against it with the stub embedder).
 - For a **live** evaluation against the real mirror, supply a query-set whose `expected` are **real
   captured dataset ids** (from `danni search`/`danni mirror-info`). Aim for ≥50 queries grounded in
   actual data.egov.bg titles, balanced BG/EN, to make the recall@5 number meaningful.
+  `tests/fixtures/search/live-query-set.example.json` is a real example (38 queries — 30 BG +
+  8 English cross-lingual — generated from a 100-dataset live capture); against the Qwen3-Embedding-8B
+  server it scored recall@5 = 100%, the 8 cross-lingual hits all via the semantic vector path.
 
 ### Live procedure (against a populated mirror)
 
