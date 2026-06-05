@@ -4,6 +4,8 @@
 
 import type { Database } from 'bun:sqlite';
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
@@ -30,9 +32,12 @@ const OBLASTS = [
 describe('performance', () => {
   let db: Database;
   let app: ReturnType<typeof createApp>;
+  let storeRoot: string;
 
   beforeAll(async () => {
-    db = openDb({ storeRoot: globalThis.__TEST_TMP_DIR__ ?? '/tmp', loadVec: false });
+    // Isolated store (beforeAll precedes the global beforeEach that sets __TEST_TMP_DIR__).
+    storeRoot = mkdtempSync(join(tmpdir(), 'danni-perf-'));
+    db = openDb({ storeRoot, loadVec: false });
     runMigrations(db, join(ROOT, 'migrations'));
     const ds = new DatasetsRepo(db);
     const ents = new EntitiesRepo(db);
@@ -53,12 +58,7 @@ describe('performance', () => {
     const embedder = new LocalOnnxEmbedder({ dimension: 8 });
     await runIndex({ db, embedder });
     app = createApp({
-      bridge: new ReadBridge({
-        db,
-        storeRoot: globalThis.__TEST_TMP_DIR__ ?? '/tmp',
-        embedder,
-        freshnessSloSeconds: 86400,
-      }),
+      bridge: new ReadBridge({ db, storeRoot, embedder, freshnessSloSeconds: 86400 }),
       crosswalk: new Crosswalk(loadCrosswalk()),
       health: () => ({
         lastSyncedAt: '2026-06-01T00:00:00Z',
@@ -67,7 +67,10 @@ describe('performance', () => {
       }),
     } satisfies AppContext);
   });
-  afterAll(() => db.close());
+  afterAll(() => {
+    db.close();
+    rmSync(storeRoot, { recursive: true, force: true });
+  });
 
   it(`answers /api/datasets over ${N} datasets within ${BUDGET_MS}ms`, async () => {
     const start = performance.now();

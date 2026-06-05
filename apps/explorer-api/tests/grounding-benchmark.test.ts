@@ -6,6 +6,8 @@
 
 import type { Database } from 'bun:sqlite';
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LocalOnnxEmbedder } from '../../../src/index/embedders/local-onnx.ts';
@@ -38,10 +40,14 @@ const SET = queryset as unknown as {
 
 let db: Database;
 let bridge: ReadBridge;
+let storeRoot: string;
 const corpusIds = new Set(SET.corpus.map((c) => c.id));
 
 beforeAll(async () => {
-  db = openDb({ storeRoot: globalThis.__TEST_TMP_DIR__ ?? '/tmp', loadVec: false });
+  // Own isolated store — beforeAll runs before the global beforeEach that sets __TEST_TMP_DIR__,
+  // so we must not fall back to a shared /tmp store (which would accumulate across runs).
+  storeRoot = mkdtempSync(join(tmpdir(), 'danni-bench-'));
+  db = openDb({ storeRoot, loadVec: false });
   runMigrations(db, join(ROOT, 'migrations'));
   const ds = new DatasetsRepo(db);
   const ents = new EntitiesRepo(db);
@@ -59,14 +65,12 @@ beforeAll(async () => {
   }
   const embedder = new LocalOnnxEmbedder({ dimension: 8 });
   await runIndex({ db, embedder });
-  bridge = new ReadBridge({
-    db,
-    storeRoot: globalThis.__TEST_TMP_DIR__ ?? '/tmp',
-    embedder,
-    freshnessSloSeconds: 86400,
-  });
+  bridge = new ReadBridge({ db, storeRoot, embedder, freshnessSloSeconds: 86400 });
 });
-afterAll(() => db.close());
+afterAll(() => {
+  db.close();
+  rmSync(storeRoot, { recursive: true, force: true });
+});
 
 async function runQuery(q: Query) {
   const steps = [];

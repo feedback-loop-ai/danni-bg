@@ -38,6 +38,12 @@ export const emptyStep = (): StreamStep =>
     { type: 'finish', finishReason: 'stop', usage },
   ] as LanguageModelV3StreamPart[]);
 
+export const errorStep = (error: unknown): StreamStep =>
+  streamOf([
+    { type: 'stream-start', warnings: [] },
+    { type: 'error', error },
+  ] as LanguageModelV3StreamPart[]);
+
 /** Returns each scripted step on successive doStream calls (throws if the loop overruns the script). */
 export function mockModel(steps: StreamStep[]): MockLanguageModelV3 {
   let i = 0;

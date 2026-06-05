@@ -25,13 +25,17 @@ Backend reads existing danni config plus explorer-specific env (all optional exc
 
 ```bash
 # Server default LLM provider (optional — enables zero-config chat out of the box)
-export EXPLORER_DEFAULT_PROVIDER="openai-compatible"   # or "anthropic"
-export EXPLORER_DEFAULT_BASE_URL="http://spark:8889/v1"  # e.g. local OpenAI-compatible endpoint
-export EXPLORER_DEFAULT_MODEL="<model-id>"
-export EXPLORER_DEFAULT_API_KEY="<key>"                # held in server config only; never logged
+export EXPLORER_DEFAULT_PROVIDER="openai-compatible"      # or "anthropic"
+export EXPLORER_DEFAULT_BASE_URL="http://spark:8000/v1"   # the chat LLM endpoint (NOT the embedder)
+export EXPLORER_DEFAULT_MODEL="<model-id>"                # e.g. a model served by your vLLM
+export EXPLORER_DEFAULT_API_KEY="EMPTY"                   # vLLM ignores it; held in server config only, never logged
 export EXPLORER_API_PORT=8790
 ```
 User-supplied keys are entered in the UI, kept in browser `localStorage`, and sent per request over TLS — never persisted server-side.
+
+> **Note**: the embedder (semantic search) and the chat LLM are separate endpoints — the embedder is `enrichment.embedder.endpointUrl` in `danni.config.json` (e.g. `http://spark:8889`), the chat LLM is `EXPLORER_DEFAULT_BASE_URL` (e.g. `http://spark:8000`).
+>
+> **Tool-calling vs. RAG fallback**: the grounded chat first tries an OpenAI tool-use loop. If the provider isn't started with tool-calling (e.g. vLLM without `--enable-auto-tool-choice`), the backend automatically falls back to a retrieval-augmented mode — it runs the mirror search itself and feeds the scoped datasets to the model as context — so grounded chat works with **any** OpenAI-compatible model.
 
 ## Run (development)
 
