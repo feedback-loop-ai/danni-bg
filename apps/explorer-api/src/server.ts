@@ -3,6 +3,7 @@
 // exercised by running it / E2E rather than unit coverage (its routes are covered by app.test.ts).
 
 import { resolve } from 'node:path';
+import { serveStatic } from 'hono/bun';
 import { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
 import { loadCrosswalk } from '../../../packages/geo-boundaries/src/load.ts';
 import { loadConfig } from '../../../src/config/loader.ts';
@@ -11,6 +12,8 @@ import { openDb } from '../../../src/store/db.ts';
 import { type AppContext, type HealthInfo, createApp } from './app.ts';
 import { log } from './logging.ts';
 import { ReadBridge } from './read-bridge.ts';
+
+const SPA_ROOT = './apps/explorer-web/dist';
 
 export function buildHealth(db: import('bun:sqlite').Database, sloSeconds: number): HealthInfo {
   const row = db
@@ -39,6 +42,9 @@ export function main(): void {
     health: () => buildHealth(db, slo),
   };
   const app = createApp(ctx);
+  // Serve the built SPA (production); in dev the Vite server proxies /api here instead (T068).
+  app.use('/*', serveStatic({ root: SPA_ROOT }));
+  app.get('*', serveStatic({ path: `${SPA_ROOT}/index.html` }));
   const port = Number.parseInt(process.env.EXPLORER_API_PORT ?? '8790', 10);
   log.info('explorer_api_listening', { port });
   Bun.serve({ port, fetch: app.fetch });

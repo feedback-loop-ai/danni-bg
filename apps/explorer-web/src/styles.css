@@ -1,0 +1,59 @@
+:root {
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light dark;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+.app {
+  display: grid;
+  grid-template-columns: 300px 1fr 360px;
+  grid-template-rows: 100vh;
+}
+.panel {
+  overflow-y: auto;
+  padding: 12px;
+  border-right: 1px solid #8884;
+}
+.map {
+  position: relative;
+}
+.map-canvas {
+  position: absolute;
+  inset: 0;
+}
+.chip {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin: 2px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #8882;
+  font-size: 12px;
+}
+.dataset-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px;
+  border: 0;
+  border-bottom: 1px solid #8883;
+  background: transparent;
+  cursor: pointer;
+}
+.stale {
+  color: #b45309;
+}
+.citation {
+  font-size: 12px;
+}
+.msg-user {
+  font-weight: 600;
+}
+.error {
+  color: #dc2626;
+}

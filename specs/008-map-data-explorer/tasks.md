@@ -28,11 +28,11 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 **Purpose**: Workspace, package scaffolding, and toolchains for backend, frontend, and the boundary package.
 
 - [ ] T001 Establish monorepo workspaces — add `apps/*` and `packages/*` to root `package.json` workspaces and create the `apps/explorer-api/`, `apps/explorer-web/`, `packages/geo-boundaries/` directory trees per plan.md Project Structure
-- [ ] T002 [P] Initialize `apps/explorer-api/package.json` (Bun) with deps `hono`, `zod`, `ai`, `@ai-sdk/openai`, `@ai-sdk/anthropic` and a `tsconfig.json` extending the repo strict TS config
-- [ ] T003 [P] Initialize `apps/explorer-web/package.json` (Vite + React) with deps `react`, `react-dom`, `vite`, `@vitejs/plugin-react`, `maplibre-gl`, `zustand`; add `apps/explorer-web/vite.config.ts` with `/api` dev proxy to `EXPLORER_API_PORT`
+- [x] T002 [P] Initialize `apps/explorer-api/package.json` (Bun) with deps `hono`, `zod`, `ai`, `@ai-sdk/openai`, `@ai-sdk/anthropic` and a `tsconfig.json` extending the repo strict TS config
+- [x] T003 [P] Initialize `apps/explorer-web/package.json` (Vite + React) with deps `react`, `react-dom`, `vite`, `@vitejs/plugin-react`, `maplibre-gl`, `zustand`; add `apps/explorer-web/vite.config.ts` with `/api` dev proxy to `EXPLORER_API_PORT`
 - [x] T004 [P] Initialize `packages/geo-boundaries/package.json` + `tsconfig.json` with a `data/` folder placeholder and `src/` entry
 - [ ] T005 [P] Configure Vitest + `@vitest/coverage-v8` for `apps/explorer-api` and shared logic in `apps/explorer-api/vitest.config.ts` and `packages/geo-boundaries/vitest.config.ts` (100% line+branch thresholds)
-- [ ] T006 [P] Configure Testing Library + Playwright for the SPA in `apps/explorer-web/vitest.config.ts` and `apps/explorer-web/playwright.config.ts`
+- [x] T006 [P] Configure Testing Library + Playwright for the SPA in `apps/explorer-web/vitest.config.ts` and `apps/explorer-web/playwright.config.ts`
 - [ ] T007 [P] Wire lint/format/typecheck (Biome + `tsc --noEmit`) for the new packages into root scripts in root `package.json`
 - [x] T008 [P] Scaffold/extend `tests/parity-matrix.json` with empty rows for every endpoint and the four chat tool wrappers from `contracts/` (CI fails until each gains a contract-test id)
 
@@ -52,8 +52,8 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [x] T014 Generate `packages/geo-boundaries/data/crosswalk.json` from `src/enrich/gazetteer/bg-admin.ts` (all 28 oblasts mapped; sample municipalities mapped, rest listed under `knownGaps`) and add the bidirectional CI test in `packages/geo-boundaries/tests/crosswalk-integrity.test.ts` (no orphan rows; every gazetteer unit mapped or an explicit gap)
 - [x] T015 Implement `apps/explorer-api/src/server.ts` Hono skeleton: app construction, route wiring stubs, static SPA serving, and Zod-error → shared error-envelope middleware
 - [x] T016 [P] Implement `apps/explorer-api/src/routes/health.ts` (`GET /healthz`: lastSyncedAt, isStale, component status, `degraded` still-200) + contract test `apps/explorer-api/tests/routes/health.test.ts` and its `parity-matrix.json` row
-- [ ] T017 [P] Implement SPA shell in `apps/explorer-web/src/main.tsx` + layout hosting map/filter/chat panels and the Zustand store in `apps/explorer-web/src/store/index.ts` (FilterState, map selection, chat scope)
-- [ ] T018 [P] Implement `apps/explorer-web/src/lib/api.ts` (typed fetch client over `/api`) and `apps/explorer-web/src/lib/scope.ts` (FilterState → ScopeDescriptor encode) with tests in `apps/explorer-web/src/lib/scope.test.ts`
+- [x] T017 [P] Implement SPA shell in `apps/explorer-web/src/main.tsx` + layout hosting map/filter/chat panels and the Zustand store in `apps/explorer-web/src/store/index.ts` (FilterState, map selection, chat scope)
+- [x] T018 [P] Implement `apps/explorer-web/src/lib/api.ts` (typed fetch client over `/api`) and `apps/explorer-web/src/lib/scope.ts` (FilterState → ScopeDescriptor encode) with tests in `apps/explorer-web/src/lib/scope.test.ts`
 
 **Checkpoint**: Foundation ready — read bridge, schemas, boundaries, server, and SPA shell exist; user stories can proceed.
 
@@ -69,7 +69,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 - [x] T019 [P] [US1] Contract test `GET /api/regions` and `GET /api/regions/:entityId` (RegionSummary aggregates, in-scope counts, empty-state 200, unknown-id 404, unlinked `entityId:null`) in `apps/explorer-api/tests/routes/regions.test.ts` + parity rows
 - [x] T020 [P] [US1] Contract test `GET /api/datasets/:datasetId` and `GET /api/datasets/:datasetId/resources/:resourceId/rows` (detail reshape, paginated/sampled rows, freshness present, 404) in `apps/explorer-api/tests/routes/datasets-detail.test.ts` + parity rows
-- [ ] T021 [P] [US1] Playwright E2E `apps/explorer-web/tests/e2e/us1-map.spec.ts`: national render → zoom → municipality subdivide → click → dataset list + working source link → no-data empty state
+- [x] T021 [P] [US1] Playwright E2E `apps/explorer-web/tests/e2e/us1-map.spec.ts`: national render → zoom → municipality subdivide → click → dataset list + working source link → no-data empty state
 
 ### Implementation for User Story 1
 
@@ -78,11 +78,11 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [x] T024 [US1] Implement `GET /api/regions/:entityId` in `apps/explorer-api/src/routes/regions.ts` (datasets for one unit, `limit`/`offset`, empty-state 200, 404 on unknown/unlinked)
 - [x] T025 [P] [US1] Implement `apps/explorer-api/src/routes/datasets.ts` `GET /api/datasets/:datasetId` → `DatasetDetailView` (description, resources w/ schema + freshness, entities, links, lifecycleState, sourceUrl)
 - [x] T026 [P] [US1] Implement `GET /api/datasets/:datasetId/resources/:resourceId/rows` in `apps/explorer-api/src/routes/datasets.ts` (paginated/sampled pass-through to `readResourceRows`, `truncated` flag, resource freshness)
-- [ ] T027 [P] [US1] MapLibre setup in `apps/explorer-web/src/map/` — sources from `packages/geo-boundaries` GeoJSON, oblast + municipality layers swapped/styled by zoom (render glue; behavior covered by T021)
-- [ ] T028 [US1] Data-driven choropleth in `apps/explorer-web/src/map/`: shade/badge by `datasetCount` from `/api/regions`, join by `boundaryFeatureId`, flag low-confidence placements
-- [ ] T029 [US1] Region panel in `apps/explorer-web/src/datasets/`: on region click, list DatasetPointers (title BG/EN, publisher, freshness, source link) with explicit no-data empty state
+- [x] T027 [P] [US1] MapLibre setup in `apps/explorer-web/src/map/` — sources from `packages/geo-boundaries` GeoJSON, oblast + municipality layers swapped/styled by zoom (render glue; behavior covered by T021)
+- [x] T028 [US1] Data-driven choropleth in `apps/explorer-web/src/map/`: shade/badge by `datasetCount` from `/api/regions`, join by `boundaryFeatureId`, flag low-confidence placements
+- [x] T029 [US1] Region panel in `apps/explorer-web/src/datasets/`: on region click, list DatasetPointers (title BG/EN, publisher, freshness, source link) with explicit no-data empty state
 - [ ] T030 [US1] Dataset detail view + national/non-georeferenced grouping in `apps/explorer-web/src/datasets/` (FR-005/FR-006), with one-hop source URL
-- [ ] T031 [P] [US1] Pure display helpers in `apps/explorer-web/src/lib/format.ts` (bilingual label fallback, freshness rendering, machine-translation labelling per `translationConfidence`) + tests `apps/explorer-web/src/lib/format.test.ts`
+- [x] T031 [P] [US1] Pure display helpers in `apps/explorer-web/src/lib/format.ts` (bilingual label fallback, freshness rendering, machine-translation labelling per `translationConfidence`) + tests `apps/explorer-web/src/lib/format.test.ts`
 
 **Checkpoint**: US1 is fully functional and demoable as the MVP.
 
@@ -102,12 +102,12 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 ### Implementation for User Story 2
 
-- [ ] T035 [P] [US2] Pure filter-composition lib in `apps/explorer-web/src/lib/filters.ts` (FilterState → query params, chip model) + tests `apps/explorer-web/src/lib/filters.test.ts`
+- [x] T035 [P] [US2] Pure filter-composition lib in `apps/explorer-web/src/lib/filters.ts` (FilterState → query params, chip model) + tests `apps/explorer-web/src/lib/filters.test.ts`
 - [x] T036 [US2] Implement `apps/explorer-api/src/routes/datasets.ts` `GET /api/datasets` (free-text via `search`, entity via `searchByEntity`, curated AND post-filters, freshness, `includeWithdrawn` default false, pagination)
 - [x] T037 [US2] Implement `apps/explorer-api/src/routes/facets.ts` `GET /api/facets` (tags/publishers/freshnessBuckets with in-scope counts) wired in `server.ts`
-- [ ] T038 [US2] Filter panel + chips in `apps/explorer-web/src/filters/` (tag, publisher, geo, freshness, free-text; removable chips; clear-all) bound to the store
-- [ ] T039 [US2] Keep map highlighting + dataset lists consistent with FilterState (FR-014): de-emphasize non-matching regions, refresh `/api/regions` + `/api/datasets` on filter change
-- [ ] T040 [US2] Rapid-change correctness in `apps/explorer-web/src/lib/api.ts`: request cancellation / last-write-wins so map and lists never show stale/out-of-order results (FR-032)
+- [x] T038 [US2] Filter panel + chips in `apps/explorer-web/src/filters/` (tag, publisher, geo, freshness, free-text; removable chips; clear-all) bound to the store
+- [x] T039 [US2] Keep map highlighting + dataset lists consistent with FilterState (FR-014): de-emphasize non-matching regions, refresh `/api/regions` + `/api/datasets` on filter change
+- [x] T040 [US2] Rapid-change correctness in `apps/explorer-web/src/lib/api.ts`: request cancellation / last-write-wins so map and lists never show stale/out-of-order results (FR-032)
 
 **Checkpoint**: US1 + US2 both work independently.
 
@@ -133,7 +133,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [x] T047 [US3] Implement `apps/explorer-api/src/chat/grounding.ts`: system prompt, citation extraction, dataset-existence validation (drop hallucinated ids), scope validation, MapAnchor derivation, freshness/coded/translated flagging
 - [x] T048 [US3] Implement `apps/explorer-api/src/chat/session.ts`: in-memory, session-scoped conversation store (never persisted; FR-019)
 - [x] T049 [US3] Implement `apps/explorer-api/src/routes/chat.ts` `POST /api/chat` SSE: tool-use loop emitting `session`/`token`/`tool`/`citations`/`anchors`/`done`/`error`, wired in `server.ts`
-- [ ] T050 [P] [US3] Chat panel in `apps/explorer-web/src/chat/`: SSE consumption, streamed tokens, citations with links + freshness, coded/machine-translated flags
+- [x] T050 [P] [US3] Chat panel in `apps/explorer-web/src/chat/`: SSE consumption, streamed tokens, citations with links + freshness, coded/machine-translated flags
 - [ ] T069 [US3] Grounding benchmark (closes SC-004/SC-005/SC-006): add a known-answer query set + harness in `apps/explorer-api/tests/grounding-benchmark.test.ts`, reusing the existing eval CI pattern (commit `d75007f`, `eval/`), asserting ≥90% grounded, 0% fabricated datasets/values/links, and ≥95% correct "no relevant public data found" on no-data questions
 
 **Checkpoint**: US1 + US2 + US3 all work independently (chat runs against the server default provider).
@@ -154,8 +154,8 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 ### Implementation for User Story 4
 
 - [x] T053 [US4] Extend `apps/explorer-api/src/chat/providers.ts`: add Anthropic adapter, server-default-from-env (`EXPLORER_DEFAULT_*`), and error mapping; ensure `apiKey` never logged/persisted (FR-024)
-- [ ] T054 [P] [US4] Provider settings UI in `apps/explorer-web/src/chat/` (kind, model, baseUrl, apiKey, useServerDefault) persisted to `localStorage` via `apps/explorer-web/src/store/`
-- [ ] T055 [US4] Send ProviderConfig per chat request and support switching provider mid-session without losing conversation; surface provider errors as actionable UI states
+- [x] T054 [P] [US4] Provider settings UI in `apps/explorer-web/src/chat/` (kind, model, baseUrl, apiKey, useServerDefault) persisted to `localStorage` via `apps/explorer-web/src/store/`
+- [x] T055 [US4] Send ProviderConfig per chat request and support switching provider mid-session without losing conversation; surface provider errors as actionable UI states
 
 **Checkpoint**: US1–US4 all work independently.
 
@@ -174,10 +174,10 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 ### Implementation for User Story 5
 
-- [ ] T058 [US5] Send current FilterState as `scope` with every chat request from `apps/explorer-web/src/chat/` (FR-025) using `lib/scope.ts`
-- [ ] T059 [US5] Apply `anchors` MapAnchor in `apps/explorer-web/src/map/`: highlight referenced regions/datasets and bring them into focus (FR-026)
-- [ ] T060 [US5] Cited-dataset selection in `apps/explorer-web/src/chat/` → highlight region(s) on map + open dataset detail (FR-027)
-- [ ] T061 [US5] Reflect scope changes (including clear-all) into chat's available scope and make the change evident in the UI (FR-028)
+- [x] T058 [US5] Send current FilterState as `scope` with every chat request from `apps/explorer-web/src/chat/` (FR-025) using `lib/scope.ts`
+- [x] T059 [US5] Apply `anchors` MapAnchor in `apps/explorer-web/src/map/`: highlight referenced regions/datasets and bring them into focus (FR-026)
+- [x] T060 [US5] Cited-dataset selection in `apps/explorer-web/src/chat/` → highlight region(s) on map + open dataset detail (FR-027)
+- [x] T061 [US5] Reflect scope changes (including clear-all) into chat's available scope and make the change evident in the UI (FR-028)
 
 **Checkpoint**: All five user stories independently functional and linked.
 
@@ -191,7 +191,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [ ] T065 [P] Cyrillic round-trip + freshness-present assertions across dataset/citation payloads in `apps/explorer-api/tests/invariants.test.ts` (Constitution IX/X)
 - [ ] T066 [P] Verify structured logging and no-secrets-in-logs (provider `apiKey` redaction) in `apps/explorer-api/tests/logging.test.ts` (FR-024, Constitution IV)
 - [ ] T067 Run `specs/008-map-data-explorer/quickstart.md` validation end-to-end (US1–US5 journeys) against a populated mirror
-- [ ] T068 [P] Production build: backend serves the built SPA as static assets from `apps/explorer-api/src/server.ts`; document run in quickstart
+- [x] T068 [P] Production build: backend serves the built SPA as static assets from `apps/explorer-api/src/server.ts`; document run in quickstart
 - [ ] T070 [P] Stale-degradation coverage (closes U1, Constitution IV): dataset/region routes serve the last-synced corpus with `is_stale` flags when the mirror is stale; add tests in `apps/explorer-api/tests/stale-degradation.test.ts` asserting `is_stale` propagation on `/api/datasets`, `/api/regions`, and detail payloads (not just `/healthz`)
 - [ ] T071 [P] Performance assertions (closes SC-003/SC-010): add `apps/explorer-api/tests/perf.test.ts` exercising `/api/datasets` + `/api/regions` against a several-thousand-dataset fixture and asserting a ≤2s response budget; record large-list virtualization timing in the US2 E2E
 - [ ] T072 [P] Reachability invariant (closes SC-009): add `apps/explorer-api/tests/reachability.test.ts` asserting 100% of mirror datasets resolve to at least one region (`/api/regions/:id`) or the national/non-georeferenced grouping
