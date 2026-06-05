@@ -1,0 +1,19 @@
+{
+  "description": "Known-answer benchmark for the chat grounding pipeline (T069). Each query scripts a representative model behaviour (which tool it calls + what it answers); the harness runs the real grounding loop and asserts the SC-004/005/006 guarantees. 'grounded' expects a real cited dataset; 'nodata' expects the explicit no-data reply; 'fabrication' attempts to reference a non-existent dataset that the pipeline MUST drop.",
+  "corpus": [
+    { "id": "d1", "titleBg": "Качество на въздуха", "tags": ["въздух"], "geo": "geo:bg-oblast-sofia-grad" },
+    { "id": "d2", "titleBg": "Общински бюджет 2025", "tags": ["бюджет"], "geo": "geo:bg-oblast-plovdiv" },
+    { "id": "d3", "titleBg": "Регистър на отпадъците", "tags": ["отпадъци"], "geo": "geo:bg-oblast-varna" }
+  ],
+  "queries": [
+    { "id": "q-air", "kind": "grounded", "question": "Кои данни описват качеството на въздуха?", "tool": { "name": "mirrorSearch", "input": { "query": "въздух" } }, "answer": "Качеството на въздуха се публикува в набор от данни.", "expectCited": ["d1"] },
+    { "id": "q-budget", "kind": "grounded", "question": "Има ли данни за общинския бюджет?", "tool": { "name": "mirrorSearch", "input": { "query": "бюджет" } }, "answer": "Да, налични са бюджетни данни за 2025.", "expectCited": ["d2"] },
+    { "id": "q-waste", "kind": "grounded", "question": "Какви данни има за Варна?", "tool": { "name": "mirrorEntitySearch", "input": { "entityId": "geo:bg-oblast-varna" } }, "answer": "За Варна има регистър на отпадъците.", "expectCited": ["d3"] },
+    { "id": "q-info", "kind": "grounded", "question": "Подробности за набора за въздуха?", "tool": { "name": "mirrorInfo", "input": { "datasetId": "d1" } }, "answer": "Наборът съдържа измервания на въздуха.", "expectCited": ["d1"] },
+    { "id": "q-nd-space", "kind": "nodata", "question": "Има ли данни за космически полети?", "tool": { "name": "mirrorSearch", "input": { "query": "космически полети zzz" } }, "answer": "" },
+    { "id": "q-nd-none", "kind": "nodata", "question": "Данни за подводни вулкани?", "tool": { "name": "mirrorSearch", "input": { "query": "подводни вулкани qqq" } }, "answer": "" },
+    { "id": "q-fab-ghost", "kind": "fabrication", "question": "Разкажи за измислен набор.", "tool": { "name": "mirrorInfo", "input": { "datasetId": "d-ghost-9000" } }, "answer": "Наборът d-ghost-9000 съдържа подробни данни.", "expectCited": [] },
+    { "id": "q-fab-madeup", "kind": "fabrication", "question": "А за този набор?", "tool": { "name": "mirrorInfo", "input": { "datasetId": "totally-made-up" } }, "answer": "totally-made-up има стотици записи.", "expectCited": [] }
+  ],
+  "thresholds": { "grounded": 0.9, "noData": 0.95, "maxFabricated": 0 }
+}

@@ -134,7 +134,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [x] T048 [US3] Implement `apps/explorer-api/src/chat/session.ts`: in-memory, session-scoped conversation store (never persisted; FR-019)
 - [x] T049 [US3] Implement `apps/explorer-api/src/routes/chat.ts` `POST /api/chat` SSE: tool-use loop emitting `session`/`token`/`tool`/`citations`/`anchors`/`done`/`error`, wired in `server.ts`
 - [x] T050 [P] [US3] Chat panel in `apps/explorer-web/src/chat/`: SSE consumption, streamed tokens, citations with links + freshness, coded/machine-translated flags
-- [ ] T069 [US3] Grounding benchmark (closes SC-004/SC-005/SC-006): add a known-answer query set + harness in `apps/explorer-api/tests/grounding-benchmark.test.ts`, reusing the existing eval CI pattern (commit `d75007f`, `eval/`), asserting ≥90% grounded, 0% fabricated datasets/values/links, and ≥95% correct "no relevant public data found" on no-data questions
+- [x] T069 [US3] Grounding benchmark (closes SC-004/SC-005/SC-006): add a known-answer query set + harness in `apps/explorer-api/tests/grounding-benchmark.test.ts`, reusing the existing eval CI pattern (commit `d75007f`, `eval/`), asserting ≥90% grounded, 0% fabricated datasets/values/links, and ≥95% correct "no relevant public data found" on no-data questions
 
 **Checkpoint**: US1 + US2 + US3 all work independently (chat runs against the server default provider).
 

@@ -64,6 +64,11 @@ export async function runChatTurn(opts: RunChatTurnOptions): Promise<ChatTurnRes
     }
   }
 
+  // No substantive answer → no relevant data found; nothing is grounded, so emit no citations (SC-006).
+  if (text.trim() === '') {
+    return { text: NO_DATA_REPLY, citations: [], anchors: { geoEntityIds: [], datasetIds: [] } };
+  }
+
   const resolve = (id: string): CuratedDatasetView | null => {
     try {
       return bridge.view(id);
@@ -73,6 +78,5 @@ export async function runChatTurn(opts: RunChatTurnOptions): Promise<ChatTurnRes
   };
   const citations = buildCitations(citedDatasetIds, resolve, (v) => inScope(v, scope));
   const anchors = buildAnchors(citations, resolve);
-  if (text.trim() === '') text = NO_DATA_REPLY;
   return { text, citations, anchors };
 }
