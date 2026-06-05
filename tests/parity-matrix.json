@@ -78,6 +78,28 @@
     {
       "name": "GET /api/facets",
       "testId": "apps/explorer-api/tests/app.test.ts#GET /api/facets returns in-scope tag/publisher/freshness counts"
+    },
+    {
+      "name": "POST /api/chat",
+      "testId": "apps/explorer-api/tests/chat-route.test.ts#streams a grounded answer with citations + anchors from tool results"
+    }
+  ],
+  "explorerChatTools": [
+    {
+      "name": "mirrorSearch",
+      "testId": "apps/explorer-api/tests/chat-route.test.ts#mirrorSearch returns in-scope datasets and records ids"
+    },
+    {
+      "name": "mirrorEntitySearch",
+      "testId": "apps/explorer-api/tests/chat-route.test.ts#mirrorEntitySearch resolves entity-linked datasets"
+    },
+    {
+      "name": "mirrorInfo",
+      "testId": "apps/explorer-api/tests/chat-route.test.ts#mirrorInfo returns detail in scope, outOfScope marker otherwise"
+    },
+    {
+      "name": "readResource",
+      "testId": "apps/explorer-api/tests/chat-route.test.ts#readResource reads rows in scope, blocks out of scope"
     }
   ]
 }

@@ -1,0 +1,319 @@
+// US3 chat: SSE route + grounding loop driven by a stubbed model (MockLanguageModelV3), plus direct
+// tool-wrapper tests. No live LLM — the provider seam is injected (Constitution VI).
+
+import type { Database } from 'bun:sqlite';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type { LanguageModelV3StreamPart } from '@ai-sdk/provider';
+import type { LanguageModel, ToolCallOptions, ToolSet } from 'ai';
+import { MockLanguageModelV3, convertArrayToReadableStream } from 'ai/test';
+import { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
+import { loadCrosswalk } from '../../../packages/geo-boundaries/src/load.ts';
+import { LocalOnnxEmbedder } from '../../../src/index/embedders/local-onnx.ts';
+import { runIndex } from '../../../src/index/run-index.ts';
+import { openDb } from '../../../src/store/db.ts';
+import { runMigrations } from '../../../src/store/migrate.ts';
+import { DatasetsRepo } from '../../../src/store/repos/datasets.ts';
+import { EntitiesRepo } from '../../../src/store/repos/entities.ts';
+import { ResourcesRepo } from '../../../src/store/repos/resources.ts';
+import { type AppContext, createApp } from '../src/app.ts';
+import { ProviderError } from '../src/chat/providers.ts';
+import { SessionStore } from '../src/chat/session.ts';
+import { buildTools } from '../src/chat/tools.ts';
+import { ReadBridge } from '../src/read-bridge.ts';
+
+const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
+const usage = {
+  inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
+  outputTokens: { total: 0, text: 0, reasoning: 0 },
+};
+
+function streamOf(parts: LanguageModelV3StreamPart[]) {
+  return { stream: convertArrayToReadableStream(parts) };
+}
+/** A mock model that returns each scripted step on successive doStream calls (one per loop step). */
+function mockModel(
+  steps: Array<{ stream: ReadableStream<LanguageModelV3StreamPart> }>,
+): MockLanguageModelV3 {
+  let i = 0;
+  return new MockLanguageModelV3({
+    doStream: async () => {
+      const step = steps[i++];
+      if (!step) throw new Error('mock model exhausted');
+      return step;
+    },
+  });
+}
+const toolCallStep = (toolName: string, input: unknown) =>
+  streamOf([
+    { type: 'stream-start', warnings: [] },
+    { type: 'tool-call', toolCallId: 'c1', toolName, input: JSON.stringify(input) },
+    { type: 'finish', finishReason: 'tool-calls', usage },
+  ] as LanguageModelV3StreamPart[]);
+const textStep = (text: string) =>
+  streamOf([
+    { type: 'stream-start', warnings: [] },
+    { type: 'text-start', id: 't' },
+    { type: 'text-delta', id: 't', delta: text },
+    { type: 'text-end', id: 't' },
+    { type: 'finish', finishReason: 'stop', usage },
+  ] as LanguageModelV3StreamPart[]);
+const emptyStep = () =>
+  streamOf([
+    { type: 'stream-start', warnings: [] },
+    { type: 'finish', finishReason: 'stop', usage },
+  ] as LanguageModelV3StreamPart[]);
+const errorStep = (error: unknown = new Error('upstream blew up')) =>
+  streamOf([
+    { type: 'stream-start', warnings: [] },
+    { type: 'error', error },
+  ] as LanguageModelV3StreamPart[]);
+
+const opts = { toolCallId: 't', messages: [] } as unknown as ToolCallOptions;
+
+interface SseEvent {
+  event: string;
+  data: unknown;
+}
+function parseSSE(text: string): SseEvent[] {
+  const out: SseEvent[] = [];
+  for (const block of text.split('\n\n')) {
+    const event = block.match(/^event:\s*(.+)$/m)?.[1]?.trim();
+    const data = block.match(/^data:\s*(.+)$/m)?.[1]?.trim();
+    if (event && data) out.push({ event, data: JSON.parse(data) });
+  }
+  return out;
+}
+
+/** Invoke a tool's execute without non-null assertions (tool/execute are optional in the type). */
+function callTool(tools: ToolSet, name: string, input: unknown): Promise<unknown> {
+  const t = tools[name];
+  if (!t?.execute) throw new Error(`tool ${name} is not executable`);
+  return (t.execute as (i: unknown, o: ToolCallOptions) => Promise<unknown>)(input, opts);
+}
+
+function seed(db: Database): void {
+  const ds = new DatasetsRepo(db);
+  ds.upsert({
+    id: 'd1',
+    slug: 'd1',
+    titleBg: 'Качество на въздуха',
+    tags: ['въздух'],
+    groups: [],
+    sourceUrl: 'https://data.egov.bg/d1',
+  });
+  new ResourcesRepo(db).upsert({
+    id: 'r1',
+    datasetId: 'd1',
+    sourceUrl: 'https://data.egov.bg/d1/r1',
+    name: 'rows',
+  });
+  const ents = new EntitiesRepo(db);
+  ents.upsert({
+    id: 'geo:bg-oblast-sofia-grad',
+    kind: 'geographic_unit',
+    canonicalLabelBg: 'София (град)',
+  });
+  ents.attach({
+    datasetId: 'd1',
+    entityId: 'geo:bg-oblast-sofia-grad',
+    extractor: 'gaz',
+    confidence: 0.9,
+  });
+}
+
+describe('POST /api/chat', () => {
+  let db: Database;
+  let bridge: ReadBridge;
+
+  beforeEach(async () => {
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    db = openDb({ storeRoot, loadVec: false });
+    runMigrations(db, join(ROOT, 'migrations'));
+    seed(db);
+    const embedder = new LocalOnnxEmbedder({ dimension: 8 });
+    await runIndex({ db, embedder });
+    bridge = new ReadBridge({ db, storeRoot, embedder, freshnessSloSeconds: 86400 });
+  });
+  afterEach(() => db.close());
+
+  function appWith(model: MockLanguageModelV3 | (() => never)): ReturnType<typeof createApp> {
+    const selectModel: () => LanguageModel =
+      typeof model === 'function' ? model : () => model as unknown as LanguageModel;
+    const ctx: AppContext = {
+      bridge,
+      crosswalk: new Crosswalk(loadCrosswalk()),
+      health: () => ({ lastSyncedAt: null, isStale: true, defaultProvider: 'absent' }),
+      chat: { sessions: new SessionStore(() => 'sess-1'), serverDefault: null, selectModel },
+    };
+    return createApp(ctx);
+  }
+
+  const post = (app: ReturnType<typeof createApp>, body: unknown) =>
+    app.request('/api/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  it('streams a grounded answer with citations + anchors from tool results', async () => {
+    const model = mockModel([
+      toolCallStep('mirrorSearch', { query: 'въздух' }),
+      textStep('Има данни за качеството на въздуха.'),
+    ]);
+    const res = await post(appWith(model), {
+      message: 'Кои региони публикуват данни за въздуха?',
+      provider: { kind: 'openai-compatible', model: 'm', apiKey: 'x' },
+    });
+    const events = parseSSE(await res.text());
+    const kinds = events.map((e) => e.event);
+    expect(kinds[0]).toBe('session');
+    expect(kinds).toContain('tool');
+    expect(kinds).toContain('token');
+    expect(kinds).toContain('citations');
+    expect(kinds.at(-1)).toBe('done');
+
+    const cite = events.find((e) => e.event === 'citations')?.data as {
+      citations: { datasetId: string }[];
+    };
+    expect(cite.citations.map((c) => c.datasetId)).toEqual(['d1']);
+    const anchor = events.find((e) => e.event === 'anchors')?.data as { geoEntityIds: string[] };
+    expect(anchor.geoEntityIds).toContain('geo:bg-oblast-sofia-grad');
+  });
+
+  it('replies "no relevant public data" when the model produces no text', async () => {
+    const model = mockModel([emptyStep()]);
+    const res = await post(appWith(model), {
+      message: 'нещо',
+      provider: { kind: 'anthropic', model: 'm', apiKey: 'x' },
+    });
+    const events = parseSSE(await res.text());
+    expect(events.find((e) => e.event === 'citations')?.data).toEqual({ citations: [] });
+  });
+
+  it('excludes out-of-scope datasets from citations (SC-008)', async () => {
+    const model = mockModel([toolCallStep('mirrorSearch', { query: 'въздух' }), textStep('ok')]);
+    const res = await post(appWith(model), {
+      message: 'q',
+      scope: { geoUnitIds: ['geo:bg-oblast-varna'] },
+      provider: { kind: 'openai-compatible', model: 'm', apiKey: 'x' },
+    });
+    const events = parseSSE(await res.text());
+    expect(events.find((e) => e.event === 'citations')?.data).toEqual({ citations: [] });
+  });
+
+  it('emits an error event on provider misconfiguration', async () => {
+    const app = appWith(() => {
+      throw new ProviderError('provider_unconfigured', 'no key');
+    });
+    const res = await post(app, { message: 'q', provider: { kind: 'anthropic', model: 'm' } });
+    const events = parseSSE(await res.text());
+    const e = events.find((x) => x.event === 'error')?.data as { code: string };
+    expect(e.code).toBe('provider_unconfigured');
+  });
+
+  it('rejects an invalid body with 400', async () => {
+    const model = mockModel([emptyStep()]);
+    const res = await post(appWith(model), {
+      provider: { kind: 'anthropic', model: 'm', apiKey: 'x' },
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('emits a provider_error event when the model stream errors mid-turn', async () => {
+    const model = mockModel([errorStep()]);
+    const res = await post(appWith(model), {
+      message: 'q',
+      provider: { kind: 'anthropic', model: 'm', apiKey: 'x' },
+    });
+    const events = parseSSE(await res.text());
+    const e = events.find((x) => x.event === 'error')?.data as { code: string };
+    expect(e.code).toBe('provider_error');
+  });
+
+  it('handles a non-Error stream error value', async () => {
+    const model = mockModel([errorStep('plain string failure')]);
+    const res = await post(appWith(model), {
+      message: 'q',
+      provider: { kind: 'anthropic', model: 'm', apiKey: 'x' },
+    });
+    const events = parseSSE(await res.text());
+    expect(events.find((x) => x.event === 'error')?.event).toBe('error');
+  });
+});
+
+describe('chat tool wrappers (direct)', () => {
+  let db: Database;
+  let bridge: ReadBridge;
+
+  beforeEach(async () => {
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    db = openDb({ storeRoot, loadVec: false });
+    runMigrations(db, join(ROOT, 'migrations'));
+    seed(db);
+    const embedder = new LocalOnnxEmbedder({ dimension: 8 });
+    await runIndex({ db, embedder });
+    bridge = new ReadBridge({ db, storeRoot, embedder, freshnessSloSeconds: 86400 });
+  });
+  afterEach(() => db.close());
+
+  it('mirrorSearch returns in-scope datasets and records ids', async () => {
+    const { tools, citedDatasetIds } = buildTools(bridge, {});
+    const out = (await callTool(tools, 'mirrorSearch', { query: 'въздух' })) as {
+      results: { datasetId: string }[];
+    };
+    expect(out.results.map((r) => r.datasetId)).toEqual(['d1']);
+    expect(citedDatasetIds.has('d1')).toBe(true);
+  });
+
+  it('mirrorEntitySearch resolves entity-linked datasets', async () => {
+    const { tools } = buildTools(bridge, {});
+    const out = (await callTool(tools, 'mirrorEntitySearch', {
+      entityId: 'geo:bg-oblast-sofia-grad',
+    })) as { results: { datasetId: string }[] };
+    expect(out.results.map((r) => r.datasetId)).toEqual(['d1']);
+  });
+
+  it('mirrorInfo returns detail in scope, outOfScope marker otherwise', async () => {
+    const inOut = (await callTool(buildTools(bridge, {}).tools, 'mirrorInfo', {
+      datasetId: 'd1',
+    })) as { datasetId: string };
+    expect(inOut.datasetId).toBe('d1');
+    const blocked = (await callTool(
+      buildTools(bridge, { geoUnitIds: ['geo:bg-oblast-varna'] }).tools,
+      'mirrorInfo',
+      { datasetId: 'd1' },
+    )) as { outOfScope?: boolean };
+    expect(blocked.outOfScope).toBe(true);
+  });
+
+  it('mirrorInfo marks a non-existent dataset as outOfScope (view throws → dropped)', async () => {
+    const out = (await callTool(buildTools(bridge, {}).tools, 'mirrorInfo', {
+      datasetId: 'ghost',
+    })) as { outOfScope?: boolean };
+    expect(out.outOfScope).toBe(true);
+  });
+
+  it('readResource reads rows in scope, blocks out of scope', async () => {
+    const rows = (await callTool(buildTools(bridge, {}).tools, 'readResource', {
+      datasetId: 'd1',
+      resourceId: 'r1',
+    })) as { total: number };
+    expect(rows.total).toBe(0);
+    const blocked = (await callTool(
+      buildTools(bridge, { geoUnitIds: ['geo:bg-oblast-varna'] }).tools,
+      'readResource',
+      { datasetId: 'd1', resourceId: 'r1' },
+    )) as { outOfScope?: boolean };
+    expect(blocked.outOfScope).toBe(true);
+  });
+
+  it('mirrorSearch drops hits whose dataset throws on view()', async () => {
+    const { tools } = buildTools(bridge, {});
+    const out = (await callTool(tools, 'mirrorSearch', { query: 'несъществуващо xyz' })) as {
+      results: unknown[];
+    };
+    expect(Array.isArray(out.results)).toBe(true);
+  });
+});

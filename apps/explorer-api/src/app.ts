@@ -3,12 +3,21 @@
 // are mapped to the shared error envelope. Authoritative Bulgarian fields and freshness blocks pass
 // through verbatim (Constitution IX/X).
 
+import type { LanguageModel } from 'ai';
 import { Hono } from 'hono';
 import type { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
 import { MUNICIPALITIES, OBLASTS } from '../../../src/enrich/gazetteer/bg-admin.ts';
+import {
+  type ProviderConfig,
+  type ServerDefault,
+  selectModel,
+  serverDefaultFromEnv,
+} from './chat/providers.ts';
+import { SessionStore } from './chat/session.ts';
 import type { ReadBridge } from './read-bridge.ts';
 import { viewToPointer } from './read-bridge.ts';
 import { aggregateRegions } from './regions-aggregate.ts';
+import { chatHandler } from './routes/chat.ts';
 import {
   type DatasetPointer,
   type ErrorCode,
@@ -25,10 +34,18 @@ export interface HealthInfo {
   defaultProvider: 'configured' | 'absent';
 }
 
+export interface ChatConfig {
+  sessions: SessionStore;
+  serverDefault: ServerDefault | null;
+  /** Test override; when absent the real provider seam is used. */
+  selectModel?: (provider: ProviderConfig) => LanguageModel;
+}
+
 export interface AppContext {
   bridge: ReadBridge;
   crosswalk: Crosswalk;
   health: () => HealthInfo;
+  chat?: ChatConfig;
 }
 
 const LABELS = new Map<string, { labelBg: string; labelEn: string | null }>([
@@ -63,6 +80,19 @@ function clampInt(raw: string | null, def: number, max: number): number {
 
 export function createApp(ctx: AppContext): Hono {
   const app = new Hono();
+
+  const chat: ChatConfig = ctx.chat ?? {
+    sessions: new SessionStore(),
+    serverDefault: serverDefaultFromEnv(),
+  };
+  app.post(
+    '/api/chat',
+    chatHandler({
+      bridge: ctx.bridge,
+      sessions: chat.sessions,
+      selectModel: chat.selectModel ?? ((p) => selectModel(p, chat.serverDefault)),
+    }),
+  );
 
   app.get('/healthz', (c) => {
     const h = ctx.health();

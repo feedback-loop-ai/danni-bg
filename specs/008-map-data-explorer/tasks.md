@@ -121,18 +121,18 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T041 [P] [US3] Contract tests for the four tool wrappers (`mirrorSearch`, `mirrorEntitySearch`, `mirrorInfo`, `readResource`) in `apps/explorer-api/tests/chat/tools.test.ts` — each references its underlying read function, asserts scope post-filter and `outOfScope` marker + parity rows
-- [ ] T042 [P] [US3] Contract test `POST /api/chat` SSE in `apps/explorer-api/tests/routes/chat.test.ts` (stubbed LLM): event sequence (`session`/`token`/`tool`/`citations`/`anchors`/`done`), citation existence validation, no-data answer, no-fabrication + parity row
+- [x] T041 [P] [US3] Contract tests for the four tool wrappers (`mirrorSearch`, `mirrorEntitySearch`, `mirrorInfo`, `readResource`) in `apps/explorer-api/tests/chat/tools.test.ts` — each references its underlying read function, asserts scope post-filter and `outOfScope` marker + parity rows
+- [x] T042 [P] [US3] Contract test `POST /api/chat` SSE in `apps/explorer-api/tests/routes/chat.test.ts` (stubbed LLM): event sequence (`session`/`token`/`tool`/`citations`/`anchors`/`done`), citation existence validation, no-data answer, no-fabrication + parity row
 - [ ] T043 [P] [US3] Playwright E2E `apps/explorer-web/tests/e2e/us3-chat.spec.ts`: ask BG/EN question → streamed grounded answer + citations with source links; no-data question → explicit message
 
 ### Implementation for User Story 3
 
-- [ ] T044 [P] [US3] Implement `apps/explorer-api/src/chat/scope.ts`: ScopeDescriptor → server-side post-filter over read results (empty = full mirror) + tests. NOTE: `scope.query` is **soft context only** (not a hard filter) — distinct from `/api/datasets` `q` which hard-filters/ranks (see A2); only `tags`/`publisherIds`/`geoUnitIds`/`freshness`/`includeWithdrawn` are enforced as hard scope
-- [ ] T045 [P] [US3] Implement `apps/explorer-api/src/chat/tools.ts`: four AI-SDK tool wrappers over `read-bridge`, applying scope (per `contracts/chat-tools.md`)
-- [ ] T046 [P] [US3] Implement `apps/explorer-api/src/chat/providers.ts` provider seam with the OpenAI-compatible default adapter + a stub-model injection point for tests
-- [ ] T047 [US3] Implement `apps/explorer-api/src/chat/grounding.ts`: system prompt, citation extraction, dataset-existence validation (drop hallucinated ids), scope validation, MapAnchor derivation, freshness/coded/translated flagging
-- [ ] T048 [US3] Implement `apps/explorer-api/src/chat/session.ts`: in-memory, session-scoped conversation store (never persisted; FR-019)
-- [ ] T049 [US3] Implement `apps/explorer-api/src/routes/chat.ts` `POST /api/chat` SSE: tool-use loop emitting `session`/`token`/`tool`/`citations`/`anchors`/`done`/`error`, wired in `server.ts`
+- [x] T044 [P] [US3] Implement `apps/explorer-api/src/chat/scope.ts`: ScopeDescriptor → server-side post-filter over read results (empty = full mirror) + tests. NOTE: `scope.query` is **soft context only** (not a hard filter) — distinct from `/api/datasets` `q` which hard-filters/ranks (see A2); only `tags`/`publisherIds`/`geoUnitIds`/`freshness`/`includeWithdrawn` are enforced as hard scope
+- [x] T045 [P] [US3] Implement `apps/explorer-api/src/chat/tools.ts`: four AI-SDK tool wrappers over `read-bridge`, applying scope (per `contracts/chat-tools.md`)
+- [x] T046 [P] [US3] Implement `apps/explorer-api/src/chat/providers.ts` provider seam with the OpenAI-compatible default adapter + a stub-model injection point for tests
+- [x] T047 [US3] Implement `apps/explorer-api/src/chat/grounding.ts`: system prompt, citation extraction, dataset-existence validation (drop hallucinated ids), scope validation, MapAnchor derivation, freshness/coded/translated flagging
+- [x] T048 [US3] Implement `apps/explorer-api/src/chat/session.ts`: in-memory, session-scoped conversation store (never persisted; FR-019)
+- [x] T049 [US3] Implement `apps/explorer-api/src/routes/chat.ts` `POST /api/chat` SSE: tool-use loop emitting `session`/`token`/`tool`/`citations`/`anchors`/`done`/`error`, wired in `server.ts`
 - [ ] T050 [P] [US3] Chat panel in `apps/explorer-web/src/chat/`: SSE consumption, streamed tokens, citations with links + freshness, coded/machine-translated flags
 - [ ] T069 [US3] Grounding benchmark (closes SC-004/SC-005/SC-006): add a known-answer query set + harness in `apps/explorer-api/tests/grounding-benchmark.test.ts`, reusing the existing eval CI pattern (commit `d75007f`, `eval/`), asserting ≥90% grounded, 0% fabricated datasets/values/links, and ≥95% correct "no relevant public data found" on no-data questions
 
@@ -148,12 +148,12 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T051 [P] [US4] Contract test provider selection in `apps/explorer-api/tests/chat/providers.test.ts`: openai-compatible + anthropic adapters, `useServerDefault`, `provider_unconfigured`/`provider_error` mapping to SSE `error` with no fabricated content + parity coverage
+- [x] T051 [P] [US4] Contract test provider selection in `apps/explorer-api/tests/chat/providers.test.ts`: openai-compatible + anthropic adapters, `useServerDefault`, `provider_unconfigured`/`provider_error` mapping to SSE `error` with no fabricated content + parity coverage
 - [ ] T052 [P] [US4] Playwright E2E `apps/explorer-web/tests/e2e/us4-provider.spec.ts`: configure 2 providers, switch without losing context, invalid key → clear error
 
 ### Implementation for User Story 4
 
-- [ ] T053 [US4] Extend `apps/explorer-api/src/chat/providers.ts`: add Anthropic adapter, server-default-from-env (`EXPLORER_DEFAULT_*`), and error mapping; ensure `apiKey` never logged/persisted (FR-024)
+- [x] T053 [US4] Extend `apps/explorer-api/src/chat/providers.ts`: add Anthropic adapter, server-default-from-env (`EXPLORER_DEFAULT_*`), and error mapping; ensure `apiKey` never logged/persisted (FR-024)
 - [ ] T054 [P] [US4] Provider settings UI in `apps/explorer-web/src/chat/` (kind, model, baseUrl, apiKey, useServerDefault) persisted to `localStorage` via `apps/explorer-web/src/store/`
 - [ ] T055 [US4] Send ProviderConfig per chat request and support switching provider mid-session without losing conversation; surface provider errors as actionable UI states
 
@@ -169,7 +169,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T056 [P] [US5] Contract test in `apps/explorer-api/tests/chat/scope-linkage.test.ts`: cited datasets ⊆ scope (SC-008) and `anchors` derived from cited datasets' `geoEntityIds` (FR-026/FR-027)
+- [x] T056 [P] [US5] Contract test in `apps/explorer-api/tests/chat/scope-linkage.test.ts`: cited datasets ⊆ scope (SC-008) and `anchors` derived from cited datasets' `geoEntityIds` (FR-026/FR-027)
 - [ ] T057 [P] [US5] Playwright E2E `apps/explorer-web/tests/e2e/us5-linked.spec.ts`: filter + ask → in-scope answer; answer naming regions → highlight/focus; cited dataset → highlight + detail; clear filters → scope expands
 
 ### Implementation for User Story 5
