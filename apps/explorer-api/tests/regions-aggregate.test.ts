@@ -1,0 +1,65 @@
+import { describe, expect, it } from 'bun:test';
+import type { GeoCrosswalkEntry } from '../../../packages/geo-boundaries/src/schema.ts';
+import { aggregateRegions } from '../src/regions-aggregate.ts';
+
+const oblast = (slug: string, iso: string): GeoCrosswalkEntry => ({
+  entityId: `geo:bg-oblast-${slug}`,
+  level: 'oblast',
+  boundaryFeatureId: iso,
+  ekatte: null,
+  iso3166_2: iso,
+  oblastEntityId: null,
+});
+
+const labels: Record<string, { labelBg: string; labelEn: string | null }> = {
+  'geo:bg-oblast-sofia-grad': { labelBg: 'София (град)', labelEn: 'Sofia (city)' },
+  'geo:bg-oblast-ruse': { labelBg: 'Русе', labelEn: 'Ruse' },
+};
+
+describe('aggregateRegions', () => {
+  const entries = [oblast('sofia-grad', 'BG-22'), oblast('ruse', 'BG-18')];
+  const labelOf = (id: string) => labels[id];
+
+  it('counts datasets per region, deduping multi-region datasets', () => {
+    const out = aggregateRegions({
+      entries,
+      labelOf,
+      datasets: [
+        {
+          datasetId: 'd1',
+          geoLinks: [
+            { entityId: 'geo:bg-oblast-sofia-grad', confidence: 0.9 },
+            { entityId: 'geo:bg-oblast-ruse', confidence: 0.6 },
+          ],
+        },
+        { datasetId: 'd2', geoLinks: [{ entityId: 'geo:bg-oblast-sofia-grad', confidence: 0.5 }] },
+        // duplicate link to same region must not double-count
+        { datasetId: 'd2', geoLinks: [{ entityId: 'geo:bg-oblast-sofia-grad', confidence: 0.5 }] },
+      ],
+    });
+    const sofia = out.find((r) => r.entityId === 'geo:bg-oblast-sofia-grad');
+    const ruse = out.find((r) => r.entityId === 'geo:bg-oblast-ruse');
+    expect(sofia?.datasetCount).toBe(2);
+    expect(sofia?.maxConfidence).toBe(0.9);
+    expect(sofia?.hasData).toBe(true);
+    expect(sofia?.labelBg).toBe('София (град)');
+    expect(ruse?.datasetCount).toBe(1);
+  });
+
+  it('emits empty regions with hasData=false and confidence 0', () => {
+    const out = aggregateRegions({ entries, labelOf, datasets: [] });
+    expect(out.every((r) => r.datasetCount === 0 && !r.hasData && r.maxConfidence === 0)).toBe(
+      true,
+    );
+  });
+
+  it('falls back to the entity id when no label is known', () => {
+    const out = aggregateRegions({
+      entries: [oblast('x', 'BG-99')],
+      labelOf: () => undefined,
+      datasets: [],
+    });
+    expect(out[0]?.labelBg).toBe('geo:bg-oblast-x');
+    expect(out[0]?.labelEn).toBeNull();
+  });
+});

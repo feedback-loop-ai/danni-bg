@@ -1,0 +1,985 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-22",
+        "level": "oblast",
+        "iso3166_2": "BG-22"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              22.5,
+              41.5
+            ],
+            [
+              22.9,
+              41.5
+            ],
+            [
+              22.9,
+              41.9
+            ],
+            [
+              22.5,
+              41.9
+            ],
+            [
+              22.5,
+              41.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-23",
+        "level": "oblast",
+        "iso3166_2": "BG-23"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23,
+              41.5
+            ],
+            [
+              23.4,
+              41.5
+            ],
+            [
+              23.4,
+              41.9
+            ],
+            [
+              23,
+              41.9
+            ],
+            [
+              23,
+              41.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-01",
+        "level": "oblast",
+        "iso3166_2": "BG-01"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23.5,
+              41.5
+            ],
+            [
+              23.9,
+              41.5
+            ],
+            [
+              23.9,
+              41.9
+            ],
+            [
+              23.5,
+              41.9
+            ],
+            [
+              23.5,
+              41.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-02",
+        "level": "oblast",
+        "iso3166_2": "BG-02"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24,
+              41.5
+            ],
+            [
+              24.4,
+              41.5
+            ],
+            [
+              24.4,
+              41.9
+            ],
+            [
+              24,
+              41.9
+            ],
+            [
+              24,
+              41.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-03",
+        "level": "oblast",
+        "iso3166_2": "BG-03"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24.5,
+              41.5
+            ],
+            [
+              24.9,
+              41.5
+            ],
+            [
+              24.9,
+              41.9
+            ],
+            [
+              24.5,
+              41.9
+            ],
+            [
+              24.5,
+              41.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-04",
+        "level": "oblast",
+        "iso3166_2": "BG-04"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25,
+              41.5
+            ],
+            [
+              25.4,
+              41.5
+            ],
+            [
+              25.4,
+              41.9
+            ],
+            [
+              25,
+              41.9
+            ],
+            [
+              25,
+              41.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-05",
+        "level": "oblast",
+        "iso3166_2": "BG-05"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25.5,
+              41.5
+            ],
+            [
+              25.9,
+              41.5
+            ],
+            [
+              25.9,
+              41.9
+            ],
+            [
+              25.5,
+              41.9
+            ],
+            [
+              25.5,
+              41.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-06",
+        "level": "oblast",
+        "iso3166_2": "BG-06"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              22.5,
+              41.9
+            ],
+            [
+              22.9,
+              41.9
+            ],
+            [
+              22.9,
+              42.3
+            ],
+            [
+              22.5,
+              42.3
+            ],
+            [
+              22.5,
+              41.9
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-07",
+        "level": "oblast",
+        "iso3166_2": "BG-07"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23,
+              41.9
+            ],
+            [
+              23.4,
+              41.9
+            ],
+            [
+              23.4,
+              42.3
+            ],
+            [
+              23,
+              42.3
+            ],
+            [
+              23,
+              41.9
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-08",
+        "level": "oblast",
+        "iso3166_2": "BG-08"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23.5,
+              41.9
+            ],
+            [
+              23.9,
+              41.9
+            ],
+            [
+              23.9,
+              42.3
+            ],
+            [
+              23.5,
+              42.3
+            ],
+            [
+              23.5,
+              41.9
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-09",
+        "level": "oblast",
+        "iso3166_2": "BG-09"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24,
+              41.9
+            ],
+            [
+              24.4,
+              41.9
+            ],
+            [
+              24.4,
+              42.3
+            ],
+            [
+              24,
+              42.3
+            ],
+            [
+              24,
+              41.9
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-10",
+        "level": "oblast",
+        "iso3166_2": "BG-10"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24.5,
+              41.9
+            ],
+            [
+              24.9,
+              41.9
+            ],
+            [
+              24.9,
+              42.3
+            ],
+            [
+              24.5,
+              42.3
+            ],
+            [
+              24.5,
+              41.9
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-11",
+        "level": "oblast",
+        "iso3166_2": "BG-11"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25,
+              41.9
+            ],
+            [
+              25.4,
+              41.9
+            ],
+            [
+              25.4,
+              42.3
+            ],
+            [
+              25,
+              42.3
+            ],
+            [
+              25,
+              41.9
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-12",
+        "level": "oblast",
+        "iso3166_2": "BG-12"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25.5,
+              41.9
+            ],
+            [
+              25.9,
+              41.9
+            ],
+            [
+              25.9,
+              42.3
+            ],
+            [
+              25.5,
+              42.3
+            ],
+            [
+              25.5,
+              41.9
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-13",
+        "level": "oblast",
+        "iso3166_2": "BG-13"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              22.5,
+              42.3
+            ],
+            [
+              22.9,
+              42.3
+            ],
+            [
+              22.9,
+              42.699999999999996
+            ],
+            [
+              22.5,
+              42.699999999999996
+            ],
+            [
+              22.5,
+              42.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-14",
+        "level": "oblast",
+        "iso3166_2": "BG-14"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23,
+              42.3
+            ],
+            [
+              23.4,
+              42.3
+            ],
+            [
+              23.4,
+              42.699999999999996
+            ],
+            [
+              23,
+              42.699999999999996
+            ],
+            [
+              23,
+              42.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-15",
+        "level": "oblast",
+        "iso3166_2": "BG-15"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23.5,
+              42.3
+            ],
+            [
+              23.9,
+              42.3
+            ],
+            [
+              23.9,
+              42.699999999999996
+            ],
+            [
+              23.5,
+              42.699999999999996
+            ],
+            [
+              23.5,
+              42.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-16",
+        "level": "oblast",
+        "iso3166_2": "BG-16"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24,
+              42.3
+            ],
+            [
+              24.4,
+              42.3
+            ],
+            [
+              24.4,
+              42.699999999999996
+            ],
+            [
+              24,
+              42.699999999999996
+            ],
+            [
+              24,
+              42.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-17",
+        "level": "oblast",
+        "iso3166_2": "BG-17"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24.5,
+              42.3
+            ],
+            [
+              24.9,
+              42.3
+            ],
+            [
+              24.9,
+              42.699999999999996
+            ],
+            [
+              24.5,
+              42.699999999999996
+            ],
+            [
+              24.5,
+              42.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-18",
+        "level": "oblast",
+        "iso3166_2": "BG-18"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25,
+              42.3
+            ],
+            [
+              25.4,
+              42.3
+            ],
+            [
+              25.4,
+              42.699999999999996
+            ],
+            [
+              25,
+              42.699999999999996
+            ],
+            [
+              25,
+              42.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-19",
+        "level": "oblast",
+        "iso3166_2": "BG-19"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25.5,
+              42.3
+            ],
+            [
+              25.9,
+              42.3
+            ],
+            [
+              25.9,
+              42.699999999999996
+            ],
+            [
+              25.5,
+              42.699999999999996
+            ],
+            [
+              25.5,
+              42.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-20",
+        "level": "oblast",
+        "iso3166_2": "BG-20"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              22.5,
+              42.7
+            ],
+            [
+              22.9,
+              42.7
+            ],
+            [
+              22.9,
+              43.1
+            ],
+            [
+              22.5,
+              43.1
+            ],
+            [
+              22.5,
+              42.7
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-21",
+        "level": "oblast",
+        "iso3166_2": "BG-21"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23,
+              42.7
+            ],
+            [
+              23.4,
+              42.7
+            ],
+            [
+              23.4,
+              43.1
+            ],
+            [
+              23,
+              43.1
+            ],
+            [
+              23,
+              42.7
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-24",
+        "level": "oblast",
+        "iso3166_2": "BG-24"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23.5,
+              42.7
+            ],
+            [
+              23.9,
+              42.7
+            ],
+            [
+              23.9,
+              43.1
+            ],
+            [
+              23.5,
+              43.1
+            ],
+            [
+              23.5,
+              42.7
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-25",
+        "level": "oblast",
+        "iso3166_2": "BG-25"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24,
+              42.7
+            ],
+            [
+              24.4,
+              42.7
+            ],
+            [
+              24.4,
+              43.1
+            ],
+            [
+              24,
+              43.1
+            ],
+            [
+              24,
+              42.7
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-26",
+        "level": "oblast",
+        "iso3166_2": "BG-26"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24.5,
+              42.7
+            ],
+            [
+              24.9,
+              42.7
+            ],
+            [
+              24.9,
+              43.1
+            ],
+            [
+              24.5,
+              43.1
+            ],
+            [
+              24.5,
+              42.7
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-27",
+        "level": "oblast",
+        "iso3166_2": "BG-27"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25,
+              42.7
+            ],
+            [
+              25.4,
+              42.7
+            ],
+            [
+              25.4,
+              43.1
+            ],
+            [
+              25,
+              43.1
+            ],
+            [
+              25,
+              42.7
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "BG-28",
+        "level": "oblast",
+        "iso3166_2": "BG-28"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25.5,
+              42.7
+            ],
+            [
+              25.9,
+              42.7
+            ],
+            [
+              25.9,
+              43.1
+            ],
+            [
+              25.5,
+              43.1
+            ],
+            [
+              25.5,
+              42.7
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

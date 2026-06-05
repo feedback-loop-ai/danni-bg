@@ -49,5 +49,35 @@
       "name": "tabular",
       "testId": "tests/contract/curated-tabular-artifact.test.ts#CSV curator output validates against curated-tabular-artifact.schema.json shape"
     }
+  ],
+  "explorerEndpoints": [
+    {
+      "name": "GET /healthz",
+      "testId": "apps/explorer-api/tests/app.test.ts#GET /healthz reports degraded when the default provider is absent"
+    },
+    {
+      "name": "GET /api/datasets",
+      "testId": "apps/explorer-api/tests/app.test.ts#GET /api/datasets lists all, no auth header required"
+    },
+    {
+      "name": "GET /api/datasets/:datasetId",
+      "testId": "apps/explorer-api/tests/app.test.ts#GET /api/datasets/:id returns detail; unknown id 404"
+    },
+    {
+      "name": "GET /api/datasets/:datasetId/resources/:resourceId/rows",
+      "testId": "apps/explorer-api/tests/app.test.ts#GET resource rows returns content; missing resource 404"
+    },
+    {
+      "name": "GET /api/regions",
+      "testId": "apps/explorer-api/tests/app.test.ts#GET /api/regions aggregates per oblast with deduped counts"
+    },
+    {
+      "name": "GET /api/regions/:entityId",
+      "testId": "apps/explorer-api/tests/app.test.ts#GET /api/regions/:id lists datasets; empty + 404 cases"
+    },
+    {
+      "name": "GET /api/facets",
+      "testId": "apps/explorer-api/tests/app.test.ts#GET /api/facets returns in-scope tag/publisher/freshness counts"
+    }
   ]
 }

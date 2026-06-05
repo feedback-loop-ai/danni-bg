@@ -1,0 +1,215 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "ekatte-68134",
+        "level": "municipality",
+        "ekatte": "68134"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              22.5,
+              43.1
+            ],
+            [
+              22.9,
+              43.1
+            ],
+            [
+              22.9,
+              43.5
+            ],
+            [
+              22.5,
+              43.5
+            ],
+            [
+              22.5,
+              43.1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "ekatte-56784",
+        "level": "municipality",
+        "ekatte": "56784"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23,
+              43.1
+            ],
+            [
+              23.4,
+              43.1
+            ],
+            [
+              23.4,
+              43.5
+            ],
+            [
+              23,
+              43.5
+            ],
+            [
+              23,
+              43.1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "ekatte-10135",
+        "level": "municipality",
+        "ekatte": "10135"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23.5,
+              43.1
+            ],
+            [
+              23.9,
+              43.1
+            ],
+            [
+              23.9,
+              43.5
+            ],
+            [
+              23.5,
+              43.5
+            ],
+            [
+              23.5,
+              43.1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "ekatte-07079",
+        "level": "municipality",
+        "ekatte": "07079"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24,
+              43.1
+            ],
+            [
+              24.4,
+              43.1
+            ],
+            [
+              24.4,
+              43.5
+            ],
+            [
+              24,
+              43.5
+            ],
+            [
+              24,
+              43.1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "ekatte-63427",
+        "level": "municipality",
+        "ekatte": "63427"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24.5,
+              43.1
+            ],
+            [
+              24.9,
+              43.1
+            ],
+            [
+              24.9,
+              43.5
+            ],
+            [
+              24.5,
+              43.5
+            ],
+            [
+              24.5,
+              43.1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundaryFeatureId": "ekatte-68850",
+        "level": "municipality",
+        "ekatte": "68850"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25,
+              43.1
+            ],
+            [
+              25.4,
+              43.1
+            ],
+            [
+              25.4,
+              43.5
+            ],
+            [
+              25,
+              43.5
+            ],
+            [
+              25,
+              43.1
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

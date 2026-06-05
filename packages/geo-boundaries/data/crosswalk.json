@@ -1,0 +1,278 @@
+{
+  "version": "0.1.0",
+  "entries": [
+    {
+      "entityId": "geo:bg-oblast-sofia-grad",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-22",
+      "ekatte": null,
+      "iso3166_2": "BG-22",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-sofia",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-23",
+      "ekatte": null,
+      "iso3166_2": "BG-23",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-blagoevgrad",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-01",
+      "ekatte": null,
+      "iso3166_2": "BG-01",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-burgas",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-02",
+      "ekatte": null,
+      "iso3166_2": "BG-02",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-varna",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-03",
+      "ekatte": null,
+      "iso3166_2": "BG-03",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-veliko-tarnovo",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-04",
+      "ekatte": null,
+      "iso3166_2": "BG-04",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-vidin",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-05",
+      "ekatte": null,
+      "iso3166_2": "BG-05",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-vratsa",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-06",
+      "ekatte": null,
+      "iso3166_2": "BG-06",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-gabrovo",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-07",
+      "ekatte": null,
+      "iso3166_2": "BG-07",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-dobrich",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-08",
+      "ekatte": null,
+      "iso3166_2": "BG-08",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-kardzhali",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-09",
+      "ekatte": null,
+      "iso3166_2": "BG-09",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-kyustendil",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-10",
+      "ekatte": null,
+      "iso3166_2": "BG-10",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-lovech",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-11",
+      "ekatte": null,
+      "iso3166_2": "BG-11",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-montana",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-12",
+      "ekatte": null,
+      "iso3166_2": "BG-12",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-pazardzhik",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-13",
+      "ekatte": null,
+      "iso3166_2": "BG-13",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-pernik",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-14",
+      "ekatte": null,
+      "iso3166_2": "BG-14",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-pleven",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-15",
+      "ekatte": null,
+      "iso3166_2": "BG-15",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-plovdiv",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-16",
+      "ekatte": null,
+      "iso3166_2": "BG-16",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-razgrad",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-17",
+      "ekatte": null,
+      "iso3166_2": "BG-17",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-ruse",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-18",
+      "ekatte": null,
+      "iso3166_2": "BG-18",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-silistra",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-19",
+      "ekatte": null,
+      "iso3166_2": "BG-19",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-sliven",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-20",
+      "ekatte": null,
+      "iso3166_2": "BG-20",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-smolyan",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-21",
+      "ekatte": null,
+      "iso3166_2": "BG-21",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-stara-zagora",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-24",
+      "ekatte": null,
+      "iso3166_2": "BG-24",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-targovishte",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-25",
+      "ekatte": null,
+      "iso3166_2": "BG-25",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-haskovo",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-26",
+      "ekatte": null,
+      "iso3166_2": "BG-26",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-shumen",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-27",
+      "ekatte": null,
+      "iso3166_2": "BG-27",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-oblast-yambol",
+      "level": "oblast",
+      "boundaryFeatureId": "BG-28",
+      "ekatte": null,
+      "iso3166_2": "BG-28",
+      "oblastEntityId": null
+    },
+    {
+      "entityId": "geo:bg-municipality-sofia",
+      "level": "municipality",
+      "boundaryFeatureId": "ekatte-68134",
+      "ekatte": "68134",
+      "iso3166_2": null,
+      "oblastEntityId": "geo:bg-oblast-sofia-grad"
+    },
+    {
+      "entityId": "geo:bg-municipality-plovdiv",
+      "level": "municipality",
+      "boundaryFeatureId": "ekatte-56784",
+      "ekatte": "56784",
+      "iso3166_2": null,
+      "oblastEntityId": "geo:bg-oblast-plovdiv"
+    },
+    {
+      "entityId": "geo:bg-municipality-varna",
+      "level": "municipality",
+      "boundaryFeatureId": "ekatte-10135",
+      "ekatte": "10135",
+      "iso3166_2": null,
+      "oblastEntityId": "geo:bg-oblast-varna"
+    },
+    {
+      "entityId": "geo:bg-municipality-burgas",
+      "level": "municipality",
+      "boundaryFeatureId": "ekatte-07079",
+      "ekatte": "07079",
+      "iso3166_2": null,
+      "oblastEntityId": "geo:bg-oblast-burgas"
+    },
+    {
+      "entityId": "geo:bg-municipality-ruse",
+      "level": "municipality",
+      "boundaryFeatureId": "ekatte-63427",
+      "ekatte": "63427",
+      "iso3166_2": null,
+      "oblastEntityId": "geo:bg-oblast-ruse"
+    },
+    {
+      "entityId": "geo:bg-municipality-stara-zagora",
+      "level": "municipality",
+      "boundaryFeatureId": "ekatte-68850",
+      "ekatte": "68850",
+      "iso3166_2": null,
+      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+    }
+  ],
+  "knownGaps": []
+}

@@ -30,11 +30,11 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [ ] T001 Establish monorepo workspaces — add `apps/*` and `packages/*` to root `package.json` workspaces and create the `apps/explorer-api/`, `apps/explorer-web/`, `packages/geo-boundaries/` directory trees per plan.md Project Structure
 - [ ] T002 [P] Initialize `apps/explorer-api/package.json` (Bun) with deps `hono`, `zod`, `ai`, `@ai-sdk/openai`, `@ai-sdk/anthropic` and a `tsconfig.json` extending the repo strict TS config
 - [ ] T003 [P] Initialize `apps/explorer-web/package.json` (Vite + React) with deps `react`, `react-dom`, `vite`, `@vitejs/plugin-react`, `maplibre-gl`, `zustand`; add `apps/explorer-web/vite.config.ts` with `/api` dev proxy to `EXPLORER_API_PORT`
-- [ ] T004 [P] Initialize `packages/geo-boundaries/package.json` + `tsconfig.json` with a `data/` folder placeholder and `src/` entry
+- [x] T004 [P] Initialize `packages/geo-boundaries/package.json` + `tsconfig.json` with a `data/` folder placeholder and `src/` entry
 - [ ] T005 [P] Configure Vitest + `@vitest/coverage-v8` for `apps/explorer-api` and shared logic in `apps/explorer-api/vitest.config.ts` and `packages/geo-boundaries/vitest.config.ts` (100% line+branch thresholds)
 - [ ] T006 [P] Configure Testing Library + Playwright for the SPA in `apps/explorer-web/vitest.config.ts` and `apps/explorer-web/playwright.config.ts`
 - [ ] T007 [P] Wire lint/format/typecheck (Biome + `tsc --noEmit`) for the new packages into root scripts in root `package.json`
-- [ ] T008 [P] Scaffold/extend `tests/parity-matrix.json` with empty rows for every endpoint and the four chat tool wrappers from `contracts/` (CI fails until each gains a contract-test id)
+- [x] T008 [P] Scaffold/extend `tests/parity-matrix.json` with empty rows for every endpoint and the four chat tool wrappers from `contracts/` (CI fails until each gains a contract-test id)
 
 ---
 
@@ -44,14 +44,14 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 **⚠️ CRITICAL**: No user-story work can begin until this phase is complete.
 
-- [ ] T009 Implement `apps/explorer-api/src/read-bridge.ts` adapting `src/read` (`datasetView`, `readResourceRows`) and `src/index/query.ts` (`search`, `searchByEntity`) into API/tool shapes; unit tests in `apps/explorer-api/tests/read-bridge.test.ts` (mirror fixtures)
-- [ ] T010 [P] Implement `apps/explorer-api/src/logging.ts` re-exporting structured JSON logging from `src/logging` with a no-secrets field redactor
-- [ ] T011 [P] Define shared Zod schemas + types in `apps/explorer-api/src/schemas.ts`: `FilterState`, `ScopeDescriptor`, error envelope, `RegionSummary`, `DatasetPointer`, `DatasetDetailView`, `Facets`, `FreshnessBlock` (per data-model.md); unit tests in `apps/explorer-api/tests/schemas.test.ts`
-- [ ] T012 [P] Bundle administrative boundaries `packages/geo-boundaries/data/oblasts.geojson` (ISO-3166-2) and `packages/geo-boundaries/data/municipalities.geojson` (EKATTE LAU), each feature carrying `properties.boundaryFeatureId`, `level`, `ekatte?`, `iso3166_2?`
-- [ ] T013 Implement `packages/geo-boundaries/src/load.ts` (Zod-validated GeoJSON + crosswalk loaders against `contracts/geo-crosswalk.schema.json`) and `packages/geo-boundaries/src/crosswalk.ts` (entityId ↔ boundaryFeatureId ↔ ekatte/iso3166_2 lookups); tests in `packages/geo-boundaries/tests/crosswalk.test.ts`
-- [ ] T014 Generate `packages/geo-boundaries/data/crosswalk.json` from `src/enrich/gazetteer/bg-admin.ts` (all 28 oblasts mapped; sample municipalities mapped, rest listed under `knownGaps`) and add the bidirectional CI test in `packages/geo-boundaries/tests/crosswalk-integrity.test.ts` (no orphan rows; every gazetteer unit mapped or an explicit gap)
-- [ ] T015 Implement `apps/explorer-api/src/server.ts` Hono skeleton: app construction, route wiring stubs, static SPA serving, and Zod-error → shared error-envelope middleware
-- [ ] T016 [P] Implement `apps/explorer-api/src/routes/health.ts` (`GET /healthz`: lastSyncedAt, isStale, component status, `degraded` still-200) + contract test `apps/explorer-api/tests/routes/health.test.ts` and its `parity-matrix.json` row
+- [x] T009 Implement `apps/explorer-api/src/read-bridge.ts` adapting `src/read` (`datasetView`, `readResourceRows`) and `src/index/query.ts` (`search`, `searchByEntity`) into API/tool shapes; unit tests in `apps/explorer-api/tests/read-bridge.test.ts` (mirror fixtures)
+- [x] T010 [P] Implement `apps/explorer-api/src/logging.ts` re-exporting structured JSON logging from `src/logging` with a no-secrets field redactor
+- [x] T011 [P] Define shared Zod schemas + types in `apps/explorer-api/src/schemas.ts`: `FilterState`, `ScopeDescriptor`, error envelope, `RegionSummary`, `DatasetPointer`, `DatasetDetailView`, `Facets`, `FreshnessBlock` (per data-model.md); unit tests in `apps/explorer-api/tests/schemas.test.ts`
+- [x] T012 [P] Bundle administrative boundaries `packages/geo-boundaries/data/oblasts.geojson` (ISO-3166-2) and `packages/geo-boundaries/data/municipalities.geojson` (EKATTE LAU), each feature carrying `properties.boundaryFeatureId`, `level`, `ekatte?`, `iso3166_2?`
+- [x] T013 Implement `packages/geo-boundaries/src/load.ts` (Zod-validated GeoJSON + crosswalk loaders against `contracts/geo-crosswalk.schema.json`) and `packages/geo-boundaries/src/crosswalk.ts` (entityId ↔ boundaryFeatureId ↔ ekatte/iso3166_2 lookups); tests in `packages/geo-boundaries/tests/crosswalk.test.ts`
+- [x] T014 Generate `packages/geo-boundaries/data/crosswalk.json` from `src/enrich/gazetteer/bg-admin.ts` (all 28 oblasts mapped; sample municipalities mapped, rest listed under `knownGaps`) and add the bidirectional CI test in `packages/geo-boundaries/tests/crosswalk-integrity.test.ts` (no orphan rows; every gazetteer unit mapped or an explicit gap)
+- [x] T015 Implement `apps/explorer-api/src/server.ts` Hono skeleton: app construction, route wiring stubs, static SPA serving, and Zod-error → shared error-envelope middleware
+- [x] T016 [P] Implement `apps/explorer-api/src/routes/health.ts` (`GET /healthz`: lastSyncedAt, isStale, component status, `degraded` still-200) + contract test `apps/explorer-api/tests/routes/health.test.ts` and its `parity-matrix.json` row
 - [ ] T017 [P] Implement SPA shell in `apps/explorer-web/src/main.tsx` + layout hosting map/filter/chat panels and the Zustand store in `apps/explorer-web/src/store/index.ts` (FilterState, map selection, chat scope)
 - [ ] T018 [P] Implement `apps/explorer-web/src/lib/api.ts` (typed fetch client over `/api`) and `apps/explorer-web/src/lib/scope.ts` (FilterState → ScopeDescriptor encode) with tests in `apps/explorer-web/src/lib/scope.test.ts`
 
@@ -67,17 +67,17 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T019 [P] [US1] Contract test `GET /api/regions` and `GET /api/regions/:entityId` (RegionSummary aggregates, in-scope counts, empty-state 200, unknown-id 404, unlinked `entityId:null`) in `apps/explorer-api/tests/routes/regions.test.ts` + parity rows
-- [ ] T020 [P] [US1] Contract test `GET /api/datasets/:datasetId` and `GET /api/datasets/:datasetId/resources/:resourceId/rows` (detail reshape, paginated/sampled rows, freshness present, 404) in `apps/explorer-api/tests/routes/datasets-detail.test.ts` + parity rows
+- [x] T019 [P] [US1] Contract test `GET /api/regions` and `GET /api/regions/:entityId` (RegionSummary aggregates, in-scope counts, empty-state 200, unknown-id 404, unlinked `entityId:null`) in `apps/explorer-api/tests/routes/regions.test.ts` + parity rows
+- [x] T020 [P] [US1] Contract test `GET /api/datasets/:datasetId` and `GET /api/datasets/:datasetId/resources/:resourceId/rows` (detail reshape, paginated/sampled rows, freshness present, 404) in `apps/explorer-api/tests/routes/datasets-detail.test.ts` + parity rows
 - [ ] T021 [P] [US1] Playwright E2E `apps/explorer-web/tests/e2e/us1-map.spec.ts`: national render → zoom → municipality subdivide → click → dataset list + working source link → no-data empty state
 
 ### Implementation for User Story 1
 
-- [ ] T022 [P] [US1] RegionSummary aggregation in a dedicated `apps/explorer-api/src/regions-aggregate.ts` (consumed by `read-bridge.ts`, not duplicating it): de-duplicated `datasetCount` across multi-region datasets, `hasData`, `maxConfidence`, crosswalk-joined `boundaryFeatureId`
-- [ ] T023 [US1] Implement `apps/explorer-api/src/routes/regions.ts` `GET /api/regions` (level oblast|municipality, counts reflect FilterState) wired in `server.ts`
-- [ ] T024 [US1] Implement `GET /api/regions/:entityId` in `apps/explorer-api/src/routes/regions.ts` (datasets for one unit, `limit`/`offset`, empty-state 200, 404 on unknown/unlinked)
-- [ ] T025 [P] [US1] Implement `apps/explorer-api/src/routes/datasets.ts` `GET /api/datasets/:datasetId` → `DatasetDetailView` (description, resources w/ schema + freshness, entities, links, lifecycleState, sourceUrl)
-- [ ] T026 [P] [US1] Implement `GET /api/datasets/:datasetId/resources/:resourceId/rows` in `apps/explorer-api/src/routes/datasets.ts` (paginated/sampled pass-through to `readResourceRows`, `truncated` flag, resource freshness)
+- [x] T022 [P] [US1] RegionSummary aggregation in a dedicated `apps/explorer-api/src/regions-aggregate.ts` (consumed by `read-bridge.ts`, not duplicating it): de-duplicated `datasetCount` across multi-region datasets, `hasData`, `maxConfidence`, crosswalk-joined `boundaryFeatureId`
+- [x] T023 [US1] Implement `apps/explorer-api/src/routes/regions.ts` `GET /api/regions` (level oblast|municipality, counts reflect FilterState) wired in `server.ts`
+- [x] T024 [US1] Implement `GET /api/regions/:entityId` in `apps/explorer-api/src/routes/regions.ts` (datasets for one unit, `limit`/`offset`, empty-state 200, 404 on unknown/unlinked)
+- [x] T025 [P] [US1] Implement `apps/explorer-api/src/routes/datasets.ts` `GET /api/datasets/:datasetId` → `DatasetDetailView` (description, resources w/ schema + freshness, entities, links, lifecycleState, sourceUrl)
+- [x] T026 [P] [US1] Implement `GET /api/datasets/:datasetId/resources/:resourceId/rows` in `apps/explorer-api/src/routes/datasets.ts` (paginated/sampled pass-through to `readResourceRows`, `truncated` flag, resource freshness)
 - [ ] T027 [P] [US1] MapLibre setup in `apps/explorer-web/src/map/` — sources from `packages/geo-boundaries` GeoJSON, oblast + municipality layers swapped/styled by zoom (render glue; behavior covered by T021)
 - [ ] T028 [US1] Data-driven choropleth in `apps/explorer-web/src/map/`: shade/badge by `datasetCount` from `/api/regions`, join by `boundaryFeatureId`, flag low-confidence placements
 - [ ] T029 [US1] Region panel in `apps/explorer-web/src/datasets/`: on region click, list DatasetPointers (title BG/EN, publisher, freshness, source link) with explicit no-data empty state
@@ -96,15 +96,15 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T032 [P] [US2] Contract test `GET /api/datasets` in `apps/explorer-api/tests/routes/datasets-list.test.ts`: `q`, `tags`, `publisherIds`, `geoUnitIds`, `freshness`, `includeWithdrawn`, AND semantics, ranking, `total`/`limit`/`offset` + parity row
-- [ ] T033 [P] [US2] Contract test `GET /api/facets` in `apps/explorer-api/tests/routes/facets.test.ts`: in-scope counts recomputed against supplied filters + parity row
+- [x] T032 [P] [US2] Contract test `GET /api/datasets` in `apps/explorer-api/tests/routes/datasets-list.test.ts`: `q`, `tags`, `publisherIds`, `geoUnitIds`, `freshness`, `includeWithdrawn`, AND semantics, ranking, `total`/`limit`/`offset` + parity row
+- [x] T033 [P] [US2] Contract test `GET /api/facets` in `apps/explorer-api/tests/routes/facets.test.ts`: in-scope counts recomputed against supplied filters + parity row
 - [ ] T034 [P] [US2] Playwright E2E `apps/explorer-web/tests/e2e/us2-filters.spec.ts`: each filter + combinations, removable chips, clear-all restores national view
 
 ### Implementation for User Story 2
 
 - [ ] T035 [P] [US2] Pure filter-composition lib in `apps/explorer-web/src/lib/filters.ts` (FilterState → query params, chip model) + tests `apps/explorer-web/src/lib/filters.test.ts`
-- [ ] T036 [US2] Implement `apps/explorer-api/src/routes/datasets.ts` `GET /api/datasets` (free-text via `search`, entity via `searchByEntity`, curated AND post-filters, freshness, `includeWithdrawn` default false, pagination)
-- [ ] T037 [US2] Implement `apps/explorer-api/src/routes/facets.ts` `GET /api/facets` (tags/publishers/freshnessBuckets with in-scope counts) wired in `server.ts`
+- [x] T036 [US2] Implement `apps/explorer-api/src/routes/datasets.ts` `GET /api/datasets` (free-text via `search`, entity via `searchByEntity`, curated AND post-filters, freshness, `includeWithdrawn` default false, pagination)
+- [x] T037 [US2] Implement `apps/explorer-api/src/routes/facets.ts` `GET /api/facets` (tags/publishers/freshnessBuckets with in-scope counts) wired in `server.ts`
 - [ ] T038 [US2] Filter panel + chips in `apps/explorer-web/src/filters/` (tag, publisher, geo, freshness, free-text; removable chips; clear-all) bound to the store
 - [ ] T039 [US2] Keep map highlighting + dataset lists consistent with FilterState (FR-014): de-emphasize non-matching regions, refresh `/api/regions` + `/api/datasets` on filter change
 - [ ] T040 [US2] Rapid-change correctness in `apps/explorer-web/src/lib/api.ts`: request cancellation / last-write-wins so map and lists never show stale/out-of-order results (FR-032)
@@ -195,7 +195,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [ ] T070 [P] Stale-degradation coverage (closes U1, Constitution IV): dataset/region routes serve the last-synced corpus with `is_stale` flags when the mirror is stale; add tests in `apps/explorer-api/tests/stale-degradation.test.ts` asserting `is_stale` propagation on `/api/datasets`, `/api/regions`, and detail payloads (not just `/healthz`)
 - [ ] T071 [P] Performance assertions (closes SC-003/SC-010): add `apps/explorer-api/tests/perf.test.ts` exercising `/api/datasets` + `/api/regions` against a several-thousand-dataset fixture and asserting a ≤2s response budget; record large-list virtualization timing in the US2 E2E
 - [ ] T072 [P] Reachability invariant (closes SC-009): add `apps/explorer-api/tests/reachability.test.ts` asserting 100% of mirror datasets resolve to at least one region (`/api/regions/:id`) or the national/non-georeferenced grouping
-- [ ] T073 [P] No-auth access assertion (closes FR-029): add a contract test asserting browse/filter/detail endpoints require no authentication header in `apps/explorer-api/tests/no-auth.test.ts`
+- [x] T073 [P] No-auth access assertion (closes FR-029): add a contract test asserting browse/filter/detail endpoints require no authentication header in `apps/explorer-api/tests/no-auth.test.ts`
 
 ---
 
