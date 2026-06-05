@@ -6,6 +6,7 @@ import { DatasetList } from './datasets/DatasetList.tsx';
 import { FilterPanel } from './filters/FilterPanel.tsx';
 import { fetchDatasets, fetchRegions } from './lib/api.ts';
 import type { BoundaryCollection } from './lib/choropleth.ts';
+import { MapErrorBoundary } from './map/MapErrorBoundary.tsx';
 import { MapView } from './map/MapView.tsx';
 import { useExplorer } from './store/explorerStore.ts';
 import type { DatasetPointer, RegionSummary } from './types.ts';
@@ -49,12 +50,14 @@ export function App() {
         )}
       </aside>
       <main className="map">
-        <MapView
-          boundaries={boundaries}
-          regions={regions}
-          highlightGeoIds={highlight.geoEntityIds}
-          onSelect={selectRegion}
-        />
+        <MapErrorBoundary>
+          <MapView
+            boundaries={boundaries}
+            regions={regions}
+            highlightGeoIds={highlight.geoEntityIds}
+            onSelect={selectRegion}
+          />
+        </MapErrorBoundary>
       </main>
       <aside className="panel">
         <ChatPanel onSelectDataset={setSelectedDataset} />

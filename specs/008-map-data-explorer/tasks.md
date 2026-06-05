@@ -98,7 +98,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 - [x] T032 [P] [US2] Contract test `GET /api/datasets` in `apps/explorer-api/tests/routes/datasets-list.test.ts`: `q`, `tags`, `publisherIds`, `geoUnitIds`, `freshness`, `includeWithdrawn`, AND semantics, ranking, `total`/`limit`/`offset` + parity row
 - [x] T033 [P] [US2] Contract test `GET /api/facets` in `apps/explorer-api/tests/routes/facets.test.ts`: in-scope counts recomputed against supplied filters + parity row
-- [ ] T034 [P] [US2] Playwright E2E `apps/explorer-web/tests/e2e/us2-filters.spec.ts`: each filter + combinations, removable chips, clear-all restores national view
+- [x] T034 [P] [US2] Playwright E2E `apps/explorer-web/tests/e2e/us2-filters.spec.ts`: each filter + combinations, removable chips, clear-all restores national view
 
 ### Implementation for User Story 2
 
@@ -123,7 +123,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 - [x] T041 [P] [US3] Contract tests for the four tool wrappers (`mirrorSearch`, `mirrorEntitySearch`, `mirrorInfo`, `readResource`) in `apps/explorer-api/tests/chat/tools.test.ts` — each references its underlying read function, asserts scope post-filter and `outOfScope` marker + parity rows
 - [x] T042 [P] [US3] Contract test `POST /api/chat` SSE in `apps/explorer-api/tests/routes/chat.test.ts` (stubbed LLM): event sequence (`session`/`token`/`tool`/`citations`/`anchors`/`done`), citation existence validation, no-data answer, no-fabrication + parity row
-- [ ] T043 [P] [US3] Playwright E2E `apps/explorer-web/tests/e2e/us3-chat.spec.ts`: ask BG/EN question → streamed grounded answer + citations with source links; no-data question → explicit message
+- [x] T043 [P] [US3] Playwright E2E `apps/explorer-web/tests/e2e/us3-chat.spec.ts`: ask BG/EN question → streamed grounded answer + citations with source links; no-data question → explicit message
 
 ### Implementation for User Story 3
 
@@ -149,7 +149,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 ### Tests for User Story 4 ⚠️
 
 - [x] T051 [P] [US4] Contract test provider selection in `apps/explorer-api/tests/chat/providers.test.ts`: openai-compatible + anthropic adapters, `useServerDefault`, `provider_unconfigured`/`provider_error` mapping to SSE `error` with no fabricated content + parity coverage
-- [ ] T052 [P] [US4] Playwright E2E `apps/explorer-web/tests/e2e/us4-provider.spec.ts`: configure 2 providers, switch without losing context, invalid key → clear error
+- [x] T052 [P] [US4] Playwright E2E `apps/explorer-web/tests/e2e/us4-provider.spec.ts`: configure 2 providers, switch without losing context, invalid key → clear error
 
 ### Implementation for User Story 4
 
@@ -170,7 +170,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 ### Tests for User Story 5 ⚠️
 
 - [x] T056 [P] [US5] Contract test in `apps/explorer-api/tests/chat/scope-linkage.test.ts`: cited datasets ⊆ scope (SC-008) and `anchors` derived from cited datasets' `geoEntityIds` (FR-026/FR-027)
-- [ ] T057 [P] [US5] Playwright E2E `apps/explorer-web/tests/e2e/us5-linked.spec.ts`: filter + ask → in-scope answer; answer naming regions → highlight/focus; cited dataset → highlight + detail; clear filters → scope expands
+- [x] T057 [P] [US5] Playwright E2E `apps/explorer-web/tests/e2e/us5-linked.spec.ts`: filter + ask → in-scope answer; answer naming regions → highlight/focus; cited dataset → highlight + detail; clear filters → scope expands
 
 ### Implementation for User Story 5
 

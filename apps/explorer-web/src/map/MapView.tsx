@@ -26,15 +26,23 @@ export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapV
   const container = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MlMap | null>(null);
 
-  // Init once.
+  // Init once. Guarded so a missing WebGL context (e.g. headless CI) degrades gracefully rather than
+  // crashing the SPA — the rest of the explorer (filters, lists, chat) stays usable.
   useEffect(() => {
-    if (!container.current) return;
-    const map = new maplibregl.Map({
-      container: container.current,
-      style: BLANK_STYLE,
-      center: [25.4, 42.7],
-      zoom: 5.5,
-    });
+    const el = container.current;
+    if (!el) return;
+    let map: MlMap;
+    try {
+      map = new maplibregl.Map({
+        container: el,
+        style: BLANK_STYLE,
+        center: [25.4, 42.7],
+        zoom: 5.5,
+      });
+    } catch {
+      el.setAttribute('data-map-unavailable', 'true');
+      return;
+    }
     mapRef.current = map;
     map.on('load', () => {
       map.addSource('regions', { type: 'geojson', data: enrichBoundaries(boundaries, []) });
@@ -113,7 +121,12 @@ export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapV
     const ids = regions
       .filter((r) => r.entityId && highlightGeoIds.includes(r.entityId))
       .map((r) => r.boundaryFeatureId);
-    map.setFilter('regions-highlight', ['in', 'boundaryFeatureId', ...ids]);
+    // The legacy `in` filter needs >=1 value; use an unmatchable sentinel when nothing is highlighted.
+    map.setFilter('regions-highlight', [
+      'in',
+      'boundaryFeatureId',
+      ...(ids.length > 0 ? ids : ['']),
+    ]);
   }, [highlightGeoIds, regions]);
 
   return <div ref={container} className="map-canvas" aria-label="Карта на България" />;

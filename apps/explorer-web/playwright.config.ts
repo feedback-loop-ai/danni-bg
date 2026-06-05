@@ -7,8 +7,9 @@ export default defineConfig({
   testMatch: '**/*.e2e.ts',
   use: { baseURL: 'http://localhost:5173' },
   webServer: {
-    command: 'vite --port 5173',
+    command: 'bunx vite --port 5173',
     url: 'http://localhost:5173',
     reuseExistingServer: true,
+    timeout: 120_000,
   },
 });
