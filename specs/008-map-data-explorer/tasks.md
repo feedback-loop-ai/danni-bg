@@ -193,7 +193,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [ ] T067 Run `specs/008-map-data-explorer/quickstart.md` validation end-to-end (US1–US5 journeys) against a populated mirror
 - [x] T068 [P] Production build: backend serves the built SPA as static assets from `apps/explorer-api/src/server.ts`; document run in quickstart
 - [x] T070 [P] Stale-degradation coverage (closes U1, Constitution IV): dataset/region routes serve the last-synced corpus with `is_stale` flags when the mirror is stale; add tests in `apps/explorer-api/tests/stale-degradation.test.ts` asserting `is_stale` propagation on `/api/datasets`, `/api/regions`, and detail payloads (not just `/healthz`)
-- [ ] T071 [P] Performance assertions (closes SC-003/SC-010): add `apps/explorer-api/tests/perf.test.ts` exercising `/api/datasets` + `/api/regions` against a several-thousand-dataset fixture and asserting a ≤2s response budget; record large-list virtualization timing in the US2 E2E
+- [x] T071 [P] Performance assertions (closes SC-003/SC-010): add `apps/explorer-api/tests/perf.test.ts` exercising `/api/datasets` + `/api/regions` against a several-thousand-dataset fixture and asserting a ≤2s response budget; record large-list virtualization timing in the US2 E2E
 - [x] T072 [P] Reachability invariant (closes SC-009): add `apps/explorer-api/tests/reachability.test.ts` asserting 100% of mirror datasets resolve to at least one region (`/api/regions/:id`) or the national/non-georeferenced grouping
 - [x] T073 [P] No-auth access assertion (closes FR-029): add a contract test asserting browse/filter/detail endpoints require no authentication header in `apps/explorer-api/tests/no-auth.test.ts`
 
