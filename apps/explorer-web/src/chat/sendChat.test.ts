@@ -14,7 +14,7 @@ function streamingFetch(sseText: string): typeof fetch {
         controller.close();
       },
     });
-    return { body } as unknown as Response;
+    return { ok: true, body } as unknown as Response;
   }) as typeof fetch;
 }
 
@@ -82,8 +82,21 @@ describe('sendChat (streaming IO)', () => {
 
   it('reports an error when the response has no body', async () => {
     const errors: string[] = [];
-    const noBodyFetch = (async () => ({ body: null }) as unknown as Response) as typeof fetch;
+    const noBodyFetch = (async () =>
+      ({ ok: true, body: null }) as unknown as Response) as typeof fetch;
     await sendChat(body, { onError: (m) => errors.push(m) }, noBodyFetch);
     expect(errors).toEqual(['no response stream']);
+  });
+
+  it('surfaces a non-OK JSON error envelope', async () => {
+    const errors: string[] = [];
+    const badFetch = (async () =>
+      ({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: { message: 'invalid chat request' } }),
+      }) as unknown as Response) as typeof fetch;
+    await sendChat(body, { onError: (m) => errors.push(m) }, badFetch);
+    expect(errors).toEqual(['invalid chat request']);
   });
 });

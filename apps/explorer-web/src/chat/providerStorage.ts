@@ -9,7 +9,9 @@ const KEY = 'danni.provider';
 export const DEFAULT_PROVIDER: ProviderConfig = {
   kind: 'openai-compatible',
   baseUrl: null,
-  model: '',
+  // Non-empty placeholder so the request passes validation; ignored server-side when
+  // useServerDefault is true (the server uses its own configured model).
+  model: 'server-default',
   apiKey: null,
   useServerDefault: true,
 };
