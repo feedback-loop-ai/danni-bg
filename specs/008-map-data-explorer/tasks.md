@@ -63,7 +63,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 **Goal**: A zoomable/pannable choropleth of Bulgaria weighted by dataset volume; clicking a region lists its datasets (title BG/EN, publisher, freshness) with one-hop source links and a dataset detail view; non-georeferenced datasets remain reachable.
 
-**Independent Test**: Load the app → national oblast choropleth renders with per-region indicators → zoom to a province (municipalities subdivide) → click a unit → dataset list matches the mirror for that geo entity, each with a working `data.egov.bg` link; clicking a no-data region shows an explicit empty state.
+**Independent Test**: Load the app → national oblast choropleth renders with per-region indicators → zoom to a province (municipalities subdivide *for crosswalk-mapped units*; unmapped municipalities render with the "boundary present, no gazetteer link" flag per research R5 and remain reachable via search/national grouping until T062 completes full coverage) → click a unit → dataset list matches the mirror for that geo entity, each with a working `data.egov.bg` link; clicking a no-data region shows an explicit empty state.
 
 ### Tests for User Story 1 ⚠️
 
@@ -73,7 +73,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 ### Implementation for User Story 1
 
-- [ ] T022 [P] [US1] RegionSummary aggregation in `apps/explorer-api/src/read-bridge.ts` (or `regions` helper): de-duplicated `datasetCount` across multi-region datasets, `hasData`, `maxConfidence`, crosswalk-joined `boundaryFeatureId`
+- [ ] T022 [P] [US1] RegionSummary aggregation in a dedicated `apps/explorer-api/src/regions-aggregate.ts` (consumed by `read-bridge.ts`, not duplicating it): de-duplicated `datasetCount` across multi-region datasets, `hasData`, `maxConfidence`, crosswalk-joined `boundaryFeatureId`
 - [ ] T023 [US1] Implement `apps/explorer-api/src/routes/regions.ts` `GET /api/regions` (level oblast|municipality, counts reflect FilterState) wired in `server.ts`
 - [ ] T024 [US1] Implement `GET /api/regions/:entityId` in `apps/explorer-api/src/routes/regions.ts` (datasets for one unit, `limit`/`offset`, empty-state 200, 404 on unknown/unlinked)
 - [ ] T025 [P] [US1] Implement `apps/explorer-api/src/routes/datasets.ts` `GET /api/datasets/:datasetId` → `DatasetDetailView` (description, resources w/ schema + freshness, entities, links, lifecycleState, sourceUrl)
@@ -127,13 +127,14 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 
 ### Implementation for User Story 3
 
-- [ ] T044 [P] [US3] Implement `apps/explorer-api/src/chat/scope.ts`: ScopeDescriptor → server-side post-filter over read results (empty = full mirror) + tests
+- [ ] T044 [P] [US3] Implement `apps/explorer-api/src/chat/scope.ts`: ScopeDescriptor → server-side post-filter over read results (empty = full mirror) + tests. NOTE: `scope.query` is **soft context only** (not a hard filter) — distinct from `/api/datasets` `q` which hard-filters/ranks (see A2); only `tags`/`publisherIds`/`geoUnitIds`/`freshness`/`includeWithdrawn` are enforced as hard scope
 - [ ] T045 [P] [US3] Implement `apps/explorer-api/src/chat/tools.ts`: four AI-SDK tool wrappers over `read-bridge`, applying scope (per `contracts/chat-tools.md`)
 - [ ] T046 [P] [US3] Implement `apps/explorer-api/src/chat/providers.ts` provider seam with the OpenAI-compatible default adapter + a stub-model injection point for tests
 - [ ] T047 [US3] Implement `apps/explorer-api/src/chat/grounding.ts`: system prompt, citation extraction, dataset-existence validation (drop hallucinated ids), scope validation, MapAnchor derivation, freshness/coded/translated flagging
 - [ ] T048 [US3] Implement `apps/explorer-api/src/chat/session.ts`: in-memory, session-scoped conversation store (never persisted; FR-019)
 - [ ] T049 [US3] Implement `apps/explorer-api/src/routes/chat.ts` `POST /api/chat` SSE: tool-use loop emitting `session`/`token`/`tool`/`citations`/`anchors`/`done`/`error`, wired in `server.ts`
 - [ ] T050 [P] [US3] Chat panel in `apps/explorer-web/src/chat/`: SSE consumption, streamed tokens, citations with links + freshness, coded/machine-translated flags
+- [ ] T069 [US3] Grounding benchmark (closes SC-004/SC-005/SC-006): add a known-answer query set + harness in `apps/explorer-api/tests/grounding-benchmark.test.ts`, reusing the existing eval CI pattern (commit `d75007f`, `eval/`), asserting ≥90% grounded, 0% fabricated datasets/values/links, and ≥95% correct "no relevant public data found" on no-data questions
 
 **Checkpoint**: US1 + US2 + US3 all work independently (chat runs against the server default provider).
 
@@ -191,6 +192,10 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [ ] T066 [P] Verify structured logging and no-secrets-in-logs (provider `apiKey` redaction) in `apps/explorer-api/tests/logging.test.ts` (FR-024, Constitution IV)
 - [ ] T067 Run `specs/008-map-data-explorer/quickstart.md` validation end-to-end (US1–US5 journeys) against a populated mirror
 - [ ] T068 [P] Production build: backend serves the built SPA as static assets from `apps/explorer-api/src/server.ts`; document run in quickstart
+- [ ] T070 [P] Stale-degradation coverage (closes U1, Constitution IV): dataset/region routes serve the last-synced corpus with `is_stale` flags when the mirror is stale; add tests in `apps/explorer-api/tests/stale-degradation.test.ts` asserting `is_stale` propagation on `/api/datasets`, `/api/regions`, and detail payloads (not just `/healthz`)
+- [ ] T071 [P] Performance assertions (closes SC-003/SC-010): add `apps/explorer-api/tests/perf.test.ts` exercising `/api/datasets` + `/api/regions` against a several-thousand-dataset fixture and asserting a ≤2s response budget; record large-list virtualization timing in the US2 E2E
+- [ ] T072 [P] Reachability invariant (closes SC-009): add `apps/explorer-api/tests/reachability.test.ts` asserting 100% of mirror datasets resolve to at least one region (`/api/regions/:id`) or the national/non-georeferenced grouping
+- [ ] T073 [P] No-auth access assertion (closes FR-029): add a contract test asserting browse/filter/detail endpoints require no authentication header in `apps/explorer-api/tests/no-auth.test.ts`
 
 ---
 

@@ -34,7 +34,7 @@ Build a self-hostable web application that turns the curated `data.egov.bg` mirr
 | V. Simplicity & YAGNI | ✅ Pass | In-process read reuse (no MCP proxy), no new store, post-filter over ranked results; each dep justified in research.md |
 | VI. Fast Feedback Loops | ✅ Pass | Bun + Vite HMR; unit suite <5s; offline fixtures for mirror + stubbed LLM |
 | VII. Type Safety & Validation | ✅ Pass | TS strict; Zod validates API inputs, provider config, boundary/crosswalk, tool IO |
-| VIII. 100% Coverage & Parity | ⚠️ Pass w/ deviation | 100% on backend + shared logic; every endpoint & tool wrapper in parity matrix. WebGL render glue validated via Playwright E2E, not line coverage — see Complexity Tracking |
+| VIII. 100% Coverage & Parity | ✅ Pass | 100% on backend + shared logic; every endpoint & tool wrapper in parity matrix. WebGL render glue covered by the constitution's sanctioned render-glue exception (Principle VIII, v1.1.0): logic-free modules validated via Playwright E2E and enumerated in parity matrix — see Complexity Tracking |
 | IX. Data Freshness & Sync Integrity | ✅ Pass | Freshness block surfaced in dataset views and chat citations; `is_stale` honored; no silent staleness |
 | X. Bulgarian-Locale Awareness | ✅ Pass | Cyrillic UTF-8 throughout; authoritative fields shown verbatim; machine-translated text labelled; geo join by code not name |
 | XI. Respectful Crawling | ➖ N/A | This feature performs no portal crawling; it only reads the local mirror |
@@ -118,7 +118,7 @@ src/logging/                       # structured logging
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| Principle VIII deviation: WebGL/MapLibre render glue validated by Playwright E2E rather than 100% line coverage | GPU canvas output (tile/layer paint) has no meaningful statement-coverage signal in jsdom; forcing it would invite mocks that assert nothing | Faking 100% via `istanbul ignore` is explicitly forbidden by the constitution; segregating logic-free render modules + behavioral E2E is the honest minimum. All non-render logic stays at 100% line+branch |
+| Principle VIII sanctioned render-glue exception: WebGL/MapLibre render glue validated by Playwright E2E rather than 100% line coverage (constitution v1.1.0) | GPU canvas output (tile/layer paint) has no meaningful statement-coverage signal in jsdom; forcing it would invite mocks that assert nothing | Faking 100% via `istanbul ignore` is explicitly forbidden by the constitution; segregating logic-free render modules + behavioral E2E is the honest minimum. All non-render logic stays at 100% line+branch. **Enumerated render-glue modules** (exhaustive, per Principle VIII (b)/(c)): `apps/explorer-web/src/map/` MapLibre setup + layer/paint wiring only — every map module containing logic (choropleth value mapping, region join, anchor application) is extracted and stays at 100% |
 | New `apps/` + `packages/` alongside existing `src/` (multi-package monorepo) | Feature is a distinct web surface (SPA + HTTP/SSE) with different runtime/build than the CLI/MCP server; mixing into `src/` would entangle build targets | A single `src/` tree can't cleanly host a Vite SPA + a long-running HTTP server + the existing CLI without conflicting build/test configs; separation is the simpler long-run structure |
 
 ## Phase Outputs
