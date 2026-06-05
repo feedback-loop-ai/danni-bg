@@ -4,7 +4,7 @@ import { ChatPanel } from './chat/ChatPanel.tsx';
 import { DatasetDetail } from './datasets/DatasetDetail.tsx';
 import { DatasetList } from './datasets/DatasetList.tsx';
 import { FilterPanel } from './filters/FilterPanel.tsx';
-import { fetchDatasets, fetchRegions } from './lib/api.ts';
+import { fetchDatasets, fetchNational, fetchRegions } from './lib/api.ts';
 import type { BoundaryCollection } from './lib/choropleth.ts';
 import { MapErrorBoundary } from './map/MapErrorBoundary.tsx';
 import { MapView } from './map/MapView.tsx';
@@ -19,6 +19,7 @@ export function App() {
   const [regions, setRegions] = useState<RegionSummary[]>([]);
   const [datasets, setDatasets] = useState<DatasetPointer[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
+  const [showNational, setShowNational] = useState(false);
 
   const boundaries = useMemo(() => JSON.parse(oblastsRaw) as BoundaryCollection, []);
 
@@ -29,7 +30,8 @@ export function App() {
         if (!cancelled) setRegions(r.regions);
       })
       .catch(() => undefined);
-    fetchDatasets(filters, 50, 0)
+    const load = showNational ? fetchNational(filters, 50, 0) : fetchDatasets(filters, 50, 0);
+    load
       .then((r) => {
         if (!cancelled) setDatasets(r.datasets);
       })
@@ -37,12 +39,19 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [filters]);
+  }, [filters, showNational]);
 
   return (
     <div className="app">
       <aside className="panel">
         <FilterPanel />
+        <button
+          type="button"
+          aria-pressed={showNational}
+          onClick={() => setShowNational((v) => !v)}
+        >
+          {showNational ? '← Към регионите' : 'Национални набори (без регион)'}
+        </button>
         {selectedDataset ? (
           <DatasetDetail datasetId={selectedDataset} onClose={() => setSelectedDataset(null)} />
         ) : (

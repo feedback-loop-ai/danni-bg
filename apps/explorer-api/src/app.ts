@@ -15,7 +15,7 @@ import {
 } from './chat/providers.ts';
 import { SessionStore } from './chat/session.ts';
 import type { ReadBridge } from './read-bridge.ts';
-import { viewToPointer } from './read-bridge.ts';
+import { geoEntityIdsOf, viewToPointer } from './read-bridge.ts';
 import { aggregateRegions } from './regions-aggregate.ts';
 import { chatHandler } from './routes/chat.ts';
 import {
@@ -211,6 +211,18 @@ export function createApp(ctx: AppContext): Hono {
     };
     const datasets = views.slice(offset, offset + limit).map((v) => viewToPointer(v));
     return c.json({ region, datasets, total: views.length });
+  });
+
+  // National / non-georeferenced grouping: datasets with no geographic entity, so they remain
+  // discoverable rather than being dropped off the map (FR-006, SC-009).
+  app.get('/api/national', (c) => {
+    const q = new URL(c.req.url).searchParams;
+    const f = parseFilters(q);
+    const limit = clampInt(q.get('limit'), 50, 200);
+    const offset = clampInt(q.get('offset'), 0, Number.MAX_SAFE_INTEGER);
+    const views = scopedViews(f).filter((v) => geoEntityIdsOf(v).length === 0);
+    const datasets = views.slice(offset, offset + limit).map((v) => viewToPointer(v));
+    return c.json({ datasets, total: views.length, limit, offset });
   });
 
   app.get('/api/facets', (c) => {

@@ -81,7 +81,7 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [x] T027 [P] [US1] MapLibre setup in `apps/explorer-web/src/map/` — sources from `packages/geo-boundaries` GeoJSON, oblast + municipality layers swapped/styled by zoom (render glue; behavior covered by T021)
 - [x] T028 [US1] Data-driven choropleth in `apps/explorer-web/src/map/`: shade/badge by `datasetCount` from `/api/regions`, join by `boundaryFeatureId`, flag low-confidence placements
 - [x] T029 [US1] Region panel in `apps/explorer-web/src/datasets/`: on region click, list DatasetPointers (title BG/EN, publisher, freshness, source link) with explicit no-data empty state
-- [ ] T030 [US1] Dataset detail view + national/non-georeferenced grouping in `apps/explorer-web/src/datasets/` (FR-005/FR-006), with one-hop source URL
+- [x] T030 [US1] Dataset detail view + national/non-georeferenced grouping in `apps/explorer-web/src/datasets/` (FR-005/FR-006), with one-hop source URL
 - [x] T031 [P] [US1] Pure display helpers in `apps/explorer-web/src/lib/format.ts` (bilingual label fallback, freshness rendering, machine-translation labelling per `translationConfidence`) + tests `apps/explorer-web/src/lib/format.test.ts`
 
 **Checkpoint**: US1 is fully functional and demoable as the MVP.
@@ -188,13 +188,13 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [ ] T062 [P] Complete municipality crosswalk: extend `src/enrich/gazetteer/bg-admin.ts` + `packages/geo-boundaries/data/crosswalk.json` toward all ~265 obshtinas, shrinking `knownGaps` (research R5 tracked gap); update `crosswalk-integrity.test.ts`
 - [ ] T063 [P] Pagination/virtualization for large region/filter result sets in `apps/explorer-web/src/datasets/` (FR-030, SC-010)
 - [ ] T064 [P] Enforce the coverage gate: 100% line+branch on `apps/explorer-api` + `packages/geo-boundaries`; confirm every `tests/parity-matrix.json` row has a contract-test id (CI)
-- [ ] T065 [P] Cyrillic round-trip + freshness-present assertions across dataset/citation payloads in `apps/explorer-api/tests/invariants.test.ts` (Constitution IX/X)
+- [x] T065 [P] Cyrillic round-trip + freshness-present assertions across dataset/citation payloads in `apps/explorer-api/tests/invariants.test.ts` (Constitution IX/X)
 - [ ] T066 [P] Verify structured logging and no-secrets-in-logs (provider `apiKey` redaction) in `apps/explorer-api/tests/logging.test.ts` (FR-024, Constitution IV)
 - [ ] T067 Run `specs/008-map-data-explorer/quickstart.md` validation end-to-end (US1–US5 journeys) against a populated mirror
 - [x] T068 [P] Production build: backend serves the built SPA as static assets from `apps/explorer-api/src/server.ts`; document run in quickstart
-- [ ] T070 [P] Stale-degradation coverage (closes U1, Constitution IV): dataset/region routes serve the last-synced corpus with `is_stale` flags when the mirror is stale; add tests in `apps/explorer-api/tests/stale-degradation.test.ts` asserting `is_stale` propagation on `/api/datasets`, `/api/regions`, and detail payloads (not just `/healthz`)
+- [x] T070 [P] Stale-degradation coverage (closes U1, Constitution IV): dataset/region routes serve the last-synced corpus with `is_stale` flags when the mirror is stale; add tests in `apps/explorer-api/tests/stale-degradation.test.ts` asserting `is_stale` propagation on `/api/datasets`, `/api/regions`, and detail payloads (not just `/healthz`)
 - [ ] T071 [P] Performance assertions (closes SC-003/SC-010): add `apps/explorer-api/tests/perf.test.ts` exercising `/api/datasets` + `/api/regions` against a several-thousand-dataset fixture and asserting a ≤2s response budget; record large-list virtualization timing in the US2 E2E
-- [ ] T072 [P] Reachability invariant (closes SC-009): add `apps/explorer-api/tests/reachability.test.ts` asserting 100% of mirror datasets resolve to at least one region (`/api/regions/:id`) or the national/non-georeferenced grouping
+- [x] T072 [P] Reachability invariant (closes SC-009): add `apps/explorer-api/tests/reachability.test.ts` asserting 100% of mirror datasets resolve to at least one region (`/api/regions/:id`) or the national/non-georeferenced grouping
 - [x] T073 [P] No-auth access assertion (closes FR-029): add a contract test asserting browse/filter/detail endpoints require no authentication header in `apps/explorer-api/tests/no-auth.test.ts`
 
 ---

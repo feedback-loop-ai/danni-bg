@@ -23,3 +23,10 @@ test('renders the shell, dataset list, and dataset detail with a source link', a
   const source = page.getByRole('link', { name: /data.egov.bg/ });
   await expect(source).toHaveAttribute('href', 'https://data.egov.bg/d1');
 });
+
+test('national grouping surfaces non-georeferenced datasets (FR-006)', async ({ page }) => {
+  await stubApi(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Национални набори (без регион)' }).click();
+  await expect(page.getByRole('button', { name: /Национален регистър/ })).toBeVisible();
+});

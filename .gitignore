@@ -33,3 +33,7 @@ danni.config.json
 .idea/
 *.swp
 .DS_Store
+
+# Playwright
+apps/explorer-web/test-results/
+apps/explorer-web/playwright-report/

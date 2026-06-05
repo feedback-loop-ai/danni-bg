@@ -138,6 +138,16 @@ export async function stubApi(page: Page): Promise<ApiStub> {
       if (tags.includes('въздух') || q?.includes('въздух')) datasets = [D1];
       return json({ datasets, total: datasets.length, limit: 50, offset: 0 });
     }
+    if (path === '/api/national') {
+      const dn = {
+        ...D2,
+        datasetId: 'dn1',
+        titleBg: 'Национален регистър',
+        tags: [],
+        geoEntityIds: [],
+      };
+      return json({ datasets: [dn], total: 1, limit: 50, offset: 0 });
+    }
     if (/^\/api\/datasets\/[^/]+$/.test(path)) return json(DETAIL_D1);
 
     if (path === '/api/chat') {

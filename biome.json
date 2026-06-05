@@ -12,6 +12,8 @@
       "coverage",
       "dist",
       "vendor",
+      "**/test-results/**",
+      "**/playwright-report/**",
       "**/*.tsbuildinfo",
       "tests/fixtures/**",
       ".specify/**",

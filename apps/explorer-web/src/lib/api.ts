@@ -51,3 +51,11 @@ export function fetchRegion(entityId: string, f: FilterState): Promise<RegionDat
 export function fetchFacets(f: FilterState): Promise<unknown> {
   return getJson('/api/facets', filterStateToParams(f));
 }
+
+/** Non-georeferenced (national) datasets — those with no geographic entity (FR-006). */
+export function fetchNational(f: FilterState, limit = 50, offset = 0): Promise<DatasetsResponse> {
+  const params = filterStateToParams(f);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  return getJson('/api/national', params);
+}
