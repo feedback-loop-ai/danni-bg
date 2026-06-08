@@ -100,6 +100,36 @@ describe('runChatTurn RAG fallback', () => {
     expect(result.citations).toEqual([]);
   });
 
+  it('scope-aware fallback: pulls the region datasets when ranked search misses in-scope', async () => {
+    // d2 is linked to Varna; the question is about air (ranks d1, which is NOT in Varna), so the
+    // ranked hits filter to empty under a Varna scope → the geo fallback must surface d2.
+    new DatasetsRepo(db).upsert({
+      id: 'd2',
+      slug: 'd2',
+      titleBg: 'Бюджет на Варна',
+      tags: ['бюджет'],
+      groups: [],
+      sourceUrl: 'https://data.egov.bg/d2',
+    });
+    const ents = new EntitiesRepo(db);
+    ents.upsert({ id: 'geo:bg-oblast-varna', kind: 'geographic_unit', canonicalLabelBg: 'Варна' });
+    ents.attach({
+      datasetId: 'd2',
+      entityId: 'geo:bg-oblast-varna',
+      extractor: 'g',
+      confidence: 0.8,
+    });
+    await runIndex({ db, embedder: new LocalOnnxEmbedder({ dimension: 8 }) });
+
+    const result = await runChatTurn({
+      model: mockModel([errorStep(TOOL_ERR), textStep('Има бюджетни данни за Варна.')]),
+      bridge,
+      scope: { geoUnitIds: ['geo:bg-oblast-varna'] },
+      messages: [{ role: 'user', content: 'въздух качество' }],
+    });
+    expect(result.citations.map((c) => c.datasetId)).toEqual(['d2']);
+  });
+
   it('rethrows non-tool-choice errors', async () => {
     await expect(
       runChatTurn({

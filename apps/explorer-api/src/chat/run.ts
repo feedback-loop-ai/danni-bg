@@ -123,14 +123,28 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
   const resolve = resolver(bridge);
 
   // Retrieve scoped candidates ourselves (the model never sees out-of-scope data).
-  const hits = await bridge.search(query, undefined, 12);
-  const candidates: CuratedDatasetView[] = [];
-  for (const hit of hits) {
-    const view = resolve(hit.datasetId);
-    if (view && inScope(view, scope)) candidates.push(view);
-    if (candidates.length >= RAG_LIMIT) break;
-  }
   events?.onTool?.('mirrorSearch', 'start');
+  const candidates: CuratedDatasetView[] = [];
+  const seen = new Set<string>();
+  const add = (view: CuratedDatasetView | null): void => {
+    if (
+      view &&
+      !seen.has(view.datasetId) &&
+      inScope(view, scope) &&
+      candidates.length < RAG_LIMIT
+    ) {
+      seen.add(view.datasetId);
+      candidates.push(view);
+    }
+  };
+  for (const hit of await bridge.search(query, undefined, 12)) add(resolve(hit.datasetId));
+  // Scope-aware fallback: if ranked search surfaced nothing within a geo-scoped view, the relevant
+  // datasets simply didn't rank — pull the region's datasets directly so scoping narrows, not empties.
+  if (candidates.length === 0) {
+    for (const geoId of scope.geoUnitIds ?? []) {
+      for (const hit of await bridge.entityDatasets(geoId, RAG_LIMIT)) add(resolve(hit.datasetId));
+    }
+  }
   events?.onTool?.('mirrorSearch', 'done');
 
   if (candidates.length === 0) {
