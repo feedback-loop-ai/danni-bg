@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 /* shadcn/ui theme — slate neutrals with the app's blue as primary (light only for now). */
 :root {

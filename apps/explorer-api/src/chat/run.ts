@@ -154,10 +154,10 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
   const context = candidates
     .map(
       (v, i) =>
-        `${i + 1}. ${v.title.bg} (id: ${v.datasetId}; издател: ${v.publisher?.title.bg ?? '—'}; ${v.freshness.isStale ? 'остарели' : 'актуални'} данни)`,
+        `${i + 1}. ${v.title.bg} (издател: ${v.publisher?.title.bg ?? '—'}; ${v.freshness.isStale ? 'остарели' : 'актуални'} данни)`,
     )
     .join('\n');
-  const system = `${SYSTEM_PROMPT}\nОтговаряй само въз основа на изброените по-долу набори от данни. Когато използваш набор, посочи неговото id в отговора. Ако никой не е релевантен на въпроса, отговори, че няма релевантни публични данни.`;
+  const system = `${SYSTEM_PROMPT}\nОтговаряй само въз основа на изброените по-долу набори от данни. Позовавай се на тях по заглавие; НЕ показвай технически идентификатори. Ако никой не е релевантен на въпроса, отговори, че няма релевантни публични данни. Форматирай отговора с Markdown.`;
   const userMsg = `Налични набори от данни:\n${context}\n\nВъпрос: ${query}`;
 
   const result = streamText({ model, system, messages: [{ role: 'user', content: userMsg }] });

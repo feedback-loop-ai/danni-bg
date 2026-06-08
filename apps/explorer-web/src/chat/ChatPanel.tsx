@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Button } from '../components/ui/button.tsx';
 import { Textarea } from '../components/ui/textarea.tsx';
-import { cn } from '../lib/cn.ts';
 import { filterStateToScope } from '../lib/scope.ts';
 import { useExplorer } from '../store/explorerStore.ts';
 import type { Citation, ProviderConfig } from '../types.ts';
@@ -10,6 +11,7 @@ import { loadProvider, saveProvider } from './providerStorage.ts';
 import { sendChat } from './sendChat.ts';
 
 interface ChatMessage {
+  id: number;
   role: 'user' | 'assistant';
   content: string;
   citations?: Citation[];
@@ -29,6 +31,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const idRef = useRef(0);
 
   function updateProvider(next: ProviderConfig) {
     setProvider(next);
@@ -40,7 +43,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
       const copy = [...prev];
       const last = copy[copy.length - 1];
       if (last && last.role === 'assistant') {
-        copy[copy.length - 1] = { role: 'assistant', content, ...(citations ? { citations } : {}) };
+        copy[copy.length - 1] = { ...last, content, ...(citations ? { citations } : {}) };
       }
       return copy;
     });
@@ -54,8 +57,8 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     setStreaming(true);
     setMessages((prev) => [
       ...prev,
-      { role: 'user', content: question },
-      { role: 'assistant', content: '' },
+      { id: ++idRef.current, role: 'user', content: question },
+      { id: ++idRef.current, role: 'assistant', content: '' },
     ]);
 
     let assistant = '';
@@ -89,40 +92,53 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     <section className="space-y-3">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Чат</h2>
       <ProviderSettings provider={provider} onChange={updateProvider} />
-      <div aria-label="Разговор" className="space-y-3">
-        {messages.map((m, i) => (
-          <div
-            key={`${i}:${m.role}`}
-            className={cn('text-sm', m.role === 'user' ? 'font-semibold' : 'text-foreground')}
-          >
-            <p className="whitespace-pre-wrap">
-              {m.content || (m.role === 'assistant' && streaming ? '…' : '')}
-            </p>
-            {m.citations && m.citations.length > 0 && (
-              <ul className="citation mt-1 space-y-1 border-l-2 border-border pl-3 text-xs">
-                {m.citations.map((c) => (
-                  <li key={c.datasetId} className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      className="text-left text-primary underline-offset-2 hover:underline"
-                      onClick={() => onSelectDataset(c.datasetId)}
-                    >
-                      {c.titleBg}
-                    </button>
-                    <a
-                      href={c.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-muted-foreground hover:text-primary"
-                    >
-                      ↗
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+      <div aria-label="Разговор" className="space-y-4">
+        {messages.map((m) =>
+          m.role === 'user' ? (
+            <div
+              key={m.id}
+              className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
+            >
+              {m.content}
+            </div>
+          ) : (
+            <div key={m.id} className="space-y-2">
+              <div className="prose prose-sm prose-slate max-w-none prose-headings:mt-2 prose-p:my-1.5 prose-ol:my-1.5 prose-ul:my-1.5 prose-li:my-0.5">
+                {m.content ? (
+                  <Markdown remarkPlugins={[remarkGfm]}>{m.content}</Markdown>
+                ) : (
+                  streaming && <span className="text-muted-foreground">…</span>
+                )}
+              </div>
+              {m.citations && m.citations.length > 0 && (
+                <div className="citation space-y-1 border-l-2 border-primary/30 pl-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Източници
+                  </p>
+                  {m.citations.map((c) => (
+                    <div key={c.datasetId} className="flex items-start gap-1 text-xs">
+                      <button
+                        type="button"
+                        className="text-left text-primary underline-offset-2 hover:underline"
+                        onClick={() => onSelectDataset(c.datasetId)}
+                      >
+                        {c.titleBg}
+                      </button>
+                      <a
+                        href={c.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 text-muted-foreground hover:text-primary"
+                      >
+                        ↗
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ),
+        )}
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Textarea
