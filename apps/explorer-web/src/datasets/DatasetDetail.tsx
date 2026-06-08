@@ -4,6 +4,7 @@ import { Card } from '../components/ui/card.tsx';
 import { buildUrl } from '../lib/api.ts';
 import { cn } from '../lib/cn.ts';
 import { bilingualLabel, freshnessDisplay } from '../lib/format.ts';
+import { useExplorer } from '../store/explorerStore.ts';
 import type { FreshnessBlock } from '../types.ts';
 import { ResourcePreview } from './ResourcePreview.tsx';
 
@@ -27,6 +28,7 @@ export function DatasetDetail({ datasetId, onClose }: DatasetDetailProps) {
   const [detail, setDetail] = useState<DetailView | null>(null);
   const [error, setError] = useState(false);
   const [openResource, setOpenResource] = useState<{ id: string; name: string } | null>(null);
+  const setChatFocus = useExplorer((s) => s.setChatFocus);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +66,14 @@ export function DatasetDetail({ datasetId, onClose }: DatasetDetailProps) {
             </span>
           </p>
           <p className="text-sm text-muted-foreground">Тагове: {detail.tags.join(', ') || '—'}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => setChatFocus({ datasetId: detail.datasetId, titleBg: detail.titleBg })}
+          >
+            Питай чата за този набор
+          </Button>
           <h3 className="pt-1 text-sm font-semibold">Ресурси</h3>
           <ul className="space-y-1">
             {detail.resources.map((r) => {

@@ -20,5 +20,13 @@ export function scopeToFilterState(scope: ScopeDescriptor) {
 }
 
 export function inScope(view: CuratedDatasetView, scope: ScopeDescriptor): boolean {
+  // A datasetIds focus ("ask about this dataset") restricts retrieval to those datasets.
+  if (
+    scope.datasetIds &&
+    scope.datasetIds.length > 0 &&
+    !scope.datasetIds.includes(view.datasetId)
+  ) {
+    return false;
+  }
   return matchesFilters(view, scopeToFilterState(scope));
 }

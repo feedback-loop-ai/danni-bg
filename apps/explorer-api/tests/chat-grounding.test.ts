@@ -53,6 +53,11 @@ describe('chat scope', () => {
     expect(inScope(view('d1'), { tags: ['въздух'], query: 'anything' })).toBe(true);
     expect(inScope(view('d1'), { publisherIds: ['other'] })).toBe(false);
   });
+
+  it('restricts to a datasetIds focus ("ask about this dataset")', () => {
+    expect(inScope(view('d1'), { datasetIds: ['d1'] })).toBe(true);
+    expect(inScope(view('d1'), { datasetIds: ['d2'] })).toBe(false);
+  });
 });
 
 describe('buildCitations', () => {

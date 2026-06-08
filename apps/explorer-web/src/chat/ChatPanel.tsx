@@ -1,5 +1,5 @@
-import { ArrowUp, Cog, Square } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { ArrowUp, Cog, Square, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { completePartialMarkdown } from '../lib/markdown.ts';
@@ -24,6 +24,8 @@ interface ChatPanelProps {
 export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const filters = useExplorer((s) => s.filters);
   const setHighlight = useExplorer((s) => s.setHighlight);
+  const chatFocus = useExplorer((s) => s.chatFocus);
+  const setChatFocus = useExplorer((s) => s.setChatFocus);
 
   const [provider, setProvider] = useState<ProviderConfig>(() => loadProvider(localStorage));
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -34,6 +36,11 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const [showSettings, setShowSettings] = useState(false);
   const idRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+
+  // When a dataset focus is set ("ask about this dataset"), prefill a question about it.
+  useEffect(() => {
+    if (chatFocus) setInput(`Какво съдържа наборът „${chatFocus.titleBg}"?`);
+  }, [chatFocus]);
 
   function updateProvider(next: ProviderConfig) {
     setProvider(next);
@@ -68,8 +75,12 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     let assistant = '';
     let cites: Citation[] = [];
     try {
+      const scope = {
+        ...filterStateToScope(filters),
+        ...(chatFocus ? { datasetIds: [chatFocus.datasetId] } : {}),
+      };
       await sendChat(
-        { sessionId, message: question, scope: filterStateToScope(filters), provider },
+        { sessionId, message: question, scope, provider },
         {
           onSession: setSessionId,
           onToken: (delta) => {
@@ -167,6 +178,21 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
         )}
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {chatFocus && (
+        <div className="flex items-center gap-1 text-xs">
+          <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-accent-foreground">
+            <span className="truncate">Контекст: {chatFocus.titleBg}</span>
+            <button
+              type="button"
+              aria-label="Премахни контекста"
+              onClick={() => setChatFocus(null)}
+              className="flex size-4 shrink-0 items-center justify-center rounded-full hover:bg-primary/20"
+            >
+              <X className="size-3" />
+            </button>
+          </span>
+        </div>
+      )}
       <div className="relative rounded-3xl border border-input bg-background shadow-sm focus-within:ring-2 focus-within:ring-ring">
         <textarea
           aria-label="Въпрос"

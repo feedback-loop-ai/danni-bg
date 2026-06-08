@@ -8,7 +8,15 @@ describe('explorerStore', () => {
       filters: { ...EMPTY_FILTERS },
       selectedRegionId: null,
       highlight: { geoEntityIds: [], datasetIds: [] },
+      chatFocus: null,
     });
+  });
+
+  it('sets and clears the chat focus', () => {
+    explorerStore.getState().setChatFocus({ datasetId: 'd1', titleBg: 'Качество' });
+    expect(explorerStore.getState().chatFocus).toEqual({ datasetId: 'd1', titleBg: 'Качество' });
+    explorerStore.getState().setChatFocus(null);
+    expect(explorerStore.getState().chatFocus).toBeNull();
   });
 
   it('updateFilters applies an immutable transform', () => {

@@ -36,6 +36,7 @@ export const scopeDescriptorSchema = z
     tags: z.array(z.string()).optional(),
     publisherIds: z.array(z.string()).optional(),
     geoUnitIds: z.array(z.string()).optional(),
+    datasetIds: z.array(z.string()).optional(),
     freshness: freshnessFilterSchema.optional(),
     includeWithdrawn: z.boolean().optional(),
     query: z.string().optional(),

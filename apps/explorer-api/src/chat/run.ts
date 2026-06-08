@@ -137,6 +137,8 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
       candidates.push(view);
     }
   };
+  // Seed any explicitly focused datasets ("ask about this dataset") first.
+  for (const id of scope.datasetIds ?? []) add(resolve(id));
   for (const hit of await bridge.search(query, undefined, 12)) add(resolve(hit.datasetId));
   // Scope-aware fallback: if ranked search surfaced nothing within a geo-scoped view, the relevant
   // datasets simply didn't rank — pull the region's datasets directly so scoping narrows, not empties.

@@ -25,6 +25,7 @@ export interface ScopeDescriptor {
   tags?: string[];
   publisherIds?: string[];
   geoUnitIds?: string[];
+  datasetIds?: string[];
   freshness?: FreshnessFilter;
   includeWithdrawn?: boolean;
   query?: string;
