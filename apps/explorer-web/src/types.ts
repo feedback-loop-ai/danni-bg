@@ -67,6 +67,19 @@ export interface MapAnchor {
   datasetIds: string[];
 }
 
+export interface ResourceContent {
+  datasetId: string;
+  resourceId: string;
+  kind: string | null;
+  rows: unknown[];
+  document?: unknown;
+  text?: string;
+  total: number;
+  limit: number;
+  offset: number;
+  truncated: boolean;
+}
+
 export interface ProviderConfig {
   kind: 'openai-compatible' | 'anthropic';
   baseUrl: string | null;

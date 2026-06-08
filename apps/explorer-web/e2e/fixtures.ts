@@ -148,6 +148,21 @@ export async function stubApi(page: Page): Promise<ApiStub> {
       };
       return json({ datasets: [dn], total: 1, limit: 50, offset: 0 });
     }
+    if (/^\/api\/datasets\/[^/]+\/resources\/[^/]+\/rows$/.test(path)) {
+      return json({
+        datasetId: 'd1',
+        resourceId: 'r1',
+        kind: 'tabular',
+        rows: [
+          { станция: 'Дружба', pm10: 42 },
+          { станция: 'Надежда', pm10: 31 },
+        ],
+        total: 2,
+        limit: 50,
+        offset: 0,
+        truncated: false,
+      });
+    }
     if (/^\/api\/datasets\/[^/]+$/.test(path)) return json(DETAIL_D1);
 
     if (path === '/api/chat') {

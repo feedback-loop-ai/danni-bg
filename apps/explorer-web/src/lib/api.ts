@@ -1,7 +1,7 @@
 // Typed fetch client over the explorer API (T018). URL building is pure (and unit-tested); the
 // thin fetch wrappers reuse it. Large result sets are paginated via limit/offset (FR-030).
 
-import type { DatasetPointer, FilterState, RegionSummary } from '../types.ts';
+import type { DatasetPointer, FilterState, RegionSummary, ResourceContent } from '../types.ts';
 import { filterStateToParams } from './scope.ts';
 
 export function buildUrl(path: string, params?: URLSearchParams): string {
@@ -50,6 +50,20 @@ export function fetchRegion(entityId: string, f: FilterState): Promise<RegionDat
 
 export function fetchFacets(f: FilterState): Promise<unknown> {
   return getJson('/api/facets', filterStateToParams(f));
+}
+
+/** Paginated/sampled rows (or document/text) of one resource — the data drilldown (FR-005/030). */
+export function fetchResourceRows(
+  datasetId: string,
+  resourceId: string,
+  limit = 50,
+  offset = 0,
+): Promise<ResourceContent> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  return getJson(
+    `/api/datasets/${encodeURIComponent(datasetId)}/resources/${encodeURIComponent(resourceId)}/rows`,
+    params,
+  );
 }
 
 /** Non-georeferenced (national) datasets — those with no geographic entity (FR-006). */
