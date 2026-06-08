@@ -1,7 +1,13 @@
 import { Download, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { fetchResourceRows } from '../lib/api.ts';
-import { numericColumns, toSeries } from '../lib/chart.ts';
+import {
+  dateColumns,
+  numericColumns,
+  orderByDate,
+  polylinePoints,
+  toSeries,
+} from '../lib/chart.ts';
 import { cn } from '../lib/cn.ts';
 import { cellText, tableColumns, toCsv } from '../lib/table.ts';
 import type { ResourceContent } from '../types.ts';
@@ -32,6 +38,7 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
   const [view, setView] = useState<'table' | 'chart'>('table');
   const [labelCol, setLabelCol] = useState('');
   const [valueCol, setValueCol] = useState('');
+  const [chartType, setChartType] = useState<'bar' | 'line' | null>(null);
 
   // Reset when the selected resource changes.
   useEffect(() => {
@@ -42,6 +49,7 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
     setView('table');
     setLabelCol('');
     setValueCol('');
+    setChartType(null);
   }, [datasetId, resourceId]);
 
   useEffect(() => {
@@ -61,10 +69,15 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
   const columns = tableColumns(rows);
   const hasTable = rows.length > 0 && columns.length > 0;
   const numeric = numericColumns(rows, columns);
-  // Effective chart axes default to the first numeric value column + first non-numeric label column.
+  const dates = dateColumns(rows, columns);
+  // Effective axes: value → first numeric; category → a date column if present (time-series), else
+  // the first non-numeric column. Chart type defaults to line when the x-axis is a date column.
   const effValue = numeric.includes(valueCol) ? valueCol : (numeric[0] ?? '');
-  const effLabel = labelCol || (columns.find((c) => !numeric.includes(c)) ?? '');
+  const effLabel = labelCol || dates[0] || (columns.find((c) => !numeric.includes(c)) ?? '');
+  const effType = chartType ?? (dates.includes(effLabel) ? 'line' : 'bar');
   const series = toSeries(rows, effLabel || null, effValue);
+  const points =
+    effType === 'line' && dates.includes(effLabel) ? orderByDate(series.points) : series.points;
 
   function onDownload() {
     if (!content) return;
@@ -161,25 +174,71 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
               </select>
             </label>
           </div>
-          <div className="max-h-80 space-y-1 overflow-auto pr-1">
-            {series.points.map((pt, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: ordered bar series (labels may repeat)
-              <div key={i} className="flex items-center gap-2 text-xs">
-                <span className="w-24 shrink-0 truncate" title={pt.label}>
-                  {pt.label}
-                </span>
-                <div className="h-3 flex-1 rounded bg-muted">
-                  <div
-                    className="h-3 rounded bg-primary"
-                    style={{
-                      width: `${series.maxValue ? (Math.abs(pt.value) / series.maxValue) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-                <span className="w-14 shrink-0 text-right tabular-nums">{pt.value}</span>
-              </div>
+          <div className="flex gap-1">
+            {(['bar', 'line'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                aria-pressed={effType === t}
+                onClick={() => setChartType(t)}
+                className={cn(
+                  'rounded-md border px-2 py-1 text-xs',
+                  effType === t ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
+                )}
+              >
+                {t === 'bar' ? 'Стълбове' : 'Линия'}
+              </button>
             ))}
           </div>
+          {effType === 'line' ? (
+            <div className="space-y-1">
+              <svg
+                viewBox="0 0 300 120"
+                role="img"
+                aria-label="Линейна графика"
+                className="h-40 w-full rounded border bg-muted/20"
+                preserveAspectRatio="none"
+              >
+                <polyline
+                  points={polylinePoints(
+                    points.map((p) => p.value),
+                    300,
+                    120,
+                    series.maxValue,
+                  )}
+                  fill="none"
+                  stroke="var(--primary)"
+                  strokeWidth="2"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span className="truncate">{points[0]?.label}</span>
+                <span>макс: {series.maxValue}</span>
+                <span className="truncate">{points[points.length - 1]?.label}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="max-h-80 space-y-1 overflow-auto pr-1">
+              {points.map((pt, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: ordered series (labels may repeat)
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="w-24 shrink-0 truncate" title={pt.label}>
+                    {pt.label}
+                  </span>
+                  <div className="h-3 flex-1 rounded bg-muted">
+                    <div
+                      className="h-3 rounded bg-primary"
+                      style={{
+                        width: `${series.maxValue ? (Math.abs(pt.value) / series.maxValue) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="w-14 shrink-0 text-right tabular-nums">{pt.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
