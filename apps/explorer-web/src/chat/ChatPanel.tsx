@@ -3,6 +3,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '../components/ui/button.tsx';
 import { Textarea } from '../components/ui/textarea.tsx';
+import { completePartialMarkdown } from '../lib/markdown.ts';
 import { filterStateToScope } from '../lib/scope.ts';
 import { useExplorer } from '../store/explorerStore.ts';
 import type { Citation, ProviderConfig } from '../types.ts';
@@ -105,7 +106,9 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             <div key={m.id} className="space-y-2">
               <div className="prose prose-sm prose-slate max-w-none prose-headings:mt-2 prose-p:my-1.5 prose-ol:my-1.5 prose-ul:my-1.5 prose-li:my-0.5">
                 {m.content ? (
-                  <Markdown remarkPlugins={[remarkGfm]}>{m.content}</Markdown>
+                  <Markdown remarkPlugins={[remarkGfm]}>
+                    {completePartialMarkdown(m.content)}
+                  </Markdown>
                 ) : (
                   streaming && <span className="text-muted-foreground">…</span>
                 )}
