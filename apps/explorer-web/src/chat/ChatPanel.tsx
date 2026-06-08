@@ -36,11 +36,18 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const [showSettings, setShowSettings] = useState(false);
   const idRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // When a dataset focus is set ("ask about this dataset"), prefill a question about it.
   useEffect(() => {
     if (chatFocus) setInput(`Какво съдържа наборът „${chatFocus.titleBg}"?`);
   }, [chatFocus]);
+
+  // Keep the latest message in view as the answer streams.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
 
   function updateProvider(next: ProviderConfig) {
     setProvider(next);
@@ -113,7 +120,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   }
 
   return (
-    <section className="space-y-3">
+    <section className="flex h-full flex-col gap-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Чат</h2>
         <button
@@ -127,7 +134,12 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
         </button>
       </div>
       {showSettings && <ProviderSettings provider={provider} onChange={updateProvider} />}
-      <div aria-label="Разговор" className="space-y-4">
+      <div ref={scrollRef} aria-label="Разговор" className="flex-1 space-y-4 overflow-y-auto">
+        {messages.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Задайте въпрос за публичните данни — отговорите се базират на наличните набори.
+          </p>
+        )}
         {messages.map((m) =>
           m.role === 'user' ? (
             <div

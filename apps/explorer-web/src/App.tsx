@@ -155,7 +155,7 @@ export function App() {
           className="shrink-0 overflow-hidden border-l bg-card transition-[width] duration-200 ease-in-out"
           style={{ width: rightOpen ? 380 : 0 }}
         >
-          <div className="h-full w-[380px] overflow-y-auto p-4">
+          <div className="h-full w-[380px] p-4">
             <ChatPanel onSelectDataset={setSelectedDataset} />
           </div>
         </aside>
