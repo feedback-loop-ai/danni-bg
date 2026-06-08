@@ -1,8 +1,7 @@
+import { ArrowUp, Cog } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Button } from '../components/ui/button.tsx';
-import { Textarea } from '../components/ui/textarea.tsx';
 import { completePartialMarkdown } from '../lib/markdown.ts';
 import { filterStateToScope } from '../lib/scope.ts';
 import { useExplorer } from '../store/explorerStore.ts';
@@ -32,6 +31,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const idRef = useRef(0);
 
   function updateProvider(next: ProviderConfig) {
@@ -91,8 +91,19 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
 
   return (
     <section className="space-y-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Чат</h2>
-      <ProviderSettings provider={provider} onChange={updateProvider} />
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Чат</h2>
+        <button
+          type="button"
+          aria-label="Настройки на доставчика"
+          aria-pressed={showSettings}
+          onClick={() => setShowSettings((v) => !v)}
+          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        >
+          <Cog className="size-4" />
+        </button>
+      </div>
+      {showSettings && <ProviderSettings provider={provider} onChange={updateProvider} />}
       <div aria-label="Разговор" className="space-y-4">
         {messages.map((m) =>
           m.role === 'user' ? (
@@ -144,15 +155,31 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
         )}
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <Textarea
-        aria-label="Въпрос"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Попитайте за публичните данни…"
-      />
-      <Button disabled={streaming} onClick={() => void send()}>
-        Изпрати
-      </Button>
+      <div className="relative rounded-3xl border border-input bg-background shadow-sm focus-within:ring-2 focus-within:ring-ring">
+        <textarea
+          aria-label="Въпрос"
+          value={input}
+          rows={1}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              void send();
+            }
+          }}
+          placeholder="Попитайте за публичните данни…"
+          className="max-h-40 w-full resize-none bg-transparent py-3 pr-12 pl-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none"
+        />
+        <button
+          type="button"
+          aria-label="Изпрати"
+          disabled={streaming || input.trim() === ''}
+          onClick={() => void send()}
+          className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:bg-primary/90 disabled:opacity-40"
+        >
+          <ArrowUp className="size-4" />
+        </button>
+      </div>
     </section>
   );
 }

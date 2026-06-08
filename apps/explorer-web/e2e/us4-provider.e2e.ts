@@ -8,12 +8,12 @@ test('provider config persists across a reload', async ({ page }) => {
   await stubApi(page);
   await page.goto('/');
 
-  await page.getByText('Настройки на доставчика').click();
+  await page.getByRole('button', { name: 'Настройки на доставчика' }).click();
   await page.getByLabel('Използвай сървърния доставчик по подразбиране').uncheck();
   await page.getByLabel('Модел').fill('gpt-4o');
   await page.getByLabel('API ключ').fill('sk-test');
 
   await page.reload();
-  await page.getByText('Настройки на доставчика').click();
+  await page.getByRole('button', { name: 'Настройки на доставчика' }).click();
   await expect(page.getByLabel('Модел')).toHaveValue('gpt-4o');
 });
