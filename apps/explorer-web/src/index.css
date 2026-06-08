@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+/* Class-driven dark mode (toggle .dark on <html>) rather than prefers-color-scheme only. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* shadcn/ui theme — slate neutrals with the app's blue as primary (light only for now). */
 :root {
   --radius: 0.625rem;
@@ -24,6 +27,28 @@
   --input: #e2e8f0;
   --ring: #93c5fd;
   --warning: #c2410c;
+}
+
+.dark {
+  --background: #020617;
+  --foreground: #e2e8f0;
+  --card: #0f172a;
+  --card-foreground: #e2e8f0;
+  --popover: #0f172a;
+  --popover-foreground: #e2e8f0;
+  --primary: #3b82f6;
+  --primary-foreground: #f8fafc;
+  --secondary: #1e293b;
+  --secondary-foreground: #e2e8f0;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #bfdbfe;
+  --destructive: #f87171;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: #3b82f6;
+  --warning: #fb923c;
 }
 
 @theme inline {

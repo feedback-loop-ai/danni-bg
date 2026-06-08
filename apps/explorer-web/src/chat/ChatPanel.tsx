@@ -104,7 +104,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             </div>
           ) : (
             <div key={m.id} className="space-y-2">
-              <div className="prose prose-sm prose-slate max-w-none prose-headings:mt-2 prose-p:my-1.5 prose-ol:my-1.5 prose-ul:my-1.5 prose-li:my-0.5">
+              <div className="prose prose-sm prose-slate max-w-none dark:prose-invert prose-headings:mt-2 prose-p:my-1.5 prose-ol:my-1.5 prose-ul:my-1.5 prose-li:my-0.5">
                 {m.content ? (
                   <Markdown remarkPlugins={[remarkGfm]}>
                     {completePartialMarkdown(m.content)}
