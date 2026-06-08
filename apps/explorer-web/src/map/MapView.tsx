@@ -17,11 +17,16 @@ const BG_BOUNDS: [[number, number], [number, number]] = [
   [22.3, 41.2],
   [28.7, 44.3],
 ];
-const BLANK_STYLE = {
+const mapBg = (isDark: boolean) => (isDark ? '#0b1220' : '#dfe7ef');
+const outlineColor = (isDark: boolean) => (isDark ? '#0b1220' : '#ffffff');
+const hoverColor = (isDark: boolean) => (isDark ? '#e2e8f0' : '#1f2937');
+
+// Base style with a theme-correct background so a dark first load doesn't flash light.
+const blankStyle = (isDark: boolean) => ({
   version: 8 as const,
   sources: {},
-  layers: [{ id: 'bg', type: 'background' as const, paint: { 'background-color': '#dfe7ef' } }],
-};
+  layers: [{ id: 'bg', type: 'background' as const, paint: { 'background-color': mapBg(isDark) } }],
+});
 interface MapViewProps {
   boundaries: BoundaryCollection;
   regions: RegionSummary[];
@@ -90,7 +95,7 @@ export function MapView({
     try {
       map = new maplibregl.Map({
         container: el,
-        style: BLANK_STYLE,
+        style: blankStyle(isDark),
         bounds: BG_BOUNDS,
         fitBoundsOptions: { padding: 24 },
       });
@@ -119,13 +124,13 @@ export function MapView({
         id: 'regions-outline',
         type: 'line',
         source: 'regions',
-        paint: { 'line-color': '#ffffff', 'line-width': 1 },
+        paint: { 'line-color': outlineColor(isDark), 'line-width': 1 },
       });
       map.addLayer({
         id: 'regions-hover',
         type: 'line',
         source: 'regions',
-        paint: { 'line-color': '#1f2937', 'line-width': 1.5 },
+        paint: { 'line-color': hoverColor(isDark), 'line-width': 1.5 },
         filter: ['in', 'boundaryFeatureId', ''],
       });
       map.addLayer({
@@ -162,14 +167,14 @@ export function MapView({
     const map = mapRef.current;
     if (!map) return;
     const apply = () => {
-      map.setPaintProperty('bg', 'background-color', isDark ? '#0b1220' : '#dfe7ef');
+      map.setPaintProperty('bg', 'background-color', mapBg(isDark));
       map.setPaintProperty(
         'regions-fill',
         'fill-color',
         fillRamp(isDark) as ExpressionSpecification,
       );
-      map.setPaintProperty('regions-outline', 'line-color', isDark ? '#0b1220' : '#ffffff');
-      map.setPaintProperty('regions-hover', 'line-color', isDark ? '#e2e8f0' : '#1f2937');
+      map.setPaintProperty('regions-outline', 'line-color', outlineColor(isDark));
+      map.setPaintProperty('regions-hover', 'line-color', hoverColor(isDark));
     };
     if (map.isStyleLoaded()) apply();
     else map.once('load', apply);
