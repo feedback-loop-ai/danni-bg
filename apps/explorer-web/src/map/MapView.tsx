@@ -53,7 +53,12 @@ export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapV
       return;
     }
     mapRef.current = map;
+    // The grid/absolute container can resolve its height a tick after init, leaving the GL canvas at a
+    // stale size — keep it in sync with the container.
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(el);
     map.on('load', () => {
+      map.resize();
       map.addSource('regions', { type: 'geojson', data: enrichBoundaries(boundaries, []) });
       map.addLayer({
         id: 'regions-fill',
@@ -102,6 +107,7 @@ export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapV
       });
     });
     return () => {
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
     };
@@ -173,12 +179,15 @@ export function MapView({ boundaries, regions, highlightGeoIds, onSelect }: MapV
   }, [highlightGeoIds, regions]);
 
   return (
-    <div className="map-wrap">
-      <div ref={container} className="map-canvas" aria-label="Карта на България" />
+    <div className="relative h-full w-full">
+      <div ref={container} className="h-full w-full" aria-label="Карта на България" />
       {hover && (
-        <div className="map-tooltip" style={{ left: hover.x + 12, top: hover.y + 12 }}>
+        <div
+          className="pointer-events-none absolute z-10 flex flex-col gap-0.5 rounded-md bg-foreground/90 px-2.5 py-1.5 text-xs text-background shadow-md"
+          style={{ left: hover.x + 12, top: hover.y + 12 }}
+        >
           <strong>{hover.label}</strong>
-          <span>{hover.count} набора</span>
+          <span className="opacity-80">{hover.count} набора</span>
         </div>
       )}
     </div>

@@ -1,3 +1,5 @@
+import { Button } from '../components/ui/button.tsx';
+import { cn } from '../lib/cn.ts';
 import { bilingualLabel, freshnessDisplay } from '../lib/format.ts';
 import type { DatasetPointer } from '../types.ts';
 
@@ -11,25 +13,30 @@ interface DatasetListProps {
 
 export function DatasetList({ datasets, total, hasMore, onSelect, onLoadMore }: DatasetListProps) {
   if (datasets.length === 0) {
-    return <p>Няма набори от данни за текущия изглед.</p>;
+    return <p className="text-sm text-muted-foreground">Няма набори от данни за текущия изглед.</p>;
   }
   return (
-    <section>
-      <h2>
+    <section className="space-y-2">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Набори от данни ({datasets.length}
         {total !== undefined && total > datasets.length ? ` от ${total}` : ''})
       </h2>
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+      <ul className="space-y-2">
         {datasets.map((d) => {
           const fresh = freshnessDisplay(d.freshness);
           return (
             <li key={d.datasetId}>
-              <button type="button" className="dataset-row" onClick={() => onSelect(d.datasetId)}>
-                <strong>{bilingualLabel(d.titleBg, d.titleEn, 'bg')}</strong>
-                <br />
-                <small>
+              <button
+                type="button"
+                onClick={() => onSelect(d.datasetId)}
+                className="w-full rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary hover:bg-accent/40"
+              >
+                <strong className="block font-medium leading-snug">
+                  {bilingualLabel(d.titleBg, d.titleEn, 'bg')}
+                </strong>
+                <small className="text-muted-foreground">
                   {d.publisher?.titleBg ?? 'без издател'} ·{' '}
-                  <span className={fresh.isStale ? 'stale' : undefined}>{fresh.label}</span>
+                  <span className={cn(fresh.isStale && 'text-warning')}>{fresh.label}</span>
                 </small>
               </button>
             </li>
@@ -37,9 +44,9 @@ export function DatasetList({ datasets, total, hasMore, onSelect, onLoadMore }: 
         })}
       </ul>
       {hasMore && onLoadMore && (
-        <button type="button" onClick={onLoadMore}>
+        <Button variant="outline" size="sm" className="w-full" onClick={onLoadMore}>
           Зареди още
-        </button>
+        </Button>
       )}
     </section>
   );

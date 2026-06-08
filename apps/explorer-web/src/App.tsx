@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import oblastsRaw from '../../../packages/geo-boundaries/data/oblasts.geojson?raw';
 import { ChatPanel } from './chat/ChatPanel.tsx';
+import { Button } from './components/ui/button.tsx';
 import { DatasetDetail } from './datasets/DatasetDetail.tsx';
 import { DatasetList } from './datasets/DatasetList.tsx';
 import { FilterPanel } from './filters/FilterPanel.tsx';
@@ -57,21 +58,25 @@ export function App() {
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>danni.bg</h1>
-        <span className="tagline">Интерактивна карта на отворените данни на България</span>
+    <div className="grid h-screen grid-rows-[auto_1fr]">
+      <header className="flex items-baseline gap-3 bg-primary px-5 py-2.5 text-primary-foreground">
+        <h1 className="text-base font-semibold tracking-tight">danni.bg</h1>
+        <span className="text-xs opacity-80">
+          Интерактивна карта на отворените данни на България
+        </span>
       </header>
-      <div className="app-body">
-        <aside className="panel">
+      <div className="grid min-h-0 grid-cols-[340px_1fr_380px]">
+        <aside className="space-y-3 overflow-y-auto border-r bg-card p-4">
           <FilterPanel />
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
             aria-pressed={showNational}
             onClick={() => setShowNational((v) => !v)}
           >
             {showNational ? '← Към регионите' : 'Национални набори (без регион)'}
-          </button>
+          </Button>
           {selectedDataset ? (
             <DatasetDetail datasetId={selectedDataset} onClose={() => setSelectedDataset(null)} />
           ) : (
@@ -84,7 +89,7 @@ export function App() {
             />
           )}
         </aside>
-        <main className="map">
+        <main className="relative h-full min-w-0">
           <MapErrorBoundary>
             <MapView
               boundaries={boundaries}
@@ -94,7 +99,7 @@ export function App() {
             />
           </MapErrorBoundary>
         </main>
-        <aside className="panel">
+        <aside className="overflow-y-auto border-l bg-card p-4">
           <ChatPanel onSelectDataset={setSelectedDataset} />
         </aside>
       </div>

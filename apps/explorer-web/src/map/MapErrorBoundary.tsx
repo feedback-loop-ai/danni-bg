@@ -25,8 +25,12 @@ export class MapErrorBoundary extends Component<Props, State> {
   override render(): ReactNode {
     if (this.state.failed) {
       return (
-        <div className="map-canvas" aria-label="Карта на България" data-map-unavailable="true">
-          <p style={{ padding: 12 }}>Картата не е налична в тази среда.</p>
+        <div
+          className="h-full w-full p-3 text-sm text-muted-foreground"
+          aria-label="Карта на България"
+          data-map-unavailable="true"
+        >
+          Картата не е налична в тази среда.
         </div>
       );
     }

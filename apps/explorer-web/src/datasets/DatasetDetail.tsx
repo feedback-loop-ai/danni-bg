@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Button } from '../components/ui/button.tsx';
+import { Card } from '../components/ui/card.tsx';
 import { buildUrl } from '../lib/api.ts';
+import { cn } from '../lib/cn.ts';
 import { bilingualLabel, freshnessDisplay } from '../lib/format.ts';
 import type { FreshnessBlock } from '../types.ts';
 
@@ -41,33 +44,40 @@ export function DatasetDetail({ datasetId, onClose }: DatasetDetailProps) {
   }, [datasetId]);
 
   return (
-    <section>
-      <button type="button" onClick={onClose}>
+    <section className="space-y-3">
+      <Button variant="ghost" size="sm" onClick={onClose}>
         ← обратно
-      </button>
-      {error && <p className="error">Грешка при зареждане на набора.</p>}
+      </Button>
+      {error && <p className="text-sm text-destructive">Грешка при зареждане на набора.</p>}
       {detail && (
-        <article>
-          <h2>{bilingualLabel(detail.titleBg, detail.titleEn, 'bg')}</h2>
-          <p>{detail.descriptionBg}</p>
-          <p>
-            <span className={freshnessDisplay(detail.freshness).isStale ? 'stale' : undefined}>
+        <Card className="space-y-2 p-4">
+          <h2 className="font-semibold leading-snug">
+            {bilingualLabel(detail.titleBg, detail.titleEn, 'bg')}
+          </h2>
+          <p className="text-sm text-muted-foreground">{detail.descriptionBg}</p>
+          <p className="text-sm">
+            <span className={cn(freshnessDisplay(detail.freshness).isStale && 'text-warning')}>
               {freshnessDisplay(detail.freshness).label}
             </span>
           </p>
-          <p>Тагове: {detail.tags.join(', ') || '—'}</p>
-          <h3>Ресурси</h3>
-          <ul>
+          <p className="text-sm text-muted-foreground">Тагове: {detail.tags.join(', ') || '—'}</p>
+          <h3 className="pt-1 text-sm font-semibold">Ресурси</h3>
+          <ul className="list-disc pl-5 text-sm text-muted-foreground">
             {detail.resources.map((r) => (
               <li key={r.resourceId}>
                 {r.name ?? r.resourceId} ({r.kind ?? 'неизвестен'})
               </li>
             ))}
           </ul>
-          <a href={detail.sourceUrl} target="_blank" rel="noreferrer">
+          <a
+            className="inline-block text-sm text-primary underline-offset-4 hover:underline"
+            href={detail.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
             Източник: data.egov.bg ↗
           </a>
-        </article>
+        </Card>
       )}
     </section>
   );

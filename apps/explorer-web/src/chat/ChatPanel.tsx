@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { Button } from '../components/ui/button.tsx';
+import { Textarea } from '../components/ui/textarea.tsx';
+import { cn } from '../lib/cn.ts';
 import { filterStateToScope } from '../lib/scope.ts';
 import { useExplorer } from '../store/explorerStore.ts';
 import type { Citation, ProviderConfig } from '../types.ts';
@@ -83,21 +86,35 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   }
 
   return (
-    <section>
-      <h2>Чат</h2>
+    <section className="space-y-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Чат</h2>
       <ProviderSettings provider={provider} onChange={updateProvider} />
-      <div aria-label="Разговор">
+      <div aria-label="Разговор" className="space-y-3">
         {messages.map((m, i) => (
-          <div key={`${i}:${m.role}`} className={m.role === 'user' ? 'msg-user' : undefined}>
-            <p>{m.content || (m.role === 'assistant' && streaming ? '…' : '')}</p>
+          <div
+            key={`${i}:${m.role}`}
+            className={cn('text-sm', m.role === 'user' ? 'font-semibold' : 'text-foreground')}
+          >
+            <p className="whitespace-pre-wrap">
+              {m.content || (m.role === 'assistant' && streaming ? '…' : '')}
+            </p>
             {m.citations && m.citations.length > 0 && (
-              <ul className="citation">
+              <ul className="citation mt-1 space-y-1 border-l-2 border-border pl-3 text-xs">
                 {m.citations.map((c) => (
-                  <li key={c.datasetId}>
-                    <button type="button" onClick={() => onSelectDataset(c.datasetId)}>
+                  <li key={c.datasetId} className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      className="text-left text-primary underline-offset-2 hover:underline"
+                      onClick={() => onSelectDataset(c.datasetId)}
+                    >
                       {c.titleBg}
-                    </button>{' '}
-                    <a href={c.sourceUrl} target="_blank" rel="noreferrer">
+                    </button>
+                    <a
+                      href={c.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-muted-foreground hover:text-primary"
+                    >
                       ↗
                     </a>
                   </li>
@@ -107,16 +124,16 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
           </div>
         ))}
       </div>
-      {error && <p className="error">{error}</p>}
-      <textarea
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <Textarea
         aria-label="Въпрос"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Попитайте за публичните данни…"
       />
-      <button type="button" disabled={streaming} onClick={() => void send()}>
+      <Button disabled={streaming} onClick={() => void send()}>
         Изпрати
-      </button>
+      </Button>
     </section>
   );
 }
