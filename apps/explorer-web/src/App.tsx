@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import oblastsRaw from '../../../packages/geo-boundaries/data/oblasts.geojson?raw';
 import { ChatPanel } from './chat/ChatPanel.tsx';
@@ -47,6 +48,8 @@ export function App() {
   const [total, setTotal] = useState(0);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
   const [showNational, setShowNational] = useState(false);
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
 
   const boundaries = useMemo(() => JSON.parse(oblastsRaw) as BoundaryCollection, []);
   const PAGE = 50;
@@ -92,31 +95,52 @@ export function App() {
           <ThemeToggle theme={theme} onChange={setTheme} />
         </div>
       </header>
-      <div className="grid min-h-0 grid-cols-[340px_1fr_380px]">
-        <aside className="space-y-3 overflow-y-auto border-r bg-card p-4">
-          <FilterPanel />
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            aria-pressed={showNational}
-            onClick={() => setShowNational((v) => !v)}
-          >
-            {showNational ? '← Към регионите' : 'Национални набори (без регион)'}
-          </Button>
-          {selectedDataset ? (
-            <DatasetDetail datasetId={selectedDataset} onClose={() => setSelectedDataset(null)} />
-          ) : (
-            <DatasetList
-              datasets={datasets}
-              total={total}
-              hasMore={hasMore(datasets.length, total)}
-              onSelect={setSelectedDataset}
-              onLoadMore={loadMore}
-            />
-          )}
+      <div className="flex min-h-0">
+        <aside
+          className="shrink-0 overflow-hidden border-r bg-card transition-[width] duration-200 ease-in-out"
+          style={{ width: leftOpen ? 340 : 0 }}
+        >
+          <div className="h-full w-[340px] space-y-3 overflow-y-auto p-4">
+            <FilterPanel />
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              aria-pressed={showNational}
+              onClick={() => setShowNational((v) => !v)}
+            >
+              {showNational ? '← Към регионите' : 'Национални набори (без регион)'}
+            </Button>
+            {selectedDataset ? (
+              <DatasetDetail datasetId={selectedDataset} onClose={() => setSelectedDataset(null)} />
+            ) : (
+              <DatasetList
+                datasets={datasets}
+                total={total}
+                hasMore={hasMore(datasets.length, total)}
+                onSelect={setSelectedDataset}
+                onLoadMore={loadMore}
+              />
+            )}
+          </div>
         </aside>
-        <main className="relative h-full min-w-0">
+        <main className="relative min-w-0 flex-1">
+          <button
+            type="button"
+            aria-label={leftOpen ? 'Скрий филтрите' : 'Покажи филтрите'}
+            onClick={() => setLeftOpen((v) => !v)}
+            className="absolute top-2 left-2 z-10 flex size-8 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
+          >
+            {leftOpen ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
+          </button>
+          <button
+            type="button"
+            aria-label={rightOpen ? 'Скрий чата' : 'Покажи чата'}
+            onClick={() => setRightOpen((v) => !v)}
+            className="absolute top-2 right-2 z-10 flex size-8 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
+          >
+            {rightOpen ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+          </button>
           <MapErrorBoundary>
             <MapView
               boundaries={boundaries}
@@ -127,8 +151,13 @@ export function App() {
             />
           </MapErrorBoundary>
         </main>
-        <aside className="overflow-y-auto border-l bg-card p-4">
-          <ChatPanel onSelectDataset={setSelectedDataset} />
+        <aside
+          className="shrink-0 overflow-hidden border-l bg-card transition-[width] duration-200 ease-in-out"
+          style={{ width: rightOpen ? 380 : 0 }}
+        >
+          <div className="h-full w-[380px] overflow-y-auto p-4">
+            <ChatPanel onSelectDataset={setSelectedDataset} />
+          </div>
         </aside>
       </div>
     </div>
