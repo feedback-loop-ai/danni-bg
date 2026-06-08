@@ -54,11 +54,13 @@ export async function sendChat(
   body: ChatRequestBody,
   cb: ChatCallbacks,
   fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<void> {
   const res = await fetchImpl('/api/chat', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
+    ...(signal ? { signal } : {}),
   });
   // A non-OK response is a JSON error envelope, not an SSE stream — surface it.
   if (!res.ok) {

@@ -88,6 +88,20 @@ describe('sendChat (streaming IO)', () => {
     expect(errors).toEqual(['no response stream']);
   });
 
+  it('forwards the abort signal to fetch', async () => {
+    const controller = new AbortController();
+    let seenSignal: AbortSignal | undefined;
+    const capturingFetch = (async (_url: string, init?: RequestInit) => {
+      seenSignal = init?.signal ?? undefined;
+      return {
+        ok: true,
+        body: new ReadableStream({ start: (c) => c.close() }),
+      } as unknown as Response;
+    }) as typeof fetch;
+    await sendChat(body, {}, capturingFetch, controller.signal);
+    expect(seenSignal).toBe(controller.signal);
+  });
+
   it('surfaces a non-OK JSON error envelope', async () => {
     const errors: string[] = [];
     const badFetch = (async () =>

@@ -1,4 +1,4 @@
-import { ArrowUp, Cog } from 'lucide-react';
+import { ArrowUp, Cog, Square } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -33,6 +33,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const idRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   function updateProvider(next: ProviderConfig) {
     setProvider(next);
@@ -62,6 +63,8 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
       { id: ++idRef.current, role: 'assistant', content: '' },
     ]);
 
+    const controller = new AbortController();
+    abortRef.current = controller;
     let assistant = '';
     let cites: Citation[] = [];
     try {
@@ -81,12 +84,21 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
           onError: (message) => setError(message),
           onDone: () => setStreaming(false),
         },
+        undefined,
+        controller.signal,
       );
     } catch {
-      setError('мрежова грешка');
+      // A user-initiated stop aborts the fetch; that's not an error.
+      if (!controller.signal.aborted) setError('мрежова грешка');
     } finally {
       setStreaming(false);
+      abortRef.current = null;
     }
+  }
+
+  function stop() {
+    abortRef.current?.abort();
+    setStreaming(false);
   }
 
   return (
@@ -170,15 +182,26 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
           placeholder="Попитайте за публичните данни…"
           className="max-h-40 w-full resize-none bg-transparent py-3 pr-12 pl-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none"
         />
-        <button
-          type="button"
-          aria-label="Изпрати"
-          disabled={streaming || input.trim() === ''}
-          onClick={() => void send()}
-          className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:bg-primary/90 disabled:opacity-40"
-        >
-          <ArrowUp className="size-4" />
-        </button>
+        {streaming ? (
+          <button
+            type="button"
+            aria-label="Спри генерирането"
+            onClick={stop}
+            className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Square className="size-3.5" fill="currentColor" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            aria-label="Изпрати"
+            disabled={input.trim() === ''}
+            onClick={() => void send()}
+            className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:bg-primary/90 disabled:opacity-40"
+          >
+            <ArrowUp className="size-4" />
+          </button>
+        )}
       </div>
     </section>
   );
