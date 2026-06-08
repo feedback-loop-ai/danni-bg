@@ -129,7 +129,7 @@ export function App() {
             type="button"
             aria-label={leftOpen ? 'Скрий филтрите' : 'Покажи филтрите'}
             onClick={() => setLeftOpen((v) => !v)}
-            className="absolute top-2 left-2 z-10 flex size-8 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
+            className="-translate-y-1/2 absolute top-1/2 left-2 z-10 flex h-12 w-6 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
           >
             {leftOpen ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
           </button>
@@ -137,7 +137,7 @@ export function App() {
             type="button"
             aria-label={rightOpen ? 'Скрий чата' : 'Покажи чата'}
             onClick={() => setRightOpen((v) => !v)}
-            className="absolute top-2 right-2 z-10 flex size-8 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
+            className="-translate-y-1/2 absolute top-1/2 right-2 z-10 flex h-12 w-6 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
           >
             {rightOpen ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
           </button>
