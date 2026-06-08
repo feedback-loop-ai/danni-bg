@@ -28,7 +28,6 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {}
 
 export function Button({ className, variant, size, type = 'button', ...props }: ButtonProps) {
-  // biome-ignore lint/a11y/useButtonType: type defaults to "button" above
   return (
     <button type={type} className={cn(buttonVariants({ variant, size }), className)} {...props} />
   );
