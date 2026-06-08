@@ -1,6 +1,8 @@
 import { Download, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { fetchResourceRows } from '../lib/api.ts';
+import { numericColumns, toSeries } from '../lib/chart.ts';
+import { cn } from '../lib/cn.ts';
 import { cellText, tableColumns, toCsv } from '../lib/table.ts';
 import type { ResourceContent } from '../types.ts';
 
@@ -27,6 +29,9 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
   const [rows, setRows] = useState<unknown[]>([]);
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState(false);
+  const [view, setView] = useState<'table' | 'chart'>('table');
+  const [labelCol, setLabelCol] = useState('');
+  const [valueCol, setValueCol] = useState('');
 
   // Reset when the selected resource changes.
   useEffect(() => {
@@ -34,6 +39,9 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
     setOffset(0);
     setContent(null);
     setError(false);
+    setView('table');
+    setLabelCol('');
+    setValueCol('');
   }, [datasetId, resourceId]);
 
   useEffect(() => {
@@ -52,6 +60,11 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
 
   const columns = tableColumns(rows);
   const hasTable = rows.length > 0 && columns.length > 0;
+  const numeric = numericColumns(rows, columns);
+  // Effective chart axes default to the first numeric value column + first non-numeric label column.
+  const effValue = numeric.includes(valueCol) ? valueCol : (numeric[0] ?? '');
+  const effLabel = labelCol || (columns.find((c) => !numeric.includes(c)) ?? '');
+  const series = toSeries(rows, effLabel || null, effValue);
 
   function onDownload() {
     if (!content) return;
@@ -96,7 +109,81 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
       {error && <p className="text-sm text-destructive">Грешка при зареждане на данните.</p>}
       {!content && !error && <p className="text-sm text-muted-foreground">Зареждане…</p>}
 
-      {content && hasTable && (
+      {content && hasTable && numeric.length > 0 && (
+        <div className="flex gap-1">
+          {(['table', 'chart'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={view === v}
+              onClick={() => setView(v)}
+              className={cn(
+                'rounded-md border px-2 py-1 text-xs',
+                view === v ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
+              )}
+            >
+              {v === 'table' ? 'Таблица' : 'Графика'}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {content && hasTable && view === 'chart' && (
+        <div aria-label="Графика" className="space-y-2">
+          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+            <label className="flex items-center gap-1">
+              Стойност:
+              <select
+                className="rounded border border-input bg-background px-1 py-0.5 text-foreground"
+                value={effValue}
+                onChange={(e) => setValueCol(e.target.value)}
+              >
+                {numeric.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1">
+              Категория:
+              <select
+                className="rounded border border-input bg-background px-1 py-0.5 text-foreground"
+                value={effLabel}
+                onChange={(e) => setLabelCol(e.target.value)}
+              >
+                <option value="">(номер на ред)</option>
+                {columns.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="max-h-80 space-y-1 overflow-auto pr-1">
+            {series.points.map((pt, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: ordered bar series (labels may repeat)
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <span className="w-24 shrink-0 truncate" title={pt.label}>
+                  {pt.label}
+                </span>
+                <div className="h-3 flex-1 rounded bg-muted">
+                  <div
+                    className="h-3 rounded bg-primary"
+                    style={{
+                      width: `${series.maxValue ? (Math.abs(pt.value) / series.maxValue) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <span className="w-14 shrink-0 text-right tabular-nums">{pt.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {content && hasTable && view === 'table' && (
         <>
           <div className="max-h-80 overflow-auto rounded border">
             <table className="w-full border-collapse text-left text-xs">

@@ -15,4 +15,11 @@ test('previews resource rows as a table', async ({ page }) => {
   await expect(page.getByRole('columnheader', { name: 'станция' })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'Дружба' })).toBeVisible();
   await expect(page.getByText('2 от 2 реда')).toBeVisible();
+
+  // Switch to the chart view: a bar chart over the numeric column.
+  await page.getByRole('button', { name: 'Графика' }).click();
+  const chart = page.getByLabel('Графика');
+  await expect(chart).toBeVisible();
+  await expect(chart.getByText('Дружба')).toBeVisible();
+  await expect(chart.getByText('42')).toBeVisible();
 });
