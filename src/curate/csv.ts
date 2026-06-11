@@ -9,6 +9,7 @@ import type {
   TabularSchema,
   TransformRule,
 } from './curator.ts';
+import { curatedRelDir } from './curator.ts';
 import { type DetectedEncoding, decodeBytes, detectEncoding } from './encoding.ts';
 import { normalizeBoolean, normalizeDate, normalizeDecimal } from './normalize.ts';
 import { canonicalizeName, inferColumnType } from './schema.ts';
@@ -225,7 +226,7 @@ function _refUnused(_x: DetectedEncoding): void {
 }
 
 function computeRel(resource: ResourceRow): string {
-  return join(resource.dataset_id, resource.id);
+  return curatedRelDir(resource);
 }
 
 void _refUnused;

@@ -9,6 +9,7 @@ import type {
   TabularSchema,
   TransformRule,
 } from './curator.ts';
+import { curatedRelDir } from './curator.ts';
 import { normalizeBoolean, normalizeDate, normalizeDecimal } from './normalize.ts';
 import { canonicalizeName, inferColumnType } from './schema.ts';
 
@@ -357,7 +358,7 @@ export class XlsxCurator implements Curator {
     const bytes = readFileSync(ctx.rawAbsPath);
     const { sheets } = parseXlsx(bytes);
 
-    const baseDir = join(ctx.storeRoot, 'curated', ctx.resource.dataset_id, ctx.resource.id);
+    const baseDir = join(ctx.storeRoot, 'curated', curatedRelDir(ctx.resource));
     const curatedRoot = join(ctx.storeRoot, 'curated');
     // Re-curation may rename/drop sheets; clear the resource subtree first so no
     // stale per-sheet directories (or a prior non-xlsx artifact) survive.

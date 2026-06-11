@@ -14,8 +14,9 @@ import {
   serverDefaultFromEnv,
 } from './chat/providers.ts';
 import { SessionStore } from './chat/session.ts';
+import { hasGeo, liteConfidenceFor, liteToPointer, matchesFiltersLite } from './dataset-lite.ts';
 import type { ReadBridge } from './read-bridge.ts';
-import { geoEntityIdsOf, viewToPointer } from './read-bridge.ts';
+import { viewToPointer } from './read-bridge.ts';
 import { aggregateRegions } from './regions-aggregate.ts';
 import { chatHandler } from './routes/chat.ts';
 import {
@@ -105,12 +106,11 @@ export function createApp(ctx: AppContext): Hono {
     });
   });
 
-  // All in-scope dataset views, honoring the structured filters (used by list / regions / facets).
-  const scopedViews = (f: FilterState) =>
-    ctx.bridge
-      .listAllIds()
-      .map((id) => ctx.bridge.view(id))
-      .filter((v) => matchesFilters(v, f));
+  // All in-scope datasets, honoring the structured filters (used by list / regions / national /
+  // facets). Bulk lite projection (see ReadBridge.listLite) — not a per-dataset view fan-out — so
+  // these whole-catalog endpoints scale to the full ~11k-dataset mirror.
+  const scopedLites = (f: FilterState) =>
+    ctx.bridge.listLite().filter((l) => matchesFiltersLite(l, f));
 
   app.get('/api/datasets', async (c) => {
     const f = parseFilters(new URL(c.req.url).searchParams);
@@ -130,7 +130,7 @@ export function createApp(ctx: AppContext): Hono {
         if (matchesFilters(view, f)) pointers.push(viewToPointer(view, hit.score));
       }
     } else {
-      pointers = scopedViews(f).map((v) => viewToPointer(v));
+      pointers = scopedLites(f).map((l) => liteToPointer(l));
     }
 
     const total = pointers.length;
@@ -164,12 +164,9 @@ export function createApp(ctx: AppContext): Hono {
     const q = new URL(c.req.url).searchParams;
     const level = q.get('level') === 'municipality' ? 'municipality' : 'oblast';
     const f = parseFilters(q);
-    const views = scopedViews(f);
-    const datasets = views.map((v) => ({
-      datasetId: v.datasetId,
-      geoLinks: v.entities
-        .filter((e) => e.entityId.startsWith('geo:'))
-        .map((e) => ({ entityId: e.entityId, confidence: e.confidence })),
+    const datasets = scopedLites(f).map((l) => ({
+      datasetId: l.datasetId,
+      geoLinks: l.geoLinks,
     }));
     const regions: RegionSummary[] = aggregateRegions({
       entries: ctx.crosswalk.entriesForLevel(level),
@@ -190,7 +187,7 @@ export function createApp(ctx: AppContext): Hono {
     const f = parseFilters(q);
     const limit = clampInt(q.get('limit'), 50, 200);
     const offset = clampInt(q.get('offset'), 0, Number.MAX_SAFE_INTEGER);
-    const views = scopedViews(f).filter((v) => v.entities.some((e) => e.entityId === entityId));
+    const lites = scopedLites(f).filter((l) => l.geoLinks.some((g) => g.entityId === entityId));
     const label = LABELS.get(entityId);
     const region: RegionSummary = {
       entityId,
@@ -198,19 +195,12 @@ export function createApp(ctx: AppContext): Hono {
       labelBg: label?.labelBg ?? entityId,
       labelEn: label?.labelEn ?? null,
       boundaryFeatureId: entry.boundaryFeatureId,
-      datasetCount: views.length,
-      hasData: views.length > 0,
-      maxConfidence: views.reduce(
-        (m, v) =>
-          Math.max(
-            m,
-            ...v.entities.filter((e) => e.entityId === entityId).map((e) => e.confidence),
-          ),
-        0,
-      ),
+      datasetCount: lites.length,
+      hasData: lites.length > 0,
+      maxConfidence: lites.reduce((m, l) => Math.max(m, liteConfidenceFor(l, entityId)), 0),
     };
-    const datasets = views.slice(offset, offset + limit).map((v) => viewToPointer(v));
-    return c.json({ region, datasets, total: views.length });
+    const datasets = lites.slice(offset, offset + limit).map((l) => liteToPointer(l));
+    return c.json({ region, datasets, total: lites.length });
   });
 
   // National / non-georeferenced grouping: datasets with no geographic entity, so they remain
@@ -220,26 +210,26 @@ export function createApp(ctx: AppContext): Hono {
     const f = parseFilters(q);
     const limit = clampInt(q.get('limit'), 50, 200);
     const offset = clampInt(q.get('offset'), 0, Number.MAX_SAFE_INTEGER);
-    const views = scopedViews(f).filter((v) => geoEntityIdsOf(v).length === 0);
-    const datasets = views.slice(offset, offset + limit).map((v) => viewToPointer(v));
-    return c.json({ datasets, total: views.length, limit, offset });
+    const lites = scopedLites(f).filter((l) => !hasGeo(l));
+    const datasets = lites.slice(offset, offset + limit).map((l) => liteToPointer(l));
+    return c.json({ datasets, total: lites.length, limit, offset });
   });
 
   app.get('/api/facets', (c) => {
     const f = parseFilters(new URL(c.req.url).searchParams);
-    const views = scopedViews(f);
+    const lites = scopedLites(f);
     const tags = new Map<string, number>();
     const publishers = new Map<string, { labelBg: string; count: number }>();
     let fresh = 0;
     let stale = 0;
-    for (const v of views) {
-      for (const t of v.tags) tags.set(t, (tags.get(t) ?? 0) + 1);
-      if (v.publisher) {
-        const p = publishers.get(v.publisher.id) ?? { labelBg: v.publisher.title.bg, count: 0 };
+    for (const l of lites) {
+      for (const t of l.tags) tags.set(t, (tags.get(t) ?? 0) + 1);
+      if (l.publisherId) {
+        const p = publishers.get(l.publisherId) ?? { labelBg: l.publisherTitleBg ?? '', count: 0 };
         p.count += 1;
-        publishers.set(v.publisher.id, p);
+        publishers.set(l.publisherId, p);
       }
-      if (v.freshness.isStale) stale += 1;
+      if (l.freshness.isStale) stale += 1;
       else fresh += 1;
     }
     const facets: Facets = {
