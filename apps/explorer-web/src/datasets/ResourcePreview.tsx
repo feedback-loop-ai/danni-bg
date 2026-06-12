@@ -1,4 +1,4 @@
-import { Download, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Download, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { fetchResourceRows } from '../lib/api.ts';
 import {
@@ -9,6 +9,7 @@ import {
   toSeries,
 } from '../lib/chart.ts';
 import { cn } from '../lib/cn.ts';
+import { type GridSort, cycleSort, gridRows, hasActiveFilters } from '../lib/grid.ts';
 import { cellText, tableColumns, toCsv } from '../lib/table.ts';
 import type { ResourceContent } from '../types.ts';
 
@@ -50,6 +51,8 @@ export function ResourcePreview({
   const [labelCol, setLabelCol] = useState('');
   const [valueCol, setValueCol] = useState('');
   const [chartType, setChartType] = useState<'bar' | 'line' | null>(null);
+  const [sort, setSort] = useState<GridSort | null>(null);
+  const [colFilters, setColFilters] = useState<Record<string, string>>({});
 
   // Reset when the selected resource changes.
   useEffect(() => {
@@ -61,6 +64,8 @@ export function ResourcePreview({
     setLabelCol('');
     setValueCol('');
     setChartType(null);
+    setSort(null);
+    setColFilters({});
   }, [datasetId, resourceId]);
 
   useEffect(() => {
@@ -79,6 +84,9 @@ export function ResourcePreview({
 
   const columns = tableColumns(rows);
   const hasTable = rows.length > 0 && columns.length > 0;
+  // Spreadsheet grid: client-side sort + per-column filter over the loaded rows.
+  const filtering = hasActiveFilters(colFilters);
+  const viewRows = gridRows(rows, sort, colFilters);
   const numeric = numericColumns(rows, columns);
   const dates = dateColumns(rows, columns);
   // Effective axes: value → first numeric; category → a date column if present (time-series), else
@@ -268,18 +276,52 @@ export function ResourcePreview({
         <>
           <div className={cn('overflow-auto rounded border', fill)}>
             <table className="w-full border-collapse text-left text-xs">
-              <thead className="sticky top-0 bg-muted">
+              <thead className="sticky top-0 z-10 bg-muted">
+                <tr>
+                  {columns.map((c) => {
+                    const active = sort?.col === c;
+                    return (
+                      <th
+                        key={c}
+                        aria-sort={
+                          active ? (sort?.dir === 'asc' ? 'ascending' : 'descending') : 'none'
+                        }
+                        className="whitespace-nowrap border-b px-0 py-0 font-medium"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setSort((s) => cycleSort(s, c))}
+                          className="flex w-full items-center gap-1 px-2 py-1 text-left hover:bg-accent/60"
+                        >
+                          <span className="truncate">{c}</span>
+                          {active &&
+                            (sort?.dir === 'asc' ? (
+                              <ArrowUp className="size-3 shrink-0" aria-hidden />
+                            ) : (
+                              <ArrowDown className="size-3 shrink-0" aria-hidden />
+                            ))}
+                        </button>
+                      </th>
+                    );
+                  })}
+                </tr>
                 <tr>
                   {columns.map((c) => (
-                    <th key={c} className="whitespace-nowrap border-b px-2 py-1 font-medium">
-                      {c}
-                    </th>
+                    <td key={c} className="border-b bg-background px-1 py-1">
+                      <input
+                        aria-label={`Филтрирай ${c}`}
+                        value={colFilters[c] ?? ''}
+                        onChange={(e) => setColFilters((f) => ({ ...f, [c]: e.target.value }))}
+                        placeholder="филтър…"
+                        className="h-6 w-full min-w-20 rounded border border-input bg-background px-1.5 text-xs font-normal placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      />
+                    </td>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: rows are an ordered, append-only page
+                {viewRows.map((row, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: ordered append-only page (post-sort/filter)
                   <tr key={i} className="even:bg-muted/40">
                     {columns.map((c) => {
                       const rec = row as Record<string, unknown>;
@@ -298,15 +340,28 @@ export function ResourcePreview({
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
             <span>
-              {rows.length} от {content.total} реда
+              {filtering ? (
+                <>
+                  {viewRows.length} от {rows.length} заредени
+                  <button
+                    type="button"
+                    onClick={() => setColFilters({})}
+                    className="ml-2 underline-offset-2 hover:underline"
+                  >
+                    изчисти филтрите
+                  </button>
+                </>
+              ) : (
+                `${rows.length} от ${content.total} реда`
+              )}
             </span>
             {rows.length < content.total && (
               <button
                 type="button"
                 onClick={() => setOffset(rows.length)}
-                className="rounded-md border px-2 py-1 hover:bg-accent hover:text-accent-foreground"
+                className="shrink-0 rounded-md border px-2 py-1 hover:bg-accent hover:text-accent-foreground"
               >
                 Зареди още
               </button>
