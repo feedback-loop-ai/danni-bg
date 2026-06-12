@@ -14,17 +14,29 @@ export interface ChatFocus {
   titleBg: string;
 }
 
+/** The resource opened in the centre document reader (replaces the map while set). */
+export interface ReaderTarget {
+  datasetId: string;
+  resourceId: string;
+  name: string;
+  /** Parent dataset title, shown as the reader's breadcrumb. */
+  titleBg: string;
+}
+
 export interface ExplorerState {
   filters: FilterState;
   selectedRegionId: string | null;
   highlight: MapAnchor;
   chatFocus: ChatFocus | null;
+  reader: ReaderTarget | null;
   setFilters: (f: FilterState) => void;
   updateFilters: (fn: (f: FilterState) => FilterState) => void;
   clearFilters: () => void;
   selectRegion: (entityId: string | null) => void;
   setHighlight: (anchor: MapAnchor) => void;
   setChatFocus: (focus: ChatFocus | null) => void;
+  openReader: (target: ReaderTarget) => void;
+  closeReader: () => void;
 }
 
 const NO_HIGHLIGHT: MapAnchor = { geoEntityIds: [], datasetIds: [] };
@@ -34,6 +46,7 @@ export const explorerStore = createStore<ExplorerState>((set) => ({
   selectedRegionId: null,
   highlight: NO_HIGHLIGHT,
   chatFocus: null,
+  reader: null,
   setFilters: (filters) => set({ filters }),
   updateFilters: (fn) => set((s) => ({ filters: fn(s.filters) })),
   clearFilters: () => set({ filters: clearAll(), highlight: NO_HIGHLIGHT }),
@@ -45,6 +58,8 @@ export const explorerStore = createStore<ExplorerState>((set) => ({
     })),
   setHighlight: (highlight) => set({ highlight }),
   setChatFocus: (chatFocus) => set({ chatFocus }),
+  openReader: (reader) => set({ reader }),
+  closeReader: () => set({ reader: null }),
 }));
 
 export function useExplorer<T>(selector: (s: ExplorerState) => T): T {

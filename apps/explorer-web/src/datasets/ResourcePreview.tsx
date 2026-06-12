@@ -19,6 +19,8 @@ interface ResourcePreviewProps {
   resourceId: string;
   name: string;
   onClose: () => void;
+  /** `panel` = compact side-panel card (default); `reader` = fill the centre document reader. */
+  variant?: 'panel' | 'reader';
 }
 
 function download(filename: string, content: string, type: string): void {
@@ -30,7 +32,16 @@ function download(filename: string, content: string, type: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function ResourcePreview({ datasetId, resourceId, name, onClose }: ResourcePreviewProps) {
+export function ResourcePreview({
+  datasetId,
+  resourceId,
+  name,
+  onClose,
+  variant = 'panel',
+}: ResourcePreviewProps) {
+  const reader = variant === 'reader';
+  // Scrollable data areas: a fixed cap in the side panel, but grow to fill the centre reader.
+  const fill = reader ? 'min-h-0 flex-1' : 'max-h-80';
   const [content, setContent] = useState<ResourceContent | null>(null);
   const [rows, setRows] = useState<unknown[]>([]);
   const [offset, setOffset] = useState(0);
@@ -92,7 +103,12 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
   }
 
   return (
-    <div className="space-y-2 rounded-md border bg-card p-3">
+    <div
+      className={cn(
+        'rounded-md border bg-card p-3',
+        reader ? 'flex h-full flex-col gap-2' : 'space-y-2',
+      )}
+    >
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-sm font-medium" title={name}>
           {name}
@@ -142,7 +158,10 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
       )}
 
       {content && hasTable && view === 'chart' && (
-        <div aria-label="Графика" className="space-y-2">
+        <div
+          aria-label="Графика"
+          className={cn(reader ? 'flex min-h-0 flex-1 flex-col gap-2' : 'space-y-2')}
+        >
           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
             <label className="flex items-center gap-1">
               Стойност:
@@ -191,12 +210,15 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
             ))}
           </div>
           {effType === 'line' ? (
-            <div className="space-y-1">
+            <div className={cn('space-y-1', reader && 'flex min-h-0 flex-1 flex-col')}>
               <svg
                 viewBox="0 0 300 120"
                 role="img"
                 aria-label="Линейна графика"
-                className="h-40 w-full rounded border bg-muted/20"
+                className={cn(
+                  'w-full rounded border bg-muted/20',
+                  reader ? 'min-h-0 flex-1' : 'h-40',
+                )}
                 preserveAspectRatio="none"
               >
                 <polyline
@@ -219,7 +241,7 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
               </div>
             </div>
           ) : (
-            <div className="max-h-80 space-y-1 overflow-auto pr-1">
+            <div className={cn('space-y-1 overflow-auto pr-1', fill)}>
               {points.map((pt, i) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: ordered series (labels may repeat)
                 <div key={i} className="flex items-center gap-2 text-xs">
@@ -244,7 +266,7 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
 
       {content && hasTable && view === 'table' && (
         <>
-          <div className="max-h-80 overflow-auto rounded border">
+          <div className={cn('overflow-auto rounded border', fill)}>
             <table className="w-full border-collapse text-left text-xs">
               <thead className="sticky top-0 bg-muted">
                 <tr>
@@ -294,12 +316,17 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
       )}
 
       {content && !hasTable && content.text !== undefined && (
-        <pre className="max-h-80 overflow-auto rounded border bg-muted/30 p-2 text-xs whitespace-pre-wrap">
+        <pre
+          className={cn(
+            'overflow-auto rounded border bg-muted/30 p-2 text-xs whitespace-pre-wrap',
+            fill,
+          )}
+        >
           {content.text}
         </pre>
       )}
       {content && !hasTable && content.text === undefined && (
-        <pre className="max-h-80 overflow-auto rounded border bg-muted/30 p-2 text-xs">
+        <pre className={cn('overflow-auto rounded border bg-muted/30 p-2 text-xs', fill)}>
           {JSON.stringify(content.document ?? rows, null, 2)}
         </pre>
       )}

@@ -6,6 +6,7 @@ import { ThemeToggle } from './components/ThemeToggle.tsx';
 import { Button } from './components/ui/button.tsx';
 import { DatasetDetail } from './datasets/DatasetDetail.tsx';
 import { DatasetList } from './datasets/DatasetList.tsx';
+import { ResourceReader } from './datasets/ResourceReader.tsx';
 import { FilterPanel } from './filters/FilterPanel.tsx';
 import { fetchDatasets, fetchNational, fetchRegions } from './lib/api.ts';
 import type { BoundaryCollection } from './lib/choropleth.ts';
@@ -150,6 +151,8 @@ export function App() {
               isDark={resolved === 'dark'}
             />
           </MapErrorBoundary>
+          {/* Centre document reader — overlays the map when a resource is opened. */}
+          <ResourceReader />
         </main>
         <aside
           className="shrink-0 overflow-hidden border-l bg-card transition-[width] duration-200 ease-in-out"
