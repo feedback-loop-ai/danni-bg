@@ -8,6 +8,7 @@ import type {
   JsonShapeSchema,
   TransformRule,
 } from './curator.ts';
+import { curatedRelDir } from './curator.ts';
 import { decodeBytes, detectEncoding } from './encoding.ts';
 
 export class GeoJsonCurator implements Curator {
@@ -42,7 +43,7 @@ export class GeoJsonCurator implements Curator {
       rootShape,
       transformRules,
     };
-    const dir = join(ctx.storeRoot, 'curated', ctx.resource.dataset_id, ctx.resource.id);
+    const dir = join(ctx.storeRoot, 'curated', curatedRelDir(ctx.resource));
     ensureDir(dir);
     writeFileSync(join(dir, 'data.json'), `${JSON.stringify(parsed, null, 2)}\n`);
     writeFileSync(join(dir, 'schema.json'), `${JSON.stringify(schema, null, 2)}\n`);

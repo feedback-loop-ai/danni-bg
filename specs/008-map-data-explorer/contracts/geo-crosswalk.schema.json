@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://danni.bg/contracts/008-map-data-explorer/geo-crosswalk.schema.json",
+  "title": "GeoCrosswalk",
+  "description": "Static join table mapping mirror geographic entity ids to bundled administrative-boundary features by official code (ISO-3166-2 for oblasts, EKATTE for municipalities). Validated against src/enrich/gazetteer/bg-admin.ts and packages/geo-boundaries/data/*.geojson.",
+  "type": "object",
+  "required": ["version", "entries", "knownGaps"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Crosswalk data version (bump when boundary data or mappings change)."
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/GeoCrosswalkEntry" }
+    },
+    "knownGaps": {
+      "type": "array",
+      "description": "Gazetteer units intentionally not yet mapped to a boundary feature (e.g. municipalities pending full coverage — research R5 gap). Each must be reachable via search/national grouping.",
+      "items": {
+        "type": "object",
+        "required": ["entityId", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "entityId": { "type": "string", "pattern": "^geo:bg-(oblast|municipality)-[a-z0-9-]+$" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "GeoCrosswalkEntry": {
+      "type": "object",
+      "required": ["entityId", "level", "boundaryFeatureId", "ekatte", "iso3166_2", "oblastEntityId"],
+      "additionalProperties": false,
+      "properties": {
+        "entityId": {
+          "type": "string",
+          "pattern": "^geo:bg-(oblast|municipality)-[a-z0-9-]+$",
+          "description": "Must exist in the gazetteer (bg-admin.ts)."
+        },
+        "level": { "enum": ["oblast", "municipality"] },
+        "boundaryFeatureId": {
+          "type": "string",
+          "description": "Must exist as properties.boundaryFeatureId in the matching GeoJSON collection."
+        },
+        "ekatte": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9]{5}$",
+          "description": "Official EKATTE municipality code; null for oblast-level entries."
+        },
+        "iso3166_2": {
+          "type": ["string", "null"],
+          "pattern": "^BG-[0-9]{2}$",
+          "description": "ISO 3166-2 province code (e.g. BG-18); null for municipality-level entries."
+        },
+        "oblastEntityId": {
+          "type": ["string", "null"],
+          "pattern": "^geo:bg-oblast-[a-z0-9-]+$",
+          "description": "Parent oblast for a municipality; null for oblast entries."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "level": { "const": "oblast" } } },
+          "then": {
+            "properties": {
+              "ekatte": { "const": null },
+              "oblastEntityId": { "const": null },
+              "iso3166_2": { "type": "string" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "level": { "const": "municipality" } } },
+          "then": {
+            "properties": {
+              "iso3166_2": { "const": null },
+              "ekatte": { "type": "string" },
+              "oblastEntityId": { "type": "string" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

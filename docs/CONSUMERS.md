@@ -1,12 +1,13 @@
 # Consuming the danni-bg mirror
 
 danni-bg is built for **machine consumers** — LLM agents, analytics jobs, retrieval systems — that
-want Bulgarian open-government data without depending on the live portal. There are two ways in:
+want Bulgarian open-government data without depending on the live portal. There are three ways in:
 
 1. **The MCP server** (`danni mcp`) — for LLM agents. Read-only, over stdio.
 2. **Directly off disk** — the curated files + SQLite store, with machine-readable contracts.
+3. **The explorer HTTP API** (`apps/explorer-api`) — a JSON/SSE web API behind the map explorer.
 
-Both are **read-only**: the store on disk is the source of truth, produced by the sync→curate→
+All are **read-only**: the store on disk is the source of truth, produced by the sync→curate→
 enrich→index pipeline. Every search result carries a `sourceUrl` (back to data.egov.bg) and a
 `curatedDatasetPath` (under `store/curated/`) for one-hop traceability (FR-013).
 
@@ -80,6 +81,26 @@ them. The `danni mcp` tool outputs reuse these shapes: `mirror_info` → curated
 `mirror_search` / `mirror_entity_search` → index-entry. `read_resource` returns a `ResourceContent`
 shape (`rows` / `document` / `text` + pagination), documented in the tool table above rather than as
 a published JSON-Schema contract.
+
+## 3. The explorer HTTP API (`apps/explorer-api`)
+
+The interactive map explorer is backed by a Bun + Hono JSON API that projects the same store. It is
+the human-facing front door, but the endpoints are a clean programmatic interface in their own right:
+
+| Endpoint | Returns |
+|---|---|
+| `GET /api/datasets` | Filterable, paginated dataset pointers (free-text `q` runs hybrid search). |
+| `GET /api/datasets/:id` | The curated-dataset detail (resources, entities, related-dataset links — links/entities capped). |
+| `GET /api/datasets/:id/resources/:rid/rows` | Paginated curated rows / document / text for a resource. |
+| `GET /api/regions?level=oblast\|municipality` | Choropleth aggregates (dataset counts per admin unit). |
+| `GET /api/national`, `GET /api/facets` | Non-georeferenced datasets; filter facets with in-scope counts. |
+| `POST /api/chat` | **SSE** grounded chat: streams tokens + validated `citations` + map `anchors`. |
+
+All inputs are Zod-validated; responses are UTF-8 JSON (SSE for chat) with mandatory `freshness`
+blocks. The chat is grounded — it answers only from the four scoped read tools (or the RAG fallback)
+and every citation is validated against what those tools returned. Full shapes:
+[`specs/008-map-data-explorer/contracts/http-api.md`](../specs/008-map-data-explorer/contracts/http-api.md)
+and [`chat-tools.md`](../specs/008-map-data-explorer/contracts/chat-tools.md).
 
 ## Freshness
 

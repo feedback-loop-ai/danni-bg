@@ -1,0 +1,14 @@
+{
+  "name": "@danni/explorer-web",
+  "version": "0.1.0",
+  "description": "React + Vite + MapLibre SPA for the interactive Bulgarian map data explorer.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "e2e": "playwright test"
+  }
+}

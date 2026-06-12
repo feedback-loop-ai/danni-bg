@@ -2,13 +2,16 @@
 
 `danni-bg` keeps a **local, byte-faithful mirror of [data.egov.bg](https://data.egov.bg)** and turns it into a curated, enriched, machine-readable corpus that can be searched offline.
 
-It is a single Bun + TypeScript CLI (`danni`) over a SQLite store. Everything flows through one pipeline:
+It is a Bun + TypeScript monorepo with two layers over one SQLite store:
 
 ```
-sync  →  curate  →  enrich  →  index  →  search
+build layer (CLI):   sync  →  curate  →  enrich  →  index  →  search      ← builds the store
+serve layer:         MCP server  ·  HTTP API + web explorer (map + chat)   ← only reads the store
 ```
 
-Each stage is independent, idempotent, and re-runnable; the store on disk is the source of truth.
+Each pipeline stage is independent, idempotent, and re-runnable; the store on disk is the source of
+truth. The serving layer (§6) never writes — it projects the same store for LLM agents (MCP) and for
+the interactive map explorer with a grounded chat assistant.
 
 ---
 
@@ -126,6 +129,12 @@ Translators (src/enrich/translators)       translate → translations
   local-marianmt (stub) │ hosted-api        BG preserved byte-exact; EN added with provenance/confidence
 ```
 
+`linkDatasets` is pairwise per shared entity (O(n²)), so generic "stop-word" entities (the tags
+`регистър`/`община`, a whole oblast, a ministry publisher) would form huge cliques — one tag on 4k
+datasets alone is ~8M links. A **fan-out cap** (`MAX_ENTITY_FANOUT`, default 50) skips any entity
+shared by more than 50 datasets, so only specific/rare shared entities link; this keeps the link set
+a meaningful "these two datasets are related" signal (~260k links) instead of a ~20M near-clique.
+
 ### 4 · Index — `danni index` (`src/index`)
 
 Builds the two search indexes over active, curated datasets.
@@ -216,12 +225,85 @@ Vectors are stored as plain BLOBs; similarity search is in-process cosine + Reci
 
 ---
 
-## 6. Caveats worth knowing
+## 6. The explorer & serving layer (`apps/`, `packages/geo-boundaries`)
 
-- **The semantic half is stubbed.** `local-onnx` (embedder) and `local-marianmt` (translator) ship as **deterministic placeholders** — the FTS/keyword half of search is real; real *semantic* vectors and EN translations need a real model/API wired via config (the index/search plumbing already supports it, and `batch-embed` makes a real-model re-index practical at corpus scale).
+The pipeline *builds* the store; the serving layer *only reads* it through one shared read substrate
+(`src/read` + `src/index/query.ts`). Two front doors:
+
+- **MCP server** — `danni mcp`, read-only tools for LLM agents (see [CONSUMERS.md](./CONSUMERS.md)).
+- **Web explorer** — `apps/explorer-api` (Bun + Hono) + `apps/explorer-web` (React 19 + Vite +
+  Tailwind/shadcn): an interactive Bulgaria choropleth with filters, dataset drilldown, and a
+  grounded chat assistant.
+
+```mermaid
+flowchart TD
+  subgraph WEB["apps/explorer-web — React 19 · Vite · MapLibre · Tailwind/shadcn"]
+    MAP["Choropleth map<br/>oblast fill by dataset count"]
+    FILT["Filters + facets"]
+    DRILL["Dataset drilldown<br/>table · bar/line charts · download"]
+    CHATUI["Chat panel (SSE)"]
+  end
+  subgraph API["apps/explorer-api — Bun · Hono · Zod"]
+    REST["/api/datasets · /api/regions<br/>/api/national · /api/facets"]
+    CHATR["/api/chat — SSE stream"]
+  end
+  BRIDGE["ReadBridge<br/>listLite (bulk projection) · view/detail · rows · search"]
+  RUN["chat turn<br/>tool loop ⟷ RAG fallback · grounding · caps"]
+  GEO["packages/geo-boundaries<br/>GISCO NUTS3 → oblast crosswalk"]
+  DB[("store/danni.sqlite")]
+  LLM[("LLM provider<br/>OpenAI-compatible / Anthropic")]
+
+  MAP --> REST
+  FILT --> REST
+  DRILL --> REST
+  CHATUI --> CHATR
+  REST --> BRIDGE
+  REST --> GEO
+  CHATR --> RUN --> BRIDGE
+  RUN --> LLM
+  BRIDGE --> DB
+```
+
+**Read bridge — scaling to the whole catalog.** The whole-catalog endpoints (list / regions /
+national / facets) project the store through `ReadBridge.listLite()`: four set-based SQL queries +
+an in-memory join, instead of materializing a full `CuratedDatasetView` (≈7 queries) per dataset. At
+the full ~12k-dataset mirror the per-dataset fan-out cost tens of GB of RAM and timed out; the bulk
+projection answers in tens of milliseconds at ~140 MB. Detail / rows endpoints stay keyed by id.
+`regions-aggregate.ts` buckets each dataset's `geo:` entities into per-oblast choropleth counts.
+
+**Chat — grounded, provider-agnostic.** `/api/chat` streams Server-Sent Events. A turn runs a tool
+loop over four **scope-filtered** tools — `mirrorSearch`, `mirrorEntitySearch`, `mirrorInfo`,
+`readResource` — so the model can only retrieve in-scope datasets; every id a tool returns is
+recorded and citations are validated against it (hallucinated/out-of-scope sources are dropped).
+Providers without function-calling (a vanilla vLLM Gemma) fall back to a **RAG path** that retrieves
+scoped candidates server-side and feeds them as context, so grounded chat works with any
+OpenAI-compatible model. Context guards (`apps/explorer-api/src/chat/cap.ts`): `capDatasetDetail`
+trims a high-degree dataset's links/entities and `capResourceContent` bounds a resource read, so a
+large artifact can't overflow the model's window; `maxOutputTokens` reserves output room; the loop
+runs up to 16 steps so a multi-dataset question (comparing periods/regions) can read one figure per
+dataset before answering.
+
+**Serving-layer source map**
+
+| Path | Responsibility |
+|---|---|
+| `apps/explorer-api/` | Hono routes, `ReadBridge` (`listLite`/view/detail/rows/search), regions aggregation, scope filtering, chat (`chat/{run,tools,grounding,cap,scope,session,providers}.ts`), SSE |
+| `apps/explorer-web/` | React SPA: MapLibre map, filters, dataset list/detail + chart/table drilldown, chat panel, Zustand store, pure `lib/*` (choropleth/pagination/table/chart/markdown/theme) |
+| `packages/geo-boundaries/` | GISCO NUTS3 → 28-oblast crosswalk + geometry, joined by Cyrillic name |
+| `src/read/`, `src/index/query.ts` | the shared read substrate both front doors consume |
+
+---
+
+## 7. Caveats worth knowing
+
+- **The semantic half is opt-in.** `local-onnx` (embedder) and `local-marianmt` (translator) ship as **deterministic placeholders** — the FTS/keyword half of search is always real, but real *semantic* vectors and EN translations need a real model wired via `provider: "hosted-api"` (see [semantic-search.md](./semantic-search.md)). The reference deployment points the embedder at a vLLM **Qwen3-Embedding-8B** (4096-dim) on the LAN and the chat at an OpenAI-compatible model; `batch-embed` makes a real-model re-index practical at corpus scale.
+- **The explorer needs `apps/explorer-api` running, and chat needs a provider.** The web app reads the same store live (no rebuild to see new sync/curate/index results — just refresh). Chat uses the server-default provider from `EXPLORER_DEFAULT_*` env, or a per-request user config; a provider without function-calling automatically uses the RAG fallback. To run unsandboxed for LAN access to the embedder/LLM, see the project memory + `specs/008-map-data-explorer/quickstart.md`.
 - **The live data.egov.bg crawl needs the egov adapter + a robots opt-out.** The portal does **not** serve the CKAN API at `/api/3/action/` (every method returns "Непознат метод"); use `portal.api: "egov-bg"` with `baseUrl: "https://data.egov.bg/api/"`. The site's `robots.txt` is `Disallow: /`, so an authorized crawl of its public API requires `crawler.robots.obey: false` (or `allowHosts: ["data.egov.bg"]`). The egov datastore serves resources as JSON rows, captured as CSV → curated as tabular.
 - **The store is the source of truth.** Any stage can be re-run; the raw archive remains usable read-only even if the portal is unreachable.
 
 ---
 
-*See `specs/001-egov-data-sync/` for the foundational spec/plan, and `specs/002-004-*/` for the incremental-index, batch-embedding, and crawl-resume features (each with its clarified spec, plan, and task list).*
+*See `specs/001-egov-data-sync/` for the foundational spec/plan; `specs/002-006-*/` for the
+incremental-index, batch-embedding, crawl-resume, pipeline-hardening, and embedding-eval features;
+`specs/007-read-api-mcp/` for the read API + MCP server; and `specs/008-map-data-explorer/` for the
+map explorer + chat (each with its clarified spec, plan, contracts, and task list).*

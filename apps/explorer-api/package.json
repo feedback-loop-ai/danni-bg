@@ -1,0 +1,8 @@
+{
+  "name": "@danni/explorer-api",
+  "version": "0.1.0",
+  "description": "Bun + Hono backend for the interactive Bulgarian map data explorer (read-only over the mirror).",
+  "type": "module",
+  "private": true,
+  "main": "src/server.ts"
+}

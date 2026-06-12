@@ -8,6 +8,7 @@ import type {
   TextSchema,
   TransformRule,
 } from './curator.ts';
+import { curatedRelDir } from './curator.ts';
 import { decodeBytes, detectEncoding } from './encoding.ts';
 
 export class TextCurator implements Curator {
@@ -30,7 +31,7 @@ export class TextCurator implements Curator {
       encoding: 'utf-8',
       transformRules,
     };
-    const dir = join(ctx.storeRoot, 'curated', ctx.resource.dataset_id, ctx.resource.id);
+    const dir = join(ctx.storeRoot, 'curated', curatedRelDir(ctx.resource));
     ensureDir(dir);
     writeFileSync(join(dir, 'data.txt'), text);
     writeFileSync(join(dir, 'schema.json'), `${JSON.stringify(schema, null, 2)}\n`);

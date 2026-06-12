@@ -1,7 +1,7 @@
 import type { Database } from 'bun:sqlite';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { atomicWriteFile } from '../lib/fs.ts';
+import { atomicWriteFile, safePathSegment } from '../lib/fs.ts';
 import { sha256Hex } from '../lib/hash.ts';
 import { nowIso } from '../lib/time.ts';
 import { withContext } from '../logging/logger.ts';
@@ -388,7 +388,7 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
       } else {
         content = `${JSON.stringify(data, null, 2)}\n`;
       }
-      const rawPath = join(d.uri, r.uri, `raw.${ext}`);
+      const rawPath = join(safePathSegment(d.uri), safePathSegment(r.uri), `raw.${ext}`);
       const absPath = join(opts.storeRoot, 'raw', rawPath);
       const buf = Buffer.from(content, 'utf-8');
       const sha256 = sha256Hex(buf);

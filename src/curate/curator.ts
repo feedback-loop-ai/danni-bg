@@ -1,6 +1,18 @@
+import { join } from 'node:path';
+import { safePathSegment } from '../lib/fs.ts';
 import type { ResourceRow } from '../store/repos/resources.ts';
 
 export type ArtifactKind = 'tabular' | 'json' | 'geojson' | 'xml' | 'text' | 'uncurated';
+
+/**
+ * Filesystem-safe `<dataset>/<resource>` relative directory for a curated artifact, mirroring the
+ * raw store. Some egov ids are over-long human-readable titles that exceed the 255-byte per-component
+ * limit (Cyrillic = 2 bytes/char); safePathSegment collapses those to a stable hash so `mkdir` never
+ * crashes mid-curate. The stored artifact `path` is derived from this, so reads stay consistent.
+ */
+export function curatedRelDir(resource: Pick<ResourceRow, 'dataset_id' | 'id'>): string {
+  return join(safePathSegment(resource.dataset_id), safePathSegment(resource.id));
+}
 
 export interface TransformRule {
   rule: string;

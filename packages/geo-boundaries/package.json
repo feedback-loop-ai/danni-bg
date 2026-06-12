@@ -1,0 +1,8 @@
+{
+  "name": "@danni/geo-boundaries",
+  "version": "0.1.0",
+  "description": "Bundled Bulgarian administrative-boundary GeoJSON + gazetteer crosswalk for the map explorer.",
+  "type": "module",
+  "private": true,
+  "main": "src/index.ts"
+}

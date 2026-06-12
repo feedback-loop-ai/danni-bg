@@ -8,6 +8,7 @@ import type {
   TransformRule,
   XmlSchema,
 } from './curator.ts';
+import { curatedRelDir } from './curator.ts';
 import { decodeBytes, detectEncoding } from './encoding.ts';
 
 function findRootElement(text: string): string {
@@ -42,7 +43,7 @@ export class XmlCurator implements Curator {
       rootElement,
       transformRules,
     };
-    const dir = join(ctx.storeRoot, 'curated', ctx.resource.dataset_id, ctx.resource.id);
+    const dir = join(ctx.storeRoot, 'curated', curatedRelDir(ctx.resource));
     ensureDir(dir);
     writeFileSync(join(dir, 'data.xml'), text);
     writeFileSync(join(dir, 'schema.json'), `${JSON.stringify(schema, null, 2)}\n`);

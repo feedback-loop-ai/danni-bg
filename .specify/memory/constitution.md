@@ -2,6 +2,18 @@
 ================================================================================
 SYNC IMPACT REPORT
 ================================================================================
+Version change: 1.0.0 → 1.1.0 (2026-06-05 amendment)
+
+Modified principles:
+- VIII. 100% Test Coverage & Endpoint Parity — added a bounded, gated
+  exception for non-deterministic GPU/WebGL render glue (logic-free modules
+  validated behaviorally via E2E and enumerated in plan + parity matrix). The
+  100% bar on any code containing logic is unchanged. Rationale: honest
+  segregation of GPU canvas paint (which has no statement-coverage signal in
+  headless envs) is preferable to fake coverage via ignore pragmas, which the
+  principle still forbids. Driven by feature 008-map-data-explorer (MapLibre).
+
+Prior version history:
 Version change: (template placeholder) → 1.0.0 (initial ratified constitution)
 
 Modified principles: N/A (initial version)
@@ -198,7 +210,19 @@ Every MCP tool and every portal endpoint touched by the crawler MUST be tested
 with full coverage and full parity:
 
 - **100% Code Coverage**: Line and branch coverage MUST be 100% across all
-  source files. No exceptions, no exclusions, no `istanbul ignore` pragmas
+  source files containing logic. No `istanbul ignore` pragmas, and no
+  exclusion of any file that contains a decision, computation, validation, or
+  data transformation
+- **Bounded render-glue exception**: The *only* sanctioned exclusion is
+  non-deterministic GPU/WebGL canvas render glue (e.g. MapLibre layer/paint
+  wiring) that produces no meaningful statement-coverage signal in a headless
+  test environment. To qualify, such code MUST be (a) segregated into modules
+  that contain **no business logic** (any logic is extracted to covered
+  modules), (b) validated behaviorally via end-to-end tests (e.g. Playwright)
+  that exercise the rendered output, and (c) enumerated explicitly in the
+  feature's plan Complexity Tracking and in `tests/parity-matrix.json` with the
+  E2E test that covers them. This exception MUST NOT be used to avoid covering
+  any logic path; abuse is a constitution violation
 - **Full Portal Endpoint Parity**: For every data.egov.bg endpoint the system
   consumes, there MUST be a corresponding contract test that validates:
   - Request shape (path, query parameters, headers, required vs optional)
@@ -412,4 +436,4 @@ practices, tools, and decisions MUST comply.
 - Portal API reference: `specs/portal-api/`
 - Dataset schema catalog: `specs/dataset-schemas/`
 
-**Version**: 1.0.0 | **Ratified**: 2026-05-08 | **Last Amended**: 2026-05-08
+**Version**: 1.1.0 | **Ratified**: 2026-05-08 | **Last Amended**: 2026-06-05
