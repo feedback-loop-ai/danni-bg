@@ -21,12 +21,6 @@ export function FilterPanel() {
       <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Филтри
       </h2>
-      <Input
-        aria-label="Свободно търсене"
-        placeholder="търсене…"
-        value={filters.query}
-        onChange={(e) => updateFilters((f) => ({ ...f, query: e.target.value }))}
-      />
       <div className="flex gap-2">
         <Input
           aria-label="Добави таг"

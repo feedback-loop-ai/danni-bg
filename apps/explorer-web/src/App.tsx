@@ -8,6 +8,7 @@ import { DatasetDetail } from './datasets/DatasetDetail.tsx';
 import { DatasetList } from './datasets/DatasetList.tsx';
 import { ResourceReader } from './datasets/ResourceReader.tsx';
 import { FilterPanel } from './filters/FilterPanel.tsx';
+import { SearchBar } from './filters/SearchBar.tsx';
 import { fetchDatasets, fetchNational, fetchRegions } from './lib/api.ts';
 import type { BoundaryCollection } from './lib/choropleth.ts';
 import { hasMore, mergePage } from './lib/pagination.ts';
@@ -48,6 +49,7 @@ export function App() {
   const [datasets, setDatasets] = useState<DatasetPointer[]>([]);
   const [total, setTotal] = useState(0);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [showNational, setShowNational] = useState(false);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
@@ -58,6 +60,7 @@ export function App() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     fetchRegions(filters, 'oblast')
       .then((r) => {
         if (!cancelled) setRegions(r.regions);
@@ -70,7 +73,10 @@ export function App() {
           setTotal(r.total);
         }
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -102,6 +108,7 @@ export function App() {
           style={{ width: leftOpen ? 340 : 0 }}
         >
           <div className="h-full w-[340px] space-y-3 overflow-y-auto p-4">
+            <SearchBar loading={loading} />
             <FilterPanel />
             <Button
               variant="outline"
