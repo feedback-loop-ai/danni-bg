@@ -2,7 +2,13 @@
 // thin fetch wrappers reuse it. Large result sets are paginated via limit/offset (FR-030).
 
 import type { DatasetPointer, FilterState, RegionSummary, ResourceContent } from '../types.ts';
+import type { GridSort } from './grid.ts';
 import { filterStateToParams } from './scope.ts';
+
+export interface GridQuery {
+  sort: GridSort | null;
+  filters: Record<string, string>;
+}
 
 export function buildUrl(path: string, params?: URLSearchParams): string {
   const qs = params?.toString();
@@ -58,8 +64,19 @@ export function fetchResourceRows(
   resourceId: string,
   limit = 50,
   offset = 0,
+  grid?: GridQuery,
 ): Promise<ResourceContent> {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (grid?.sort) {
+    params.set('sort', grid.sort.col);
+    params.set('dir', grid.sort.dir);
+  }
+  if (grid?.filters) {
+    const active = Object.fromEntries(
+      Object.entries(grid.filters).filter(([, v]) => v.trim() !== ''),
+    );
+    if (Object.keys(active).length > 0) params.set('filters', JSON.stringify(active));
+  }
   return getJson(
     `/api/datasets/${encodeURIComponent(datasetId)}/resources/${encodeURIComponent(resourceId)}/rows`,
     params,

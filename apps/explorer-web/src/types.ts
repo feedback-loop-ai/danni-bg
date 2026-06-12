@@ -79,6 +79,8 @@ export interface ResourceContent {
   limit: number;
   offset: number;
   truncated: boolean;
+  /** True when a sort/filter saw only the first slice of a very large resource. */
+  gridTruncated?: boolean;
 }
 
 export interface ProviderConfig {

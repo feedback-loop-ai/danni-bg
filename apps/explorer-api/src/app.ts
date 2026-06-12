@@ -153,9 +153,25 @@ export function createApp(ctx: AppContext): Hono {
     const q = new URL(c.req.url).searchParams;
     const limit = clampInt(q.get('limit'), 100, 1000);
     const offset = clampInt(q.get('offset'), 0, Number.MAX_SAFE_INTEGER);
+    // Optional server-side grid: ?sort=<col>&dir=asc|desc&filters=<json {col:substring}>.
+    const sortCol = q.get('sort');
+    const dir: 'asc' | 'desc' = q.get('dir') === 'desc' ? 'desc' : 'asc';
+    const filters: Record<string, string> = {};
+    const filtersRaw = q.get('filters');
+    if (filtersRaw) {
+      try {
+        const parsed = JSON.parse(filtersRaw);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          for (const [k, v] of Object.entries(parsed)) if (typeof v === 'string') filters[k] = v;
+        }
+      } catch {
+        // Malformed filters are ignored rather than failing the request.
+      }
+    }
+    const grid = { sort: sortCol ? { col: sortCol, dir } : null, filters };
     try {
       return c.json(
-        ctx.bridge.rows(c.req.param('datasetId'), c.req.param('resourceId'), limit, offset),
+        ctx.bridge.rows(c.req.param('datasetId'), c.req.param('resourceId'), limit, offset, grid),
       );
     } catch {
       const e = err('not_found', 'resource not found', 404);

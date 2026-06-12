@@ -9,7 +9,7 @@ import {
   toSeries,
 } from '../lib/chart.ts';
 import { cn } from '../lib/cn.ts';
-import { type GridSort, cycleSort, gridRows, hasActiveFilters } from '../lib/grid.ts';
+import { type GridSort, cycleSort, hasActiveFilters } from '../lib/grid.ts';
 import { cellText, tableColumns, toCsv } from '../lib/table.ts';
 import type { ResourceContent } from '../types.ts';
 
@@ -33,6 +33,12 @@ function download(filename: string, content: string, type: string): void {
   URL.revokeObjectURL(url);
 }
 
+function sameFilters(a: Record<string, string>, b: Record<string, string>): boolean {
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((k) => a[k] === b[k]);
+}
+
 export function ResourcePreview({
   datasetId,
   resourceId,
@@ -52,7 +58,8 @@ export function ResourcePreview({
   const [valueCol, setValueCol] = useState('');
   const [chartType, setChartType] = useState<'bar' | 'line' | null>(null);
   const [sort, setSort] = useState<GridSort | null>(null);
-  const [colFilters, setColFilters] = useState<Record<string, string>>({});
+  const [colFilters, setColFilters] = useState<Record<string, string>>({}); // instant (input)
+  const [appliedFilters, setAppliedFilters] = useState<Record<string, string>>({}); // debounced (sent)
 
   // Reset when the selected resource changes.
   useEffect(() => {
@@ -66,11 +73,23 @@ export function ResourcePreview({
     setChartType(null);
     setSort(null);
     setColFilters({});
+    setAppliedFilters({});
   }, [datasetId, resourceId]);
 
+  // Debounce the per-column filter inputs before they hit the server, and restart from page 0.
+  useEffect(() => {
+    if (sameFilters(colFilters, appliedFilters)) return;
+    const id = setTimeout(() => {
+      setAppliedFilters(colFilters);
+      setOffset(0);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [colFilters, appliedFilters]);
+
+  // Sort + filter are applied server-side over the whole resource; offset===0 replaces, else appends.
   useEffect(() => {
     let cancelled = false;
-    fetchResourceRows(datasetId, resourceId, PAGE, offset)
+    fetchResourceRows(datasetId, resourceId, PAGE, offset, { sort, filters: appliedFilters })
       .then((c) => {
         if (cancelled) return;
         setContent(c);
@@ -80,13 +99,11 @@ export function ResourcePreview({
     return () => {
       cancelled = true;
     };
-  }, [datasetId, resourceId, offset]);
+  }, [datasetId, resourceId, offset, sort, appliedFilters]);
 
   const columns = tableColumns(rows);
   const hasTable = rows.length > 0 && columns.length > 0;
-  // Spreadsheet grid: client-side sort + per-column filter over the loaded rows.
-  const filtering = hasActiveFilters(colFilters);
-  const viewRows = gridRows(rows, sort, colFilters);
+  const filtering = hasActiveFilters(appliedFilters);
   const numeric = numericColumns(rows, columns);
   const dates = dateColumns(rows, columns);
   // Effective axes: value → first numeric; category → a date column if present (time-series), else
@@ -290,7 +307,10 @@ export function ResourcePreview({
                       >
                         <button
                           type="button"
-                          onClick={() => setSort((s) => cycleSort(s, c))}
+                          onClick={() => {
+                            setSort((s) => cycleSort(s, c));
+                            setOffset(0);
+                          }}
                           className="flex w-full items-center gap-1 px-2 py-1 text-left hover:bg-accent/60"
                         >
                           <span className="truncate">{c}</span>
@@ -320,8 +340,8 @@ export function ResourcePreview({
                 </tr>
               </thead>
               <tbody>
-                {viewRows.map((row, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: ordered append-only page (post-sort/filter)
+                {rows.map((row, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: ordered append-only page (server-sorted)
                   <tr key={i} className="even:bg-muted/40">
                     {columns.map((c) => {
                       const rec = row as Record<string, unknown>;
@@ -342,19 +362,23 @@ export function ResourcePreview({
           </div>
           <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
             <span>
-              {filtering ? (
-                <>
-                  {viewRows.length} от {rows.length} заредени
-                  <button
-                    type="button"
-                    onClick={() => setColFilters({})}
-                    className="ml-2 underline-offset-2 hover:underline"
-                  >
-                    изчисти филтрите
-                  </button>
-                </>
-              ) : (
-                `${rows.length} от ${content.total} реда`
+              {rows.length} от {content.total} реда{filtering && ' (филтрирани)'}
+              {filtering && (
+                <button
+                  type="button"
+                  onClick={() => setColFilters({})}
+                  className="ml-2 underline-offset-2 hover:underline"
+                >
+                  изчисти филтрите
+                </button>
+              )}
+              {content.gridTruncated && (
+                <span
+                  className="ml-2 text-warning"
+                  title="Сортирано/филтрирано върху първите 100 000 реда"
+                >
+                  · върху първите 100k
+                </span>
               )}
             </span>
             {rows.length < content.total && (
