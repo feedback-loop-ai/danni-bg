@@ -9,6 +9,7 @@ import type { CuratedDatasetView } from '../../../../src/read/dataset-view.ts';
 import type { ReadBridge } from '../read-bridge.ts';
 import { viewToDetail } from '../read-bridge.ts';
 import type { ScopeDescriptor } from '../schemas.ts';
+import { capDatasetDetail, capResourceContent } from './cap.ts';
 import { inScope } from './scope.ts';
 
 export interface BuildToolsResult {
@@ -91,7 +92,8 @@ export function buildTools(bridge: ReadBridge, scope: ScopeDescriptor): BuildToo
         const view = resolveScoped(datasetId);
         if (!view) return { outOfScope: true, datasetId };
         citedDatasetIds.add(view.datasetId);
-        return viewToDetail(view);
+        // Cap related-dataset links/entities so a high-degree dataset can't overflow the context.
+        return capDatasetDetail(viewToDetail(view));
       },
     }),
 
@@ -108,7 +110,8 @@ export function buildTools(bridge: ReadBridge, scope: ScopeDescriptor): BuildToo
         const view = resolveScoped(datasetId);
         if (!view) return { outOfScope: true, datasetId };
         citedDatasetIds.add(view.datasetId);
-        return bridge.rows(datasetId, resourceId, limit, offset);
+        // Cap the payload so a large artifact can't overflow the model's context window.
+        return capResourceContent(bridge.rows(datasetId, resourceId, limit, offset));
       },
     }),
   };

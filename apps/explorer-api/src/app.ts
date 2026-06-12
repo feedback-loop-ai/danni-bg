@@ -7,6 +7,7 @@ import type { LanguageModel } from 'ai';
 import { Hono } from 'hono';
 import type { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
 import { MUNICIPALITIES, OBLASTS } from '../../../src/enrich/gazetteer/bg-admin.ts';
+import { capDatasetDetail } from './chat/cap.ts';
 import {
   type ProviderConfig,
   type ServerDefault,
@@ -139,7 +140,9 @@ export function createApp(ctx: AppContext): Hono {
 
   app.get('/api/datasets/:datasetId', (c) => {
     try {
-      return c.json(ctx.bridge.detail(c.req.param('datasetId')));
+      // Cap related-dataset links/entities: high-degree datasets carry 14k+ links (the link
+      // heuristic forms large cliques), which bloats the detail payload sent to the browser.
+      return c.json(capDatasetDetail(ctx.bridge.detail(c.req.param('datasetId'))));
     } catch {
       const e = err('not_found', 'dataset not found', 404);
       return c.json(e.body, e.status);

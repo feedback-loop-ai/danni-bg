@@ -41,6 +41,9 @@ export interface RunChatTurnOptions {
 
 const EMPTY_ANCHOR: MapAnchor = { geoEntityIds: [], datasetIds: [] };
 const RAG_LIMIT = 6;
+// Always reserve output room so a borderline-large input can't make the provider compute a
+// non-positive output budget (vLLM reports "requested 0 output tokens"). Grounded answers are short.
+const MAX_OUTPUT_TOKENS = 1500;
 
 const resolver =
   (bridge: ReadBridge) =>
@@ -91,6 +94,7 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
     system: SYSTEM_PROMPT,
     messages,
     tools,
+    maxOutputTokens: MAX_OUTPUT_TOKENS,
     stopWhen: stepCountIs(opts.maxSteps ?? 6),
   });
 
@@ -162,7 +166,12 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
   const system = `${SYSTEM_PROMPT}\nОтговаряй само въз основа на изброените по-долу набори от данни. Позовавай се на тях по заглавие; НЕ показвай технически идентификатори. Ако никой не е релевантен на въпроса, отговори, че няма релевантни публични данни. Форматирай отговора с Markdown.`;
   const userMsg = `Налични набори от данни:\n${context}\n\nВъпрос: ${query}`;
 
-  const result = streamText({ model, system, messages: [{ role: 'user', content: userMsg }] });
+  const result = streamText({
+    model,
+    system,
+    messages: [{ role: 'user', content: userMsg }],
+    maxOutputTokens: MAX_OUTPUT_TOKENS,
+  });
   let text = '';
   for await (const part of result.fullStream) {
     if (part.type === 'text-delta') {
