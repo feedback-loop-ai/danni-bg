@@ -44,6 +44,10 @@ const RAG_LIMIT = 6;
 // Always reserve output room so a borderline-large input can't make the provider compute a
 // non-positive output budget (vLLM reports "requested 0 output tokens"). Grounded answers are short.
 const MAX_OUTPUT_TOKENS = 1500;
+// A comparison-across-periods question needs one readResource per period (each a separate dataset)
+// plus the initial search/info; 6 steps ran out after reading a single year. Tool results are now
+// size-capped, so a deeper loop stays well within the context window.
+const DEFAULT_MAX_STEPS = 16;
 
 const resolver =
   (bridge: ReadBridge) =>
@@ -95,7 +99,7 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
     messages,
     tools,
     maxOutputTokens: MAX_OUTPUT_TOKENS,
-    stopWhen: stepCountIs(opts.maxSteps ?? 6),
+    stopWhen: stepCountIs(opts.maxSteps ?? DEFAULT_MAX_STEPS),
   });
 
   let text = '';

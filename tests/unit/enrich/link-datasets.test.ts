@@ -2,7 +2,11 @@ import { Database } from 'bun:sqlite';
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { linkAllSharedEntities, linkDatasetsForEntity } from '../../../src/enrich/link-datasets.ts';
+import {
+  MAX_ENTITY_FANOUT,
+  linkAllSharedEntities,
+  linkDatasetsForEntity,
+} from '../../../src/enrich/link-datasets.ts';
 import { runMigrations } from '../../../src/store/migrate.ts';
 import { DatasetLinksRepo } from '../../../src/store/repos/dataset-links.ts';
 import { DatasetsRepo } from '../../../src/store/repos/datasets.ts';
@@ -87,5 +91,28 @@ describe('enrich.link-datasets', () => {
       'missing',
     ]);
     expect(r.created).toBe(3);
+    expect(r.skippedHubs).toBe(0);
+  });
+
+  it('skips a hub entity whose fan-out exceeds MAX_ENTITY_FANOUT (no O(n²) explosion)', () => {
+    const ds = new DatasetsRepo(s.db);
+    s.entitiesRepo.upsert({ id: 'tag:регистър', kind: 'tag', canonicalLabelBg: 'регистър' });
+    for (let i = 0; i < MAX_ENTITY_FANOUT + 1; i++) {
+      const id = `hub${i}`;
+      ds.upsert({ id, slug: id, titleBg: id, tags: [], groups: [], sourceUrl: `https://x/${id}` });
+      s.entitiesRepo.attach({
+        datasetId: id,
+        entityId: 'tag:регистър',
+        extractor: 't',
+        confidence: 0.5,
+      });
+    }
+    const r = linkDatasetsForEntity(
+      { entitiesRepo: s.entitiesRepo, linksRepo: s.linksRepo },
+      'tag:регистър',
+    );
+    expect(r.created).toBe(0);
+    expect(r.skippedHubs).toBe(1);
+    expect(s.linksRepo.forDataset('hub0')).toHaveLength(0);
   });
 });

@@ -161,6 +161,7 @@ export async function runCurate(opts: RunCurateOptions): Promise<RunCurateResult
     uncurated,
     entitiesAttached,
     linksCreated: linkResult.created,
+    linksSkippedHubs: linkResult.skippedHubs,
     translationsWritten,
   });
 
