@@ -8,6 +8,7 @@ import type { IndexEntry, Lang } from '../../../src/index/query.ts';
 import { search, searchByEntity } from '../../../src/index/query.ts';
 import type { CuratedDatasetView } from '../../../src/read/dataset-view.ts';
 import { datasetView } from '../../../src/read/dataset-view.ts';
+import type { GridQuery } from '../../../src/read/resource-grid.ts';
 import { type ResourceContent, readResourceRows } from '../../../src/read/resource-rows.ts';
 import { DatasetsRepo } from '../../../src/store/repos/datasets.ts';
 import type { DatasetLite } from './dataset-lite.ts';
@@ -104,10 +105,17 @@ export class ReadBridge {
     return viewToDetail(this.view(datasetId));
   }
 
-  rows(datasetId: string, resourceId: string, limit?: number, offset?: number): ResourceContent {
+  rows(
+    datasetId: string,
+    resourceId: string,
+    limit?: number,
+    offset?: number,
+    grid?: GridQuery,
+  ): ResourceContent {
     return readResourceRows(this.deps.db, this.deps.storeRoot, datasetId, resourceId, {
       ...(limit !== undefined ? { limit } : {}),
       ...(offset !== undefined ? { offset } : {}),
+      ...(grid !== undefined ? { grid } : {}),
     });
   }
 

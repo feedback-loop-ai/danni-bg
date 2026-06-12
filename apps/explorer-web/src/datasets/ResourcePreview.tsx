@@ -1,4 +1,4 @@
-import { Download, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Download, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { fetchResourceRows } from '../lib/api.ts';
 import {
@@ -9,6 +9,7 @@ import {
   toSeries,
 } from '../lib/chart.ts';
 import { cn } from '../lib/cn.ts';
+import { type GridSort, cycleSort, hasActiveFilters } from '../lib/grid.ts';
 import { cellText, tableColumns, toCsv } from '../lib/table.ts';
 import type { ResourceContent } from '../types.ts';
 
@@ -19,6 +20,8 @@ interface ResourcePreviewProps {
   resourceId: string;
   name: string;
   onClose: () => void;
+  /** `panel` = compact side-panel card (default); `reader` = fill the centre document reader. */
+  variant?: 'panel' | 'reader';
 }
 
 function download(filename: string, content: string, type: string): void {
@@ -30,7 +33,22 @@ function download(filename: string, content: string, type: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function ResourcePreview({ datasetId, resourceId, name, onClose }: ResourcePreviewProps) {
+function sameFilters(a: Record<string, string>, b: Record<string, string>): boolean {
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((k) => a[k] === b[k]);
+}
+
+export function ResourcePreview({
+  datasetId,
+  resourceId,
+  name,
+  onClose,
+  variant = 'panel',
+}: ResourcePreviewProps) {
+  const reader = variant === 'reader';
+  // Scrollable data areas: a fixed cap in the side panel, but grow to fill the centre reader.
+  const fill = reader ? 'min-h-0 flex-1' : 'max-h-80';
   const [content, setContent] = useState<ResourceContent | null>(null);
   const [rows, setRows] = useState<unknown[]>([]);
   const [offset, setOffset] = useState(0);
@@ -39,6 +57,9 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
   const [labelCol, setLabelCol] = useState('');
   const [valueCol, setValueCol] = useState('');
   const [chartType, setChartType] = useState<'bar' | 'line' | null>(null);
+  const [sort, setSort] = useState<GridSort | null>(null);
+  const [colFilters, setColFilters] = useState<Record<string, string>>({}); // instant (input)
+  const [appliedFilters, setAppliedFilters] = useState<Record<string, string>>({}); // debounced (sent)
 
   // Reset when the selected resource changes.
   useEffect(() => {
@@ -50,11 +71,25 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
     setLabelCol('');
     setValueCol('');
     setChartType(null);
+    setSort(null);
+    setColFilters({});
+    setAppliedFilters({});
   }, [datasetId, resourceId]);
 
+  // Debounce the per-column filter inputs before they hit the server, and restart from page 0.
+  useEffect(() => {
+    if (sameFilters(colFilters, appliedFilters)) return;
+    const id = setTimeout(() => {
+      setAppliedFilters(colFilters);
+      setOffset(0);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [colFilters, appliedFilters]);
+
+  // Sort + filter are applied server-side over the whole resource; offset===0 replaces, else appends.
   useEffect(() => {
     let cancelled = false;
-    fetchResourceRows(datasetId, resourceId, PAGE, offset)
+    fetchResourceRows(datasetId, resourceId, PAGE, offset, { sort, filters: appliedFilters })
       .then((c) => {
         if (cancelled) return;
         setContent(c);
@@ -64,10 +99,11 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
     return () => {
       cancelled = true;
     };
-  }, [datasetId, resourceId, offset]);
+  }, [datasetId, resourceId, offset, sort, appliedFilters]);
 
   const columns = tableColumns(rows);
   const hasTable = rows.length > 0 && columns.length > 0;
+  const filtering = hasActiveFilters(appliedFilters);
   const numeric = numericColumns(rows, columns);
   const dates = dateColumns(rows, columns);
   // Effective axes: value → first numeric; category → a date column if present (time-series), else
@@ -92,7 +128,12 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
   }
 
   return (
-    <div className="space-y-2 rounded-md border bg-card p-3">
+    <div
+      className={cn(
+        'rounded-md border bg-card p-3',
+        reader ? 'flex h-full flex-col gap-2' : 'space-y-2',
+      )}
+    >
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-sm font-medium" title={name}>
           {name}
@@ -142,7 +183,10 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
       )}
 
       {content && hasTable && view === 'chart' && (
-        <div aria-label="Графика" className="space-y-2">
+        <div
+          aria-label="Графика"
+          className={cn(reader ? 'flex min-h-0 flex-1 flex-col gap-2' : 'space-y-2')}
+        >
           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
             <label className="flex items-center gap-1">
               Стойност:
@@ -191,12 +235,15 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
             ))}
           </div>
           {effType === 'line' ? (
-            <div className="space-y-1">
+            <div className={cn('space-y-1', reader && 'flex min-h-0 flex-1 flex-col')}>
               <svg
                 viewBox="0 0 300 120"
                 role="img"
                 aria-label="Линейна графика"
-                className="h-40 w-full rounded border bg-muted/20"
+                className={cn(
+                  'w-full rounded border bg-muted/20',
+                  reader ? 'min-h-0 flex-1' : 'h-40',
+                )}
                 preserveAspectRatio="none"
               >
                 <polyline
@@ -219,7 +266,7 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
               </div>
             </div>
           ) : (
-            <div className="max-h-80 space-y-1 overflow-auto pr-1">
+            <div className={cn('space-y-1 overflow-auto pr-1', fill)}>
               {points.map((pt, i) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: ordered series (labels may repeat)
                 <div key={i} className="flex items-center gap-2 text-xs">
@@ -244,20 +291,57 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
 
       {content && hasTable && view === 'table' && (
         <>
-          <div className="max-h-80 overflow-auto rounded border">
+          <div className={cn('overflow-auto rounded border', fill)}>
             <table className="w-full border-collapse text-left text-xs">
-              <thead className="sticky top-0 bg-muted">
+              <thead className="sticky top-0 z-10 bg-muted">
+                <tr>
+                  {columns.map((c) => {
+                    const active = sort?.col === c;
+                    return (
+                      <th
+                        key={c}
+                        aria-sort={
+                          active ? (sort?.dir === 'asc' ? 'ascending' : 'descending') : 'none'
+                        }
+                        className="whitespace-nowrap border-b px-0 py-0 font-medium"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSort((s) => cycleSort(s, c));
+                            setOffset(0);
+                          }}
+                          className="flex w-full items-center gap-1 px-2 py-1 text-left hover:bg-accent/60"
+                        >
+                          <span className="truncate">{c}</span>
+                          {active &&
+                            (sort?.dir === 'asc' ? (
+                              <ArrowUp className="size-3 shrink-0" aria-hidden />
+                            ) : (
+                              <ArrowDown className="size-3 shrink-0" aria-hidden />
+                            ))}
+                        </button>
+                      </th>
+                    );
+                  })}
+                </tr>
                 <tr>
                   {columns.map((c) => (
-                    <th key={c} className="whitespace-nowrap border-b px-2 py-1 font-medium">
-                      {c}
-                    </th>
+                    <td key={c} className="border-b bg-background px-1 py-1">
+                      <input
+                        aria-label={`Филтрирай ${c}`}
+                        value={colFilters[c] ?? ''}
+                        onChange={(e) => setColFilters((f) => ({ ...f, [c]: e.target.value }))}
+                        placeholder="филтър…"
+                        className="h-6 w-full min-w-20 rounded border border-input bg-background px-1.5 text-xs font-normal placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      />
+                    </td>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: rows are an ordered, append-only page
+                  // biome-ignore lint/suspicious/noArrayIndexKey: ordered append-only page (server-sorted)
                   <tr key={i} className="even:bg-muted/40">
                     {columns.map((c) => {
                       const rec = row as Record<string, unknown>;
@@ -276,15 +360,32 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
             <span>
-              {rows.length} от {content.total} реда
+              {rows.length} от {content.total} реда{filtering && ' (филтрирани)'}
+              {filtering && (
+                <button
+                  type="button"
+                  onClick={() => setColFilters({})}
+                  className="ml-2 underline-offset-2 hover:underline"
+                >
+                  изчисти филтрите
+                </button>
+              )}
+              {content.gridTruncated && (
+                <span
+                  className="ml-2 text-warning"
+                  title="Сортирано/филтрирано върху първите 100 000 реда"
+                >
+                  · върху първите 100k
+                </span>
+              )}
             </span>
             {rows.length < content.total && (
               <button
                 type="button"
                 onClick={() => setOffset(rows.length)}
-                className="rounded-md border px-2 py-1 hover:bg-accent hover:text-accent-foreground"
+                className="shrink-0 rounded-md border px-2 py-1 hover:bg-accent hover:text-accent-foreground"
               >
                 Зареди още
               </button>
@@ -294,12 +395,17 @@ export function ResourcePreview({ datasetId, resourceId, name, onClose }: Resour
       )}
 
       {content && !hasTable && content.text !== undefined && (
-        <pre className="max-h-80 overflow-auto rounded border bg-muted/30 p-2 text-xs whitespace-pre-wrap">
+        <pre
+          className={cn(
+            'overflow-auto rounded border bg-muted/30 p-2 text-xs whitespace-pre-wrap',
+            fill,
+          )}
+        >
           {content.text}
         </pre>
       )}
       {content && !hasTable && content.text === undefined && (
-        <pre className="max-h-80 overflow-auto rounded border bg-muted/30 p-2 text-xs">
+        <pre className={cn('overflow-auto rounded border bg-muted/30 p-2 text-xs', fill)}>
           {JSON.stringify(content.document ?? rows, null, 2)}
         </pre>
       )}

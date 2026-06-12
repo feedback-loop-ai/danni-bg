@@ -3,10 +3,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CuratedArtifactsRepo, type CuratedKind } from '../store/repos/curated-artifacts.ts';
 import { ResourcesRepo } from '../store/repos/resources.ts';
+import { type GridQuery, MAX_GRID_SCAN, applyGrid, isGridActive } from './resource-grid.ts';
 
 export interface ReadResourceOptions {
   limit?: number;
   offset?: number;
+  /** Server-side sort + per-column filter applied to the whole resource before pagination. */
+  grid?: GridQuery;
 }
 
 /**
@@ -27,6 +30,8 @@ export interface ResourceContent {
   limit: number;
   offset: number;
   truncated: boolean;
+  /** True when a sort/filter saw only the first MAX_GRID_SCAN rows of a larger resource. */
+  gridTruncated?: boolean;
 }
 
 const MAX_LIMIT = 1000;
@@ -40,6 +45,8 @@ export function readResourceRows(
 ): ResourceContent {
   const limit = Math.min(MAX_LIMIT, Math.max(1, opts.limit ?? 100));
   const offset = Math.max(0, opts.offset ?? 0);
+  const grid = opts.grid;
+  const gridActive = grid !== undefined && isGridActive(grid);
 
   const resource = new ResourcesRepo(db).get(resourceId);
   if (!resource || resource.dataset_id !== datasetId) {
@@ -79,6 +86,17 @@ export function readResourceRows(
 
   if (artifact.kind === 'tabular') {
     const lines = raw.split('\n').filter((l) => l.trim().length > 0);
+    if (gridActive && grid) {
+      const all = lines.slice(0, MAX_GRID_SCAN).map((l) => parseJson(l));
+      const view = applyGrid(all, grid);
+      return {
+        ...base,
+        rows: view.slice(offset, offset + limit),
+        total: view.length,
+        truncated: offset + limit < view.length,
+        gridTruncated: lines.length > MAX_GRID_SCAN,
+      };
+    }
     const rows = lines.slice(offset, offset + limit).map((l) => parseJson(l));
     return { ...base, rows, total: lines.length, truncated: offset + limit < lines.length };
   }
@@ -86,6 +104,16 @@ export function readResourceRows(
   if (artifact.kind === 'json' || artifact.kind === 'geojson') {
     const parsed = parseJson(raw);
     if (Array.isArray(parsed)) {
+      if (gridActive && grid) {
+        const view = applyGrid(parsed.slice(0, MAX_GRID_SCAN), grid);
+        return {
+          ...base,
+          rows: view.slice(offset, offset + limit),
+          total: view.length,
+          truncated: offset + limit < view.length,
+          gridTruncated: parsed.length > MAX_GRID_SCAN,
+        };
+      }
       return {
         ...base,
         rows: parsed.slice(offset, offset + limit),

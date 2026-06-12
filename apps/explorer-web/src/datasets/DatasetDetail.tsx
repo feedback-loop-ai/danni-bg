@@ -6,7 +6,6 @@ import { cn } from '../lib/cn.ts';
 import { bilingualLabel, freshnessDisplay } from '../lib/format.ts';
 import { useExplorer } from '../store/explorerStore.ts';
 import type { FreshnessBlock } from '../types.ts';
-import { ResourcePreview } from './ResourcePreview.tsx';
 
 interface DetailView {
   datasetId: string;
@@ -27,14 +26,14 @@ interface DatasetDetailProps {
 export function DatasetDetail({ datasetId, onClose }: DatasetDetailProps) {
   const [detail, setDetail] = useState<DetailView | null>(null);
   const [error, setError] = useState(false);
-  const [openResource, setOpenResource] = useState<{ id: string; name: string } | null>(null);
   const setChatFocus = useExplorer((s) => s.setChatFocus);
+  const openReader = useExplorer((s) => s.openReader);
+  const reader = useExplorer((s) => s.reader);
 
   useEffect(() => {
     let cancelled = false;
     setDetail(null);
     setError(false);
-    setOpenResource(null);
     fetch(buildUrl(`/api/datasets/${encodeURIComponent(datasetId)}`))
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('not found'))))
       .then((d: DetailView) => {
@@ -82,10 +81,19 @@ export function DatasetDetail({ datasetId, onClose }: DatasetDetailProps) {
                 <li key={r.resourceId}>
                   <button
                     type="button"
-                    onClick={() => setOpenResource({ id: r.resourceId, name: label })}
+                    onClick={() =>
+                      openReader({
+                        datasetId,
+                        resourceId: r.resourceId,
+                        name: label,
+                        titleBg: detail.titleBg,
+                      })
+                    }
                     className={cn(
                       'w-full rounded-md border px-2 py-1.5 text-left text-sm transition-colors hover:border-primary hover:bg-accent/40',
-                      openResource?.id === r.resourceId && 'border-primary bg-accent/40',
+                      reader?.datasetId === datasetId &&
+                        reader?.resourceId === r.resourceId &&
+                        'border-primary bg-accent/40',
                     )}
                   >
                     {label}{' '}
@@ -97,14 +105,6 @@ export function DatasetDetail({ datasetId, onClose }: DatasetDetailProps) {
               );
             })}
           </ul>
-          {openResource && (
-            <ResourcePreview
-              datasetId={datasetId}
-              resourceId={openResource.id}
-              name={openResource.name}
-              onClose={() => setOpenResource(null)}
-            />
-          )}
           <a
             className="inline-block text-sm text-primary underline-offset-4 hover:underline"
             href={detail.sourceUrl}

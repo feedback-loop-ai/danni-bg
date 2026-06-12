@@ -71,8 +71,11 @@ Full dataset detail (FR-005).
 
 ## GET /api/datasets/:datasetId/resources/:resourceId/rows
 Paginated/sampled resource rows (never bulk-loads million-row resources — Scale constraint). Thin pass-through to `readResourceRows`.
-**Query**: `limit` (default 100, max 1000), `offset`.
-**200**: `{ kind, rows? , document?, text?, total, limit, offset, truncated }` (mirrors `readResourceRows` output) + resource `freshness`.
+**Query**: `limit` (default 100, max 1000), `offset`. Optional server-side grid (applied to the whole resource before pagination, so sort/filter cover the full dataset, capped at `MAX_GRID_SCAN`=100k rows):
+- `sort` — column name to sort by; `dir` — `asc` (default) | `desc`. Numeric-aware ordering (numbers numerically, blanks last, else Bulgarian locale).
+- `filters` — URL-encoded JSON object `{ "<col>": "<substring>" }`; case-insensitive substring, ANDed across columns. Malformed JSON is ignored.
+
+**200**: `{ kind, rows?, document?, text?, total, limit, offset, truncated, gridTruncated? }` (mirrors `readResourceRows` output) + resource `freshness`. With a grid, `total` is the filtered count; `gridTruncated: true` when sort/filter saw only the first `MAX_GRID_SCAN` rows of a larger resource.
 
 ## POST /api/chat  (Server-Sent Events)
 Backend-mediated, grounded, streaming chat (FR-015–FR-020, FR-025–FR-028). The browser never calls the LLM provider or mirror tools directly (clarification, FR-016).
