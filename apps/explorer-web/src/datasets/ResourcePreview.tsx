@@ -57,6 +57,8 @@ export function ResourcePreview({
   const [colFilters, setColFilters] = useState<Record<string, string>>({}); // instant (input)
   const [appliedFilters, setAppliedFilters] = useState<Record<string, string>>({}); // debounced (sent)
   const [openFilter, setOpenFilter] = useState<OpenFilter | null>(null);
+  // Column set persists across filtering so the header stays when a filter narrows to zero rows.
+  const [columns, setColumns] = useState<string[]>([]);
 
   // Reset when the selected resource changes.
   useEffect(() => {
@@ -68,7 +70,13 @@ export function ResourcePreview({
     setColFilters({});
     setAppliedFilters({});
     setOpenFilter(null);
+    setColumns([]);
   }, [datasetId, resourceId]);
+
+  // Learn the columns from any non-empty page; keep them when a filter empties the view.
+  useEffect(() => {
+    if (rows.length > 0) setColumns(tableColumns(rows));
+  }, [rows]);
 
   // Debounce the per-column filter inputs before they hit the server, and restart from page 0.
   useEffect(() => {
@@ -95,15 +103,18 @@ export function ResourcePreview({
     };
   }, [datasetId, resourceId, offset, sort, appliedFilters]);
 
-  const columns = tableColumns(rows);
-  const hasTable = rows.length > 0 && columns.length > 0;
   const filtering = hasActiveFilters(appliedFilters);
+  // What kind of content this resource is — decided by shape, not by how many rows are loaded, so a
+  // filter that matches nothing still shows the (empty) table rather than the JSON `[]` fallback.
+  const isText = content?.text !== undefined;
+  const isDocument = !isText && content?.document !== undefined;
+  const isTable = !!content && !isText && !isDocument;
   const colFilterActive = (c: string) =>
     (appliedFilters[c] ?? '').trim() !== '' || (colFilters[c] ?? '').trim() !== '';
 
   function onDownload() {
     if (!content) return;
-    if (hasTable) download(`${resourceId}.csv`, toCsv(rows, tableColumns(rows, 100)), 'text/csv');
+    if (isTable) download(`${resourceId}.csv`, toCsv(rows, tableColumns(rows, 100)), 'text/csv');
     else if (content.text !== undefined) download(`${resourceId}.txt`, content.text, 'text/plain');
     else
       download(
@@ -149,7 +160,7 @@ export function ResourcePreview({
       {error && <p className="text-sm text-destructive">Грешка при зареждане на данните.</p>}
       {!content && !error && <p className="text-sm text-muted-foreground">Зареждане…</p>}
 
-      {content && hasTable && (
+      {content && isTable && (
         <>
           <div className={cn('overflow-auto rounded border', fill)}>
             <table className="w-full border-collapse text-left text-xs">
@@ -227,6 +238,16 @@ export function ResourcePreview({
                     })}
                   </tr>
                 ))}
+                {rows.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={Math.max(1, columns.length)}
+                      className="px-2 py-6 text-center text-muted-foreground"
+                    >
+                      {filtering ? 'Няма съвпадения за филтъра.' : 'Няма данни.'}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -264,7 +285,7 @@ export function ResourcePreview({
         </>
       )}
 
-      {content && !hasTable && content.text !== undefined && (
+      {content && isText && (
         <pre
           className={cn(
             'overflow-auto rounded border bg-muted/30 p-2 text-xs whitespace-pre-wrap',
@@ -274,9 +295,9 @@ export function ResourcePreview({
           {content.text}
         </pre>
       )}
-      {content && !hasTable && content.text === undefined && (
+      {content && isDocument && (
         <pre className={cn('overflow-auto rounded border bg-muted/30 p-2 text-xs', fill)}>
-          {JSON.stringify(content.document ?? rows, null, 2)}
+          {JSON.stringify(content.document, null, 2)}
         </pre>
       )}
 
