@@ -3,6 +3,8 @@
 // (data-model §1.6). The sample below is sufficient for tests and the most-cited municipalities;
 // the file can be extended without code changes.
 
+import municipalitiesBg from './municipalities-bg.json' with { type: 'json' };
+
 export interface OblastEntry {
   id: string;
   labelBg: string;
@@ -17,6 +19,8 @@ export interface MunicipalityEntry {
   labelEn: string;
   oblastId: string;
   aliases: string[];
+  /** Eurostat GISCO LAU id (the official municipality code; drives the boundary join). */
+  lauId?: string;
 }
 
 export const OBLASTS: OblastEntry[] = [
@@ -212,50 +216,9 @@ export const OBLASTS: OblastEntry[] = [
   },
 ];
 
-export const MUNICIPALITIES: MunicipalityEntry[] = [
-  {
-    id: 'geo:bg-municipality-sofia',
-    labelBg: 'Столична община',
-    labelEn: 'Sofia Municipality',
-    oblastId: 'geo:bg-oblast-sofia-grad',
-    aliases: ['Община София', 'София'],
-  },
-  {
-    id: 'geo:bg-municipality-plovdiv',
-    labelBg: 'Община Пловдив',
-    labelEn: 'Plovdiv Municipality',
-    oblastId: 'geo:bg-oblast-plovdiv',
-    aliases: ['Пловдив'],
-  },
-  {
-    id: 'geo:bg-municipality-varna',
-    labelBg: 'Община Варна',
-    labelEn: 'Varna Municipality',
-    oblastId: 'geo:bg-oblast-varna',
-    aliases: ['Варна'],
-  },
-  {
-    id: 'geo:bg-municipality-burgas',
-    labelBg: 'Община Бургас',
-    labelEn: 'Burgas Municipality',
-    oblastId: 'geo:bg-oblast-burgas',
-    aliases: ['Бургас'],
-  },
-  {
-    id: 'geo:bg-municipality-ruse',
-    labelBg: 'Община Русе',
-    labelEn: 'Ruse Municipality',
-    oblastId: 'geo:bg-oblast-ruse',
-    aliases: ['Русе'],
-  },
-  {
-    id: 'geo:bg-municipality-stara-zagora',
-    labelBg: 'Община Стара Загора',
-    labelEn: 'Stara Zagora Municipality',
-    oblastId: 'geo:bg-oblast-stara-zagora',
-    aliases: ['Стара Загора'],
-  },
-];
+// All 265 Bulgarian municipalities (obshtini), generated from Eurostat GISCO LAU 2021 with parent
+// oblasts derived spatially — see packages/geo-boundaries/scripts/generate-municipalities.ts.
+export const MUNICIPALITIES: MunicipalityEntry[] = municipalitiesBg as MunicipalityEntry[];
 
 export interface GazetteerLookupResult {
   id: string;

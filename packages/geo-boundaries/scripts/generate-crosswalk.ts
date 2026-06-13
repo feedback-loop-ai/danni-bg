@@ -44,43 +44,28 @@ function loadOblastGeometry(): Map<string, NutsFeature['geometry']> {
   return out;
 }
 
-// Administrative-centre settlement EKATTE codes (numeric, 5-digit) for the sample municipalities.
-// Documented stand-in for the LAU municipality code until full GISCO LAU coverage lands (T062).
-const MUNICIPALITY_EKATTE: Record<string, string> = {
-  'geo:bg-municipality-sofia': '68134',
-  'geo:bg-municipality-plovdiv': '56784',
-  'geo:bg-municipality-varna': '10135',
-  'geo:bg-municipality-burgas': '07079',
-  'geo:bg-municipality-ruse': '63427',
-  'geo:bg-municipality-stara-zagora': '68850',
-};
-
 interface Feature {
   type: 'Feature';
   properties: {
     boundaryFeatureId: string;
     level: 'oblast' | 'municipality';
     ekatte?: string;
+    lauId?: string;
     iso3166_2?: string;
   };
   geometry: { type: 'Polygon' | 'MultiPolygon'; coordinates: unknown[] };
 }
 
-/** A deterministic 0.4°-square placeholder polygon placed on a grid over the BG bounding box. */
-function placeholderSquare(index: number): number[][][] {
-  const cols = 7;
-  const lon0 = 22.5 + (index % cols) * 0.5;
-  const lat0 = 41.5 + Math.floor(index / cols) * 0.4;
-  const d = 0.4;
-  return [
-    [
-      [lon0, lat0],
-      [lon0 + d, lat0],
-      [lon0 + d, lat0 + d],
-      [lon0, lat0 + d],
-      [lon0, lat0],
-    ],
-  ];
+// Real municipality geometry: Eurostat GISCO LAU 2021 (filtered to BG, committed under data/source/),
+// joined to the gazetteer by the official LAU id (entry.lauId). The gazetteer itself (names + parent
+// oblasts) is derived from the same source by generate-municipalities.ts.
+const lauGeometry = new Map<string, NutsFeature['geometry']>();
+for (const f of (
+  JSON.parse(readFileSync(join(DATA_DIR, 'source', 'lau-bg.geojson'), 'utf-8')) as {
+    features: { properties: { lau_id: string }; geometry: NutsFeature['geometry'] }[];
+  }
+).features) {
+  lauGeometry.set(f.properties.lau_id, f.geometry);
 }
 
 const oblastGeometry = loadOblastGeometry();
@@ -94,13 +79,13 @@ const oblastFeatures: Feature[] = OBLASTS.map((o) => {
   };
 });
 
-const municipalityFeatures: Feature[] = MUNICIPALITIES.map((m, i) => {
-  const ekatte = MUNICIPALITY_EKATTE[m.id];
-  if (!ekatte) throw new Error(`missing EKATTE for ${m.id}`);
+const withGeometry = MUNICIPALITIES.filter((m) => m.lauId && lauGeometry.has(m.lauId));
+const municipalityFeatures: Feature[] = withGeometry.map((m) => {
+  const lauId = m.lauId as string;
   return {
-    type: 'Feature',
-    properties: { boundaryFeatureId: `ekatte-${ekatte}`, level: 'municipality', ekatte },
-    geometry: { type: 'Polygon', coordinates: placeholderSquare(i + OBLASTS.length) },
+    type: 'Feature' as const,
+    properties: { boundaryFeatureId: `lau-${lauId}`, level: 'municipality' as const, lauId },
+    geometry: lauGeometry.get(lauId) as NutsFeature['geometry'],
   };
 });
 
@@ -109,6 +94,7 @@ interface CrosswalkEntry {
   level: 'oblast' | 'municipality';
   boundaryFeatureId: string;
   ekatte: string | null;
+  lauId: string | null;
   iso3166_2: string | null;
   oblastEntityId: string | null;
 }
@@ -119,28 +105,25 @@ const entries: CrosswalkEntry[] = [
     level: 'oblast' as const,
     boundaryFeatureId: o.iso3166_2,
     ekatte: null,
+    lauId: null,
     iso3166_2: o.iso3166_2,
     oblastEntityId: null,
   })),
-  ...MUNICIPALITIES.map((m) => {
-    const ekatte = MUNICIPALITY_EKATTE[m.id];
-    if (!ekatte) throw new Error(`missing EKATTE for ${m.id}`);
-    return {
-      entityId: m.id,
-      level: 'municipality' as const,
-      boundaryFeatureId: `ekatte-${ekatte}`,
-      ekatte,
-      iso3166_2: null,
-      oblastEntityId: m.oblastId,
-    };
-  }),
+  ...withGeometry.map((m) => ({
+    entityId: m.id,
+    level: 'municipality' as const,
+    boundaryFeatureId: `lau-${m.lauId}`,
+    ekatte: null,
+    lauId: m.lauId as string,
+    iso3166_2: null,
+    oblastEntityId: m.oblastId,
+  })),
 ];
 
-// knownGaps: gazetteer municipalities without an EKATTE mapping (none today — the sample is fully
-// mapped — but the field is required by the schema and documents the R5 coverage gap going forward).
-const knownGaps = MUNICIPALITIES.filter((m) => !MUNICIPALITY_EKATTE[m.id]).map((m) => ({
+// knownGaps: gazetteer municipalities missing real LAU geometry (none with full GISCO LAU coverage).
+const knownGaps = MUNICIPALITIES.filter((m) => !m.lauId || !lauGeometry.has(m.lauId)).map((m) => ({
   entityId: m.id,
-  reason: 'municipality boundary/EKATTE mapping pending full GISCO LAU coverage (R5, T062)',
+  reason: 'municipality has no GISCO LAU geometry',
 }));
 
 const crosswalk = { version: '0.1.0', entries, knownGaps };

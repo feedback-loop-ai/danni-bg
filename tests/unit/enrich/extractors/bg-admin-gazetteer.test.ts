@@ -29,7 +29,7 @@ describe('enrich.extractors.bg-admin-gazetteer', () => {
   it('finds known oblasts and municipalities via canonical labels', () => {
     const matches = findGazetteerMatches('Бюджет на Столична община и Пловдив за 2025 г.');
     const ids = matches.map((m) => m.id);
-    expect(ids).toContain('geo:bg-municipality-sofia');
+    expect(ids).toContain('geo:bg-municipality-stolichna');
     expect(ids).toContain('geo:bg-oblast-plovdiv');
   });
 
@@ -43,10 +43,10 @@ describe('enrich.extractors.bg-admin-gazetteer', () => {
       dataset: fakeDataset('Бюджет на Столична община'),
       resources: [],
     });
-    expect(out.some((c) => c.id === 'geo:bg-municipality-sofia')).toBe(true);
-    const sofia = out.find((c) => c.id === 'geo:bg-municipality-sofia');
+    expect(out.some((c) => c.id === 'geo:bg-municipality-stolichna')).toBe(true);
+    const sofia = out.find((c) => c.id === 'geo:bg-municipality-stolichna');
     expect(sofia?.kind).toBe('geographic_unit');
-    expect(sofia?.canonicalLabelEn).toBe('Sofia Municipality');
+    expect(sofia?.canonicalLabelEn).toBe('Stolichna');
   });
 
   it('matches via aliases at lower confidence', async () => {
