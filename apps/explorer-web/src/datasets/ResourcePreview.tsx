@@ -1,13 +1,6 @@
-import { ArrowDown, ArrowUp, Download, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Download, Filter, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { fetchResourceRows } from '../lib/api.ts';
-import {
-  dateColumns,
-  numericColumns,
-  orderByDate,
-  polylinePoints,
-  toSeries,
-} from '../lib/chart.ts';
 import { cn } from '../lib/cn.ts';
 import { type GridSort, cycleSort, hasActiveFilters } from '../lib/grid.ts';
 import { cellText, tableColumns, toCsv } from '../lib/table.ts';
@@ -39,6 +32,13 @@ function sameFilters(a: Record<string, string>, b: Record<string, string>): bool
   return keys.every((k) => a[k] === b[k]);
 }
 
+/** The open column-filter popover: which column + where to anchor it (viewport coords). */
+interface OpenFilter {
+  col: string;
+  left: number;
+  top: number;
+}
+
 export function ResourcePreview({
   datasetId,
   resourceId,
@@ -53,13 +53,12 @@ export function ResourcePreview({
   const [rows, setRows] = useState<unknown[]>([]);
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState(false);
-  const [view, setView] = useState<'table' | 'chart'>('table');
-  const [labelCol, setLabelCol] = useState('');
-  const [valueCol, setValueCol] = useState('');
-  const [chartType, setChartType] = useState<'bar' | 'line' | null>(null);
   const [sort, setSort] = useState<GridSort | null>(null);
   const [colFilters, setColFilters] = useState<Record<string, string>>({}); // instant (input)
   const [appliedFilters, setAppliedFilters] = useState<Record<string, string>>({}); // debounced (sent)
+  const [openFilter, setOpenFilter] = useState<OpenFilter | null>(null);
+  // Column set persists across filtering so the header stays when a filter narrows to zero rows.
+  const [columns, setColumns] = useState<string[]>([]);
 
   // Reset when the selected resource changes.
   useEffect(() => {
@@ -67,14 +66,17 @@ export function ResourcePreview({
     setOffset(0);
     setContent(null);
     setError(false);
-    setView('table');
-    setLabelCol('');
-    setValueCol('');
-    setChartType(null);
     setSort(null);
     setColFilters({});
     setAppliedFilters({});
+    setOpenFilter(null);
+    setColumns([]);
   }, [datasetId, resourceId]);
+
+  // Learn the columns from any non-empty page; keep them when a filter empties the view.
+  useEffect(() => {
+    if (rows.length > 0) setColumns(tableColumns(rows));
+  }, [rows]);
 
   // Debounce the per-column filter inputs before they hit the server, and restart from page 0.
   useEffect(() => {
@@ -101,23 +103,18 @@ export function ResourcePreview({
     };
   }, [datasetId, resourceId, offset, sort, appliedFilters]);
 
-  const columns = tableColumns(rows);
-  const hasTable = rows.length > 0 && columns.length > 0;
   const filtering = hasActiveFilters(appliedFilters);
-  const numeric = numericColumns(rows, columns);
-  const dates = dateColumns(rows, columns);
-  // Effective axes: value → first numeric; category → a date column if present (time-series), else
-  // the first non-numeric column. Chart type defaults to line when the x-axis is a date column.
-  const effValue = numeric.includes(valueCol) ? valueCol : (numeric[0] ?? '');
-  const effLabel = labelCol || dates[0] || (columns.find((c) => !numeric.includes(c)) ?? '');
-  const effType = chartType ?? (dates.includes(effLabel) ? 'line' : 'bar');
-  const series = toSeries(rows, effLabel || null, effValue);
-  const points =
-    effType === 'line' && dates.includes(effLabel) ? orderByDate(series.points) : series.points;
+  // What kind of content this resource is — decided by shape, not by how many rows are loaded, so a
+  // filter that matches nothing still shows the (empty) table rather than the JSON `[]` fallback.
+  const isText = content?.text !== undefined;
+  const isDocument = !isText && content?.document !== undefined;
+  const isTable = !!content && !isText && !isDocument;
+  const colFilterActive = (c: string) =>
+    (appliedFilters[c] ?? '').trim() !== '' || (colFilters[c] ?? '').trim() !== '';
 
   function onDownload() {
     if (!content) return;
-    if (hasTable) download(`${resourceId}.csv`, toCsv(rows, tableColumns(rows, 100)), 'text/csv');
+    if (isTable) download(`${resourceId}.csv`, toCsv(rows, tableColumns(rows, 100)), 'text/csv');
     else if (content.text !== undefined) download(`${resourceId}.txt`, content.text, 'text/plain');
     else
       download(
@@ -163,133 +160,7 @@ export function ResourcePreview({
       {error && <p className="text-sm text-destructive">Грешка при зареждане на данните.</p>}
       {!content && !error && <p className="text-sm text-muted-foreground">Зареждане…</p>}
 
-      {content && hasTable && numeric.length > 0 && (
-        <div className="flex gap-1">
-          {(['table', 'chart'] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              aria-pressed={view === v}
-              onClick={() => setView(v)}
-              className={cn(
-                'rounded-md border px-2 py-1 text-xs',
-                view === v ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
-              )}
-            >
-              {v === 'table' ? 'Таблица' : 'Графика'}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {content && hasTable && view === 'chart' && (
-        <div
-          aria-label="Графика"
-          className={cn(reader ? 'flex min-h-0 flex-1 flex-col gap-2' : 'space-y-2')}
-        >
-          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-            <label className="flex items-center gap-1">
-              Стойност:
-              <select
-                className="rounded border border-input bg-background px-1 py-0.5 text-foreground"
-                value={effValue}
-                onChange={(e) => setValueCol(e.target.value)}
-              >
-                {numeric.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex items-center gap-1">
-              Категория:
-              <select
-                className="rounded border border-input bg-background px-1 py-0.5 text-foreground"
-                value={effLabel}
-                onChange={(e) => setLabelCol(e.target.value)}
-              >
-                <option value="">(номер на ред)</option>
-                {columns.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="flex gap-1">
-            {(['bar', 'line'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                aria-pressed={effType === t}
-                onClick={() => setChartType(t)}
-                className={cn(
-                  'rounded-md border px-2 py-1 text-xs',
-                  effType === t ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
-                )}
-              >
-                {t === 'bar' ? 'Стълбове' : 'Линия'}
-              </button>
-            ))}
-          </div>
-          {effType === 'line' ? (
-            <div className={cn('space-y-1', reader && 'flex min-h-0 flex-1 flex-col')}>
-              <svg
-                viewBox="0 0 300 120"
-                role="img"
-                aria-label="Линейна графика"
-                className={cn(
-                  'w-full rounded border bg-muted/20',
-                  reader ? 'min-h-0 flex-1' : 'h-40',
-                )}
-                preserveAspectRatio="none"
-              >
-                <polyline
-                  points={polylinePoints(
-                    points.map((p) => p.value),
-                    300,
-                    120,
-                    series.maxValue,
-                  )}
-                  fill="none"
-                  stroke="var(--primary)"
-                  strokeWidth="2"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span className="truncate">{points[0]?.label}</span>
-                <span>макс: {series.maxValue}</span>
-                <span className="truncate">{points[points.length - 1]?.label}</span>
-              </div>
-            </div>
-          ) : (
-            <div className={cn('space-y-1 overflow-auto pr-1', fill)}>
-              {points.map((pt, i) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: ordered series (labels may repeat)
-                <div key={i} className="flex items-center gap-2 text-xs">
-                  <span className="w-24 shrink-0 truncate" title={pt.label}>
-                    {pt.label}
-                  </span>
-                  <div className="h-3 flex-1 rounded bg-muted">
-                    <div
-                      className="h-3 rounded bg-primary"
-                      style={{
-                        width: `${series.maxValue ? (Math.abs(pt.value) / series.maxValue) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="w-14 shrink-0 text-right tabular-nums">{pt.value}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {content && hasTable && view === 'table' && (
+      {content && isTable && (
         <>
           <div className={cn('overflow-auto rounded border', fill)}>
             <table className="w-full border-collapse text-left text-xs">
@@ -303,40 +174,50 @@ export function ResourcePreview({
                         aria-sort={
                           active ? (sort?.dir === 'asc' ? 'ascending' : 'descending') : 'none'
                         }
-                        className="whitespace-nowrap border-b px-0 py-0 font-medium"
+                        className="whitespace-nowrap border-b font-medium"
                       >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSort((s) => cycleSort(s, c));
-                            setOffset(0);
-                          }}
-                          className="flex w-full items-center gap-1 px-2 py-1 text-left hover:bg-accent/60"
-                        >
-                          <span className="truncate">{c}</span>
-                          {active &&
-                            (sort?.dir === 'asc' ? (
-                              <ArrowUp className="size-3 shrink-0" aria-hidden />
-                            ) : (
-                              <ArrowDown className="size-3 shrink-0" aria-hidden />
-                            ))}
-                        </button>
+                        <div className="flex items-center">
+                          {/* Click the column to sort (unsorted → asc → desc → unsorted). */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSort((s) => cycleSort(s, c));
+                              setOffset(0);
+                            }}
+                            className="flex min-w-0 flex-1 items-center gap-1 px-2 py-1 text-left hover:bg-accent/60"
+                          >
+                            <span className="truncate">{c}</span>
+                            {active &&
+                              (sort?.dir === 'asc' ? (
+                                <ArrowUp className="size-3 shrink-0" aria-hidden />
+                              ) : (
+                                <ArrowDown className="size-3 shrink-0" aria-hidden />
+                              ))}
+                          </button>
+                          {/* Excel-style per-column filter (funnel opens a small popover). */}
+                          <button
+                            type="button"
+                            aria-label={`Филтрирай ${c}`}
+                            aria-pressed={openFilter?.col === c}
+                            onClick={(e) => {
+                              if (openFilter?.col === c) return setOpenFilter(null);
+                              const r = e.currentTarget.getBoundingClientRect();
+                              setOpenFilter({ col: c, left: r.right - 208, top: r.bottom + 4 });
+                            }}
+                            className={cn(
+                              'flex size-6 shrink-0 items-center justify-center rounded hover:bg-accent/60',
+                              colFilterActive(c) ? 'text-primary' : 'text-muted-foreground',
+                            )}
+                          >
+                            <Filter
+                              className="size-3"
+                              {...(colFilterActive(c) ? { fill: 'currentColor' } : {})}
+                            />
+                          </button>
+                        </div>
                       </th>
                     );
                   })}
-                </tr>
-                <tr>
-                  {columns.map((c) => (
-                    <td key={c} className="border-b bg-background px-1 py-1">
-                      <input
-                        aria-label={`Филтрирай ${c}`}
-                        value={colFilters[c] ?? ''}
-                        onChange={(e) => setColFilters((f) => ({ ...f, [c]: e.target.value }))}
-                        placeholder="филтър…"
-                        className="h-6 w-full min-w-20 rounded border border-input bg-background px-1.5 text-xs font-normal placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      />
-                    </td>
-                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -357,6 +238,16 @@ export function ResourcePreview({
                     })}
                   </tr>
                 ))}
+                {rows.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={Math.max(1, columns.length)}
+                      className="px-2 py-6 text-center text-muted-foreground"
+                    >
+                      {filtering ? 'Няма съвпадения за филтъра.' : 'Няма данни.'}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -394,7 +285,7 @@ export function ResourcePreview({
         </>
       )}
 
-      {content && !hasTable && content.text !== undefined && (
+      {content && isText && (
         <pre
           className={cn(
             'overflow-auto rounded border bg-muted/30 p-2 text-xs whitespace-pre-wrap',
@@ -404,10 +295,51 @@ export function ResourcePreview({
           {content.text}
         </pre>
       )}
-      {content && !hasTable && content.text === undefined && (
+      {content && isDocument && (
         <pre className={cn('overflow-auto rounded border bg-muted/30 p-2 text-xs', fill)}>
-          {JSON.stringify(content.document ?? rows, null, 2)}
+          {JSON.stringify(content.document, null, 2)}
         </pre>
+      )}
+
+      {/* Column-filter popover (fixed, so it escapes the table's overflow clipping). */}
+      {openFilter && (
+        <>
+          <button
+            type="button"
+            aria-label="Затвори филтъра"
+            className="fixed inset-0 z-40 cursor-default"
+            onClick={() => setOpenFilter(null)}
+          />
+          <div
+            className="fixed z-50 w-52 rounded-md border bg-card p-2 shadow-lg"
+            style={{ left: Math.max(8, openFilter.left), top: openFilter.top }}
+          >
+            <div className="mb-1 truncate text-xs font-medium" title={openFilter.col}>
+              {openFilter.col}
+            </div>
+            <input
+              aria-label={`Стойност за филтър ${openFilter.col}`}
+              // biome-ignore lint/a11y/noAutofocus: a filter popover should focus its input on open
+              autoFocus
+              value={colFilters[openFilter.col] ?? ''}
+              onChange={(e) => setColFilters((f) => ({ ...f, [openFilter.col]: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === 'Escape') setOpenFilter(null);
+              }}
+              placeholder="съдържа…"
+              className="h-7 w-full rounded border border-input bg-background px-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            {(colFilters[openFilter.col] ?? '') !== '' && (
+              <button
+                type="button"
+                onClick={() => setColFilters((f) => ({ ...f, [openFilter.col]: '' }))}
+                className="mt-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+              >
+                изчисти
+              </button>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

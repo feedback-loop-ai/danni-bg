@@ -21,6 +21,20 @@ export interface FilterState {
   includeWithdrawn: boolean;
 }
 
+/** One value of a facet, with how many in-scope datasets it would yield (drives the filter panel). */
+export interface FacetValue {
+  id: string;
+  labelBg: string;
+  labelEn?: string | null;
+  count: number;
+}
+
+export interface Facets {
+  tags: FacetValue[];
+  publishers: FacetValue[];
+  freshnessBuckets: { id: string; count: number }[];
+}
+
 export interface ScopeDescriptor {
   tags?: string[];
   publisherIds?: string[];

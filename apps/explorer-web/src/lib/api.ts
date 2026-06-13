@@ -1,7 +1,13 @@
 // Typed fetch client over the explorer API (T018). URL building is pure (and unit-tested); the
 // thin fetch wrappers reuse it. Large result sets are paginated via limit/offset (FR-030).
 
-import type { DatasetPointer, FilterState, RegionSummary, ResourceContent } from '../types.ts';
+import type {
+  DatasetPointer,
+  Facets,
+  FilterState,
+  RegionSummary,
+  ResourceContent,
+} from '../types.ts';
 import type { GridSort } from './grid.ts';
 import { filterStateToParams } from './scope.ts';
 
@@ -54,7 +60,7 @@ export function fetchRegion(entityId: string, f: FilterState): Promise<RegionDat
   return getJson(`/api/regions/${encodeURIComponent(entityId)}`, filterStateToParams(f));
 }
 
-export function fetchFacets(f: FilterState): Promise<unknown> {
+export function fetchFacets(f: FilterState): Promise<Facets> {
   return getJson('/api/facets', filterStateToParams(f));
 }
 

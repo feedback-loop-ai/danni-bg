@@ -10,9 +10,8 @@ test('active filters are sent as chat scope and citations open dataset detail', 
   const stub = await stubApi(page);
   await page.goto('/');
 
-  // Apply a filter, then ask a question.
-  await page.getByLabel('Добави таг').fill('въздух');
-  await page.getByRole('button', { name: 'Добави таг' }).click();
+  // Apply a filter from the tag facet, then ask a question.
+  await page.getByRole('checkbox', { name: /въздух/ }).check();
   await page.getByLabel('Въпрос').fill('Какво има за въздуха?');
   await page.getByRole('button', { name: 'Изпрати' }).click();
 

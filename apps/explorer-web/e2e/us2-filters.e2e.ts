@@ -12,9 +12,8 @@ test('tag filter narrows results, shows a chip, and clears', async ({ page }) =>
   await expect(page.getByRole('button', { name: /Бюджет/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /Качество на въздуха/ })).toBeVisible();
 
-  // Apply a tag filter → only the air-quality dataset remains.
-  await page.getByLabel('Добави таг').fill('въздух');
-  await page.getByRole('button', { name: 'Добави таг' }).click();
+  // Apply a tag filter from the tag facet → only the air-quality dataset remains.
+  await page.getByRole('checkbox', { name: /въздух/ }).check();
 
   await expect(page.getByText('таг: въздух')).toBeVisible();
   await expect(page.getByRole('button', { name: /Качество на въздуха/ })).toBeVisible();
