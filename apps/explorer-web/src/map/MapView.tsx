@@ -3,7 +3,8 @@
 // component renders declarative SVG and wires hover/click. Being plain DOM, it renders (and is
 // screenshot-tested) headlessly — unlike the previous WebGL canvas.
 
-import { useMemo, useRef, useState } from 'react';
+import { Minus, Plus, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { type BoundaryCollection, boundaryToEntity, maxCount } from '../lib/choropleth.ts';
 import { cn } from '../lib/cn.ts';
 import { colorForCount, legendStops } from '../lib/map-scale.ts';
@@ -37,7 +38,43 @@ export function MapView({
   isDark = false,
 }: MapViewProps) {
   const container = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Hover | null>(null);
+  const [view, setView] = useState({ k: 1, x: 0, y: 0 });
+  const drag = useRef<{ sx: number; sy: number; vx: number; vy: number } | null>(null);
+  const dragged = useRef(false);
+
+  const clampK = (k: number) => Math.min(8, Math.max(1, k));
+  // Screen → viewBox coords (honours viewBox + preserveAspectRatio letterboxing).
+  const toView = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return { x: 0, y: 0 };
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const p = pt.matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  };
+  // Zoom keeping the point `p` (viewBox coords) under the cursor fixed.
+  const zoomAt = (p: { x: number; y: number }, factor: number) => {
+    setView((v) => {
+      const k = clampK(v.k * factor);
+      return { k, x: p.x - ((p.x - v.x) / v.k) * k, y: p.y - ((p.y - v.y) / v.k) * k };
+    });
+  };
+
+  // Wheel zoom as a non-passive listener so we can prevent the page from scrolling.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      zoomAt(toView(e.clientX, e.clientY), e.deltaY < 0 ? 1.15 : 1 / 1.15);
+    };
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', onWheel);
+  }, []);
 
   const projected = useMemo(() => projectBoundaries(boundaries, W, H), [boundaries]);
   const byBoundary = useMemo(
@@ -67,6 +104,7 @@ export function MapView({
     setHover({ id, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) });
   };
   const click = (boundaryId: string) => {
+    if (dragged.current) return; // a pan, not a click
     const entity = lookup.get(boundaryId) ?? null;
     onSelect(entity && entity === selectedGeoId ? null : entity); // click selected again → deselect
   };
@@ -76,91 +114,121 @@ export function MapView({
   return (
     <div ref={container} className="relative h-full w-full" aria-label="Карта на България">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
-        className="h-full w-full"
-        style={{ backgroundColor: bg }}
+        className="h-full w-full touch-none"
+        style={{ backgroundColor: bg, cursor: drag.current ? 'grabbing' : undefined }}
         role="img"
         aria-label="Карта на отворените данни по области"
         onMouseLeave={() => setHover(null)}
+        onPointerDown={(e) => {
+          dragged.current = false;
+          const p = toView(e.clientX, e.clientY);
+          drag.current = { sx: p.x, sy: p.y, vx: view.x, vy: view.y };
+          // NB: no setPointerCapture — it would retarget the click to the <svg>, breaking
+          // region selection. The dragged-flag suppresses click after an actual pan instead.
+        }}
+        onPointerMove={(e) => {
+          if (!drag.current) return;
+          const p = toView(e.clientX, e.clientY);
+          const dx = p.x - drag.current.sx;
+          const dy = p.y - drag.current.sy;
+          if (Math.abs(dx) + Math.abs(dy) > 4) dragged.current = true;
+          setView((v) => ({
+            ...v,
+            x: (drag.current as NonNullable<typeof drag.current>).vx + dx,
+            y: (drag.current as NonNullable<typeof drag.current>).vy + dy,
+          }));
+        }}
+        onPointerUp={() => {
+          drag.current = null;
+        }}
+        onPointerLeave={() => {
+          drag.current = null;
+        }}
       >
         <title>Карта на отворените данни по области</title>
-        {/* Base fills */}
-        {projected.map((f) => {
-          const region = byBoundary.get(f.boundaryFeatureId);
-          const count = region?.datasetCount ?? 0;
-          return (
-            <path
-              key={f.boundaryFeatureId}
-              d={f.d}
-              fill={colorForCount(count, max, isDark)}
-              stroke={outline}
-              strokeWidth={0.75}
-              className="cursor-pointer transition-[fill] duration-150 focus-visible:outline-none"
-              role="button"
-              tabIndex={0}
-              aria-label={region ? `${region.labelBg}: ${region.datasetCount} набора` : undefined}
-              onMouseMove={(e) => move(f.boundaryFeatureId, e)}
-              onMouseEnter={(e) => move(f.boundaryFeatureId, e)}
-              onClick={() => click(f.boundaryFeatureId)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  click(f.boundaryFeatureId);
-                }
-              }}
-            />
-          );
-        })}
-        {/* Outline overlays (drawn on top so borders aren't clipped by neighbouring fills). */}
-        {projected.map((f) => {
-          const isHi = highlightBoundaries.has(f.boundaryFeatureId);
-          const isSel = f.boundaryFeatureId === selectedBoundary;
-          const isHov = hover?.id === f.boundaryFeatureId;
-          if (!isHi && !isSel && !isHov) return null;
-          const stroke = isSel
-            ? 'var(--primary)'
-            : isHi
-              ? '#f59e0b'
-              : isDark
-                ? '#e2e8f0'
-                : '#1f2937';
-          return (
-            <path
-              key={`o-${f.boundaryFeatureId}`}
-              d={f.d}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={isSel ? 3 : isHi ? 2.5 : 1.5}
-              strokeLinejoin="round"
-              className="pointer-events-none"
-            />
-          );
-        })}
-        {/* Oblast labels */}
-        {projected.map((f) => {
-          const region = byBoundary.get(f.boundaryFeatureId);
-          if (!region) return null;
-          return (
-            <text
-              key={`t-${f.boundaryFeatureId}`}
-              x={f.cx}
-              y={f.cy}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="pointer-events-none select-none"
-              style={{
-                fontSize: 11,
-                fill: labelFill,
-                stroke: bg,
-                strokeWidth: 2.5,
-                paintOrder: 'stroke',
-              }}
-            >
-              {region.labelBg}
-            </text>
-          );
-        })}
+        <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
+          {/* Base fills */}
+          {projected.map((f) => {
+            const region = byBoundary.get(f.boundaryFeatureId);
+            const count = region?.datasetCount ?? 0;
+            return (
+              <path
+                key={f.boundaryFeatureId}
+                d={f.d}
+                fill={colorForCount(count, max, isDark)}
+                stroke={outline}
+                strokeWidth={0.75}
+                vectorEffect="non-scaling-stroke"
+                className="cursor-pointer transition-[fill] duration-150 focus-visible:outline-none"
+                role="button"
+                tabIndex={0}
+                aria-label={region ? `${region.labelBg}: ${region.datasetCount} набора` : undefined}
+                onMouseMove={(e) => move(f.boundaryFeatureId, e)}
+                onMouseEnter={(e) => move(f.boundaryFeatureId, e)}
+                onClick={() => click(f.boundaryFeatureId)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    click(f.boundaryFeatureId);
+                  }
+                }}
+              />
+            );
+          })}
+          {/* Outline overlays (drawn on top so borders aren't clipped by neighbouring fills). */}
+          {projected.map((f) => {
+            const isHi = highlightBoundaries.has(f.boundaryFeatureId);
+            const isSel = f.boundaryFeatureId === selectedBoundary;
+            const isHov = hover?.id === f.boundaryFeatureId;
+            if (!isHi && !isSel && !isHov) return null;
+            const stroke = isSel
+              ? 'var(--primary)'
+              : isHi
+                ? '#f59e0b'
+                : isDark
+                  ? '#e2e8f0'
+                  : '#1f2937';
+            return (
+              <path
+                key={`o-${f.boundaryFeatureId}`}
+                d={f.d}
+                fill="none"
+                stroke={stroke}
+                strokeWidth={isSel ? 3 : isHi ? 2.5 : 1.5}
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                className="pointer-events-none"
+              />
+            );
+          })}
+          {/* Oblast labels */}
+          {projected.map((f) => {
+            const region = byBoundary.get(f.boundaryFeatureId);
+            if (!region) return null;
+            return (
+              <text
+                key={`t-${f.boundaryFeatureId}`}
+                x={f.cx}
+                y={f.cy}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="pointer-events-none select-none"
+                style={{
+                  fontSize: 11 / view.k,
+                  fill: labelFill,
+                  stroke: bg,
+                  strokeWidth: 2.5 / view.k,
+                  paintOrder: 'stroke',
+                }}
+              >
+                {region.labelBg}
+              </text>
+            );
+          })}
+        </g>
       </svg>
 
       {hover && hoverRegion && (
@@ -216,6 +284,35 @@ export function MapView({
           </div>
         </div>
       )}
+
+      {/* Zoom controls */}
+      <div className="absolute right-3 bottom-3 flex flex-col gap-1">
+        <button
+          type="button"
+          aria-label="Увеличи"
+          onClick={() => zoomAt({ x: W / 2, y: H / 2 }, 1.4)}
+          className="flex size-7 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
+        >
+          <Plus className="size-4" />
+        </button>
+        <button
+          type="button"
+          aria-label="Намали"
+          onClick={() => zoomAt({ x: W / 2, y: H / 2 }, 1 / 1.4)}
+          className="flex size-7 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
+        >
+          <Minus className="size-4" />
+        </button>
+        <button
+          type="button"
+          aria-label="Нулирай изгледа"
+          disabled={view.k === 1 && view.x === 0 && view.y === 0}
+          onClick={() => setView({ k: 1, x: 0, y: 0 })}
+          className="flex size-7 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground disabled:opacity-40 disabled:hover:bg-card/90"
+        >
+          <RotateCcw className="size-4" />
+        </button>
+      </div>
     </div>
   );
 }

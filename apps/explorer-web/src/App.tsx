@@ -56,6 +56,12 @@ export function App() {
   const [rightOpen, setRightOpen] = useState(true);
 
   const boundaries = useMemo(() => JSON.parse(oblastsRaw) as BoundaryCollection, []);
+  const geoLabel = useMemo(() => {
+    const m = new Map(
+      regions.filter((r) => r.entityId).map((r) => [r.entityId as string, r.labelBg]),
+    );
+    return (id: string) => m.get(id) ?? id;
+  }, [regions]);
   const PAGE = 50;
   const loader = showNational ? fetchNational : fetchDatasets;
 
@@ -110,7 +116,7 @@ export function App() {
         >
           <div className="h-full w-[340px] space-y-3 overflow-y-auto p-4">
             <SearchBar loading={loading} />
-            <FilterPanel />
+            <FilterPanel geoLabel={geoLabel} />
             <Button
               variant="outline"
               size="sm"

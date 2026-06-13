@@ -30,3 +30,14 @@ test('national grouping surfaces non-georeferenced datasets (FR-006)', async ({ 
   await page.getByRole('button', { name: 'Национални набори (без регион)' }).click();
   await expect(page.getByRole('button', { name: /Национален регистър/ })).toBeVisible();
 });
+
+test('clicking an oblast on the SVG map selects it (info card + clear)', async ({ page }) => {
+  await stubApi(page);
+  await page.goto('/');
+  await page
+    .locator('svg[aria-label="Карта на отворените данни по области"] path[role="button"]')
+    .first()
+    .click();
+  // Selecting a region shows the on-map info card with a clear control.
+  await expect(page.getByRole('button', { name: 'Изчисти избора' })).toBeVisible();
+});
