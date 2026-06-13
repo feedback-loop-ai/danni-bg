@@ -33,6 +33,7 @@ export function App() {
   const filters = useExplorer((s) => s.filters);
   const highlight = useExplorer((s) => s.highlight);
   const selectRegion = useExplorer((s) => s.selectRegion);
+  const selectedRegionId = useExplorer((s) => s.selectedRegionId);
 
   const [theme, setThemeState] = useState<Theme>(() => loadTheme(localStorage));
   const prefersDark = usePrefersDark();
@@ -154,6 +155,7 @@ export function App() {
               boundaries={boundaries}
               regions={regions}
               highlightGeoIds={highlight.geoEntityIds}
+              selectedGeoId={selectedRegionId}
               onSelect={selectRegion}
               isDark={resolved === 'dark'}
             />
