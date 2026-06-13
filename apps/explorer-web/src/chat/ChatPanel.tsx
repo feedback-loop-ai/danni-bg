@@ -1,4 +1,4 @@
-import { ArrowUp, Cog, Square, X } from 'lucide-react';
+import { ArrowUp, Cog, Square, SquarePen, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -20,6 +20,12 @@ interface ChatMessage {
 interface ChatPanelProps {
   onSelectDataset: (datasetId: string) => void;
 }
+
+const SUGGESTIONS = [
+  'Какви данни има за качеството на въздуха?',
+  'Сравни ПТП с фатален край по години',
+  'Кои набори са за бюджета на общините?',
+];
 
 export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const filters = useExplorer((s) => s.filters);
@@ -65,8 +71,8 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     });
   }
 
-  async function send() {
-    const question = input.trim();
+  async function send(text?: string) {
+    const question = (text ?? input).trim();
     if (!question || streaming) return;
     setInput('');
     setError(null);
@@ -119,26 +125,68 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     setStreaming(false);
   }
 
+  /** Start a fresh conversation: drop the server session + transcript and clear chat-driven state. */
+  function newChat() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setStreaming(false);
+    setMessages([]);
+    setSessionId(null);
+    setError(null);
+    setInput('');
+    setChatFocus(null);
+    setHighlight({ geoEntityIds: [], datasetIds: [] });
+  }
+
+  const empty = messages.length === 0;
+
   return (
     <section className="flex h-full flex-col gap-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Чат</h2>
-        <button
-          type="button"
-          aria-label="Настройки на доставчика"
-          aria-pressed={showSettings}
-          onClick={() => setShowSettings((v) => !v)}
-          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        >
-          <Cog className="size-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Нов разговор"
+            title="Нов разговор"
+            disabled={empty && !streaming && !chatFocus && !error}
+            onClick={newChat}
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <SquarePen className="size-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Настройки на доставчика"
+            aria-pressed={showSettings}
+            onClick={() => setShowSettings((v) => !v)}
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Cog className="size-4" />
+          </button>
+        </div>
       </div>
       {showSettings && <ProviderSettings provider={provider} onChange={updateProvider} />}
       <div ref={scrollRef} aria-label="Разговор" className="flex-1 space-y-4 overflow-y-auto">
-        {messages.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Задайте въпрос за публичните данни — отговорите се базират на наличните набори.
-          </p>
+        {empty && (
+          <div className="flex h-full flex-col items-center justify-center gap-4 px-2 text-center">
+            <p className="text-sm text-muted-foreground">
+              Задайте въпрос за публичните данни — отговорите се базират на наличните набори и
+              посочват източници.
+            </p>
+            <div className="flex flex-col gap-2">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => void send(s)}
+                  className="rounded-lg border bg-card px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         {messages.map((m) =>
           m.role === 'user' ? (
