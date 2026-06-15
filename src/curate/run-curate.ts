@@ -2,6 +2,7 @@ import type { Database } from 'bun:sqlite';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { BgAdminGazetteerExtractor } from '../enrich/extractors/bg-admin-gazetteer.ts';
+import { BgAdminPublisherExtractor } from '../enrich/extractors/bg-admin-publisher.ts';
 import { BgMonthDatesExtractor } from '../enrich/extractors/bg-month-dates.ts';
 import { CkanGroupsExtractor } from '../enrich/extractors/ckan-groups.ts';
 import { CkanOrganizationExtractor } from '../enrich/extractors/ckan-organization.ts';
@@ -53,6 +54,9 @@ export async function runCurate(opts: RunCurateOptions): Promise<RunCurateResult
     new CkanOrganizationExtractor(orgsRepo),
     new CkanGroupsExtractor(),
     new CkanTagsExtractor(),
+    // Publisher-derived place BEFORE in-content place: when a dataset matches both, the stronger
+    // in-content confidence (BgAdminGazetteerExtractor) wins the attach upsert (last writer wins).
+    new BgAdminPublisherExtractor(orgsRepo),
     new BgAdminGazetteerExtractor(),
     new Iso8601DatesExtractor(),
     new BgMonthDatesExtractor(),

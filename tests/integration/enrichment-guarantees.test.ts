@@ -123,7 +123,10 @@ const CORPUS: Seed[] = [
   },
 ];
 
-const SOFIA_COHORT = ['d01', 'd02', 'd03'];
+// d01–d03 name "Столична община" in their titles; d07, d08, d11 name no place but are PUBLISHED by
+// "Столична община" (org-sofia), so the publisher extractor places them in Sofia too. All six are
+// therefore linked to the Sofia municipality entity.
+const SOFIA_COHORT = ['d01', 'd02', 'd03', 'd07', 'd08', 'd11'];
 
 describe('integration.enrichment-guarantees (SC-009/SC-010/SC-011)', () => {
   let db: Database;
@@ -197,14 +200,14 @@ describe('integration.enrichment-guarantees (SC-009/SC-010/SC-011)', () => {
     expect(results.map((r) => r.datasetId).sort()).toEqual(SOFIA_COHORT);
 
     // The shared municipality must materialize cross-dataset links across the
-    // whole cohort (C(3,2) = 3 undirected pairs), each via the Sofia entity.
+    // whole cohort (C(6,2) = 15 undirected pairs), each via the Sofia entity.
     const linkCount =
       db
         .query<{ n: number }, [string]>(
           'SELECT COUNT(*) AS n FROM dataset_links WHERE via_entity_id = ?',
         )
         .get(SOFIA_ENTITY)?.n ?? 0;
-    expect(linkCount).toBe(3);
+    expect(linkCount).toBe(15);
   });
 });
 
