@@ -1,22 +1,29 @@
-// SVG choropleth of Bulgaria's oblasts (replaces the WebGL map). All geometry → SVG projection lives
-// in lib/projection.ts and the colour scale in lib/map-scale.ts (both pure + unit-tested); this
-// component renders declarative SVG and wires hover/click. Being plain DOM, it renders (and is
-// screenshot-tested) headlessly — unlike the previous WebGL canvas.
+// SVG choropleth of Bulgaria with oblast→municipality drill-down. Geometry projection lives in
+// lib/projection.ts and the colour scale in lib/map-scale.ts (both pure + unit-tested); this renders
+// declarative SVG and wires hover/click. Click an oblast to zoom into it and reveal its
+// municipalities; "← Назад" returns. Plain DOM, so it renders + screenshot-tests headlessly.
 
-import { Minus, Plus, RotateCcw } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { type BoundaryCollection, boundaryToEntity, maxCount } from '../lib/choropleth.ts';
-import { cn } from '../lib/cn.ts';
+import { ArrowLeft } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { type BoundaryCollection, maxCount } from '../lib/choropleth.ts';
 import { colorForCount, legendStops } from '../lib/map-scale.ts';
-import { projectBoundaries } from '../lib/projection.ts';
+import {
+  type ProjectedFeature,
+  fitTransform,
+  makeProjection,
+  projectWith,
+} from '../lib/projection.ts';
 import type { RegionSummary } from '../types.ts';
 
 const W = 1000;
 const H = 560;
+const IDENTITY = { k: 1, x: 0, y: 0 };
 
 interface MapViewProps {
   boundaries: BoundaryCollection;
   regions: RegionSummary[];
+  municipalities: BoundaryCollection;
+  municipalityRegions: RegionSummary[];
   highlightGeoIds: string[];
   selectedGeoId?: string | null;
   onSelect: (entityId: string | null) => void;
@@ -32,68 +39,82 @@ interface Hover {
 export function MapView({
   boundaries,
   regions,
+  municipalities,
+  municipalityRegions,
   highlightGeoIds,
   selectedGeoId = null,
   onSelect,
   isDark = false,
 }: MapViewProps) {
   const container = useRef<HTMLDivElement | null>(null);
-  const svgRef = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Hover | null>(null);
-  const [view, setView] = useState({ k: 1, x: 0, y: 0 });
-  const drag = useRef<{ sx: number; sy: number; vx: number; vy: number } | null>(null);
-  const dragged = useRef(false);
+  const [focus, setFocus] = useState<string | null>(null); // focused oblast entityId (drill-down)
 
-  const clampK = (k: number) => Math.min(8, Math.max(1, k));
-  // Screen → viewBox coords (honours viewBox + preserveAspectRatio letterboxing).
-  const toView = (clientX: number, clientY: number) => {
-    const svg = svgRef.current;
-    const ctm = svg?.getScreenCTM();
-    if (!svg || !ctm) return { x: 0, y: 0 };
-    const pt = svg.createSVGPoint();
-    pt.x = clientX;
-    pt.y = clientY;
-    const p = pt.matrixTransform(ctm.inverse());
-    return { x: p.x, y: p.y };
-  };
-  // Zoom keeping the point `p` (viewBox coords) under the cursor fixed.
-  const zoomAt = (p: { x: number; y: number }, factor: number) => {
-    setView((v) => {
-      const k = clampK(v.k * factor);
-      return { k, x: p.x - ((p.x - v.x) / v.k) * k, y: p.y - ((p.y - v.y) / v.k) * k };
-    });
-  };
+  // One projection fitted to the country, shared so oblasts + municipalities align exactly.
+  const projection = useMemo(() => makeProjection(boundaries, W, H), [boundaries]);
+  const oblastFeatures = useMemo(
+    () => projectWith(projection, boundaries),
+    [projection, boundaries],
+  );
+  const muniFeatures = useMemo(
+    () => projectWith(projection, municipalities),
+    [projection, municipalities],
+  );
 
-  // Wheel zoom as a non-passive listener so we can prevent the page from scrolling.
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      zoomAt(toView(e.clientX, e.clientY), e.deltaY < 0 ? 1.15 : 1 / 1.15);
-    };
-    svg.addEventListener('wheel', onWheel, { passive: false });
-    return () => svg.removeEventListener('wheel', onWheel);
-  }, []);
-
-  const projected = useMemo(() => projectBoundaries(boundaries, W, H), [boundaries]);
-  const byBoundary = useMemo(
+  const oblastByBoundary = useMemo(
     () => new Map(regions.map((r) => [r.boundaryFeatureId, r])),
     [regions],
   );
-  const entityToBoundary = useMemo(() => {
+  const muniByBoundary = useMemo(
+    () => new Map(municipalityRegions.map((r) => [r.boundaryFeatureId, r])),
+    [municipalityRegions],
+  );
+  const oblastEntityToBoundary = useMemo(() => {
     const m = new Map<string, string>();
     for (const r of regions) if (r.entityId) m.set(r.entityId, r.boundaryFeatureId);
     return m;
   }, [regions]);
-  const max = maxCount(regions);
-  const lookup = useMemo(() => boundaryToEntity(regions), [regions]);
+  const muniEntityToBoundary = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of municipalityRegions) if (r.entityId) m.set(r.entityId, r.boundaryFeatureId);
+    return m;
+  }, [municipalityRegions]);
 
+  // Municipalities of the focused oblast (their boundary ids), and the projected features to draw.
+  const focusedBoundaryIds = useMemo(() => {
+    if (!focus) return new Set<string>();
+    return new Set(
+      municipalityRegions.filter((r) => r.oblastEntityId === focus).map((r) => r.boundaryFeatureId),
+    );
+  }, [focus, municipalityRegions]);
+
+  const focusedOblastFeature = focus
+    ? oblastFeatures.find((f) => f.boundaryFeatureId === oblastEntityToBoundary.get(focus))
+    : undefined;
+
+  // Active layer: oblasts (country view) or the focused oblast's municipalities (drill-down).
+  const activeFeatures: ProjectedFeature[] = focus
+    ? muniFeatures.filter((f) => focusedBoundaryIds.has(f.boundaryFeatureId))
+    : oblastFeatures;
+  const activeByBoundary = focus ? muniByBoundary : oblastByBoundary;
+  const max = focus
+    ? municipalityRegions
+        .filter((r) => focusedBoundaryIds.has(r.boundaryFeatureId))
+        .reduce((m, r) => Math.max(m, r.datasetCount), 0)
+    : maxCount(regions);
+
+  const transform = focusedOblastFeature
+    ? fitTransform(focusedOblastFeature.bounds, W, H)
+    : IDENTITY;
+
+  const selectedBoundary = selectedGeoId
+    ? (focus ? muniEntityToBoundary : oblastEntityToBoundary).get(selectedGeoId)
+    : undefined;
   const highlightBoundaries = new Set(
-    highlightGeoIds.map((id) => entityToBoundary.get(id)).filter((b): b is string => !!b),
+    highlightGeoIds
+      .map((id) => oblastEntityToBoundary.get(id) ?? muniEntityToBoundary.get(id))
+      .filter((b): b is string => !!b),
   );
-  const selectedBoundary = selectedGeoId ? entityToBoundary.get(selectedGeoId) : undefined;
-  const selectedRegion = selectedBoundary ? byBoundary.get(selectedBoundary) : undefined;
 
   const outline = isDark ? '#1e293b' : '#ffffff';
   const labelFill = isDark ? '#e2e8f0' : '#1f2937';
@@ -103,56 +124,51 @@ export function MapView({
     const rect = container.current?.getBoundingClientRect();
     setHover({ id, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) });
   };
-  const click = (boundaryId: string) => {
-    if (dragged.current) return; // a pan, not a click
-    const entity = lookup.get(boundaryId) ?? null;
-    onSelect(entity && entity === selectedGeoId ? null : entity); // click selected again → deselect
+  const activate = (boundaryId: string) => {
+    const region = activeByBoundary.get(boundaryId);
+    const entity = region?.entityId ?? null;
+    if (!focus) {
+      // Country view: drill into the oblast (and scope the list to it).
+      if (entity) {
+        setFocus(entity);
+        onSelect(entity);
+      }
+      return;
+    }
+    // Drill-down view: toggle-select the municipality.
+    onSelect(entity && entity === selectedGeoId ? null : entity);
+  };
+  const back = () => {
+    setFocus(null);
+    onSelect(null);
+    setHover(null);
   };
 
-  const hoverRegion = hover ? byBoundary.get(hover.id) : undefined;
+  const hoverRegion = hover ? activeByBoundary.get(hover.id) : undefined;
+  const selectedRegion = selectedBoundary ? activeByBoundary.get(selectedBoundary) : undefined;
+  // Labels: every oblast in country view; only the larger municipalities when zoomed (avoid clutter).
+  const labelFeatures = focus
+    ? activeFeatures.filter((f) => {
+        const b = f.bounds;
+        return (b[1][0] - b[0][0]) * transform.k > 36;
+      })
+    : activeFeatures;
 
   return (
     <div ref={container} className="relative h-full w-full" aria-label="Карта на България">
       <svg
-        ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
-        className="h-full w-full touch-none"
-        style={{ backgroundColor: bg, cursor: drag.current ? 'grabbing' : undefined }}
+        className="h-full w-full"
+        style={{ backgroundColor: bg }}
         role="img"
         aria-label="Карта на отворените данни по области"
         onMouseLeave={() => setHover(null)}
-        onPointerDown={(e) => {
-          dragged.current = false;
-          const p = toView(e.clientX, e.clientY);
-          drag.current = { sx: p.x, sy: p.y, vx: view.x, vy: view.y };
-          // NB: no setPointerCapture — it would retarget the click to the <svg>, breaking
-          // region selection. The dragged-flag suppresses click after an actual pan instead.
-        }}
-        onPointerMove={(e) => {
-          if (!drag.current) return;
-          const p = toView(e.clientX, e.clientY);
-          const dx = p.x - drag.current.sx;
-          const dy = p.y - drag.current.sy;
-          if (Math.abs(dx) + Math.abs(dy) > 4) dragged.current = true;
-          setView((v) => ({
-            ...v,
-            x: (drag.current as NonNullable<typeof drag.current>).vx + dx,
-            y: (drag.current as NonNullable<typeof drag.current>).vy + dy,
-          }));
-        }}
-        onPointerUp={() => {
-          drag.current = null;
-        }}
-        onPointerLeave={() => {
-          drag.current = null;
-        }}
       >
         <title>Карта на отворените данни по области</title>
-        <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
-          {/* Base fills */}
-          {projected.map((f) => {
-            const region = byBoundary.get(f.boundaryFeatureId);
+        <g transform={`translate(${transform.x} ${transform.y}) scale(${transform.k})`}>
+          {activeFeatures.map((f) => {
+            const region = activeByBoundary.get(f.boundaryFeatureId);
             const count = region?.datasetCount ?? 0;
             return (
               <path
@@ -168,18 +184,18 @@ export function MapView({
                 aria-label={region ? `${region.labelBg}: ${region.datasetCount} набора` : undefined}
                 onMouseMove={(e) => move(f.boundaryFeatureId, e)}
                 onMouseEnter={(e) => move(f.boundaryFeatureId, e)}
-                onClick={() => click(f.boundaryFeatureId)}
+                onClick={() => activate(f.boundaryFeatureId)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    click(f.boundaryFeatureId);
+                    activate(f.boundaryFeatureId);
                   }
                 }}
               />
             );
           })}
-          {/* Outline overlays (drawn on top so borders aren't clipped by neighbouring fills). */}
-          {projected.map((f) => {
+          {/* Outline overlays drawn on top (selected / chat-highlight / hover). */}
+          {activeFeatures.map((f) => {
             const isHi = highlightBoundaries.has(f.boundaryFeatureId);
             const isSel = f.boundaryFeatureId === selectedBoundary;
             const isHov = hover?.id === f.boundaryFeatureId;
@@ -204,9 +220,8 @@ export function MapView({
               />
             );
           })}
-          {/* Oblast labels */}
-          {projected.map((f) => {
-            const region = byBoundary.get(f.boundaryFeatureId);
+          {labelFeatures.map((f) => {
+            const region = activeByBoundary.get(f.boundaryFeatureId);
             if (!region) return null;
             return (
               <text
@@ -217,10 +232,10 @@ export function MapView({
                 dominantBaseline="middle"
                 className="pointer-events-none select-none"
                 style={{
-                  fontSize: 11 / view.k,
+                  fontSize: 11 / transform.k,
                   fill: labelFill,
                   stroke: bg,
-                  strokeWidth: 2.5 / view.k,
+                  strokeWidth: 2.5 / transform.k,
                   paintOrder: 'stroke',
                 }}
               >
@@ -241,9 +256,22 @@ export function MapView({
         </div>
       )}
 
+      {/* Drill-down breadcrumb / back */}
+      {focus && (
+        <button
+          type="button"
+          onClick={back}
+          className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-md border bg-card/90 px-2.5 py-1.5 text-xs shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
+        >
+          <ArrowLeft className="size-3.5" /> Назад към областите
+        </button>
+      )}
+
       {/* Legend */}
       <div className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-card/90 px-2.5 py-2 text-xs shadow-sm backdrop-blur">
-        <div className="mb-1 font-medium text-muted-foreground">Набори по област</div>
+        <div className="mb-1 font-medium text-muted-foreground">
+          {focus ? 'Набори по община' : 'Набори по област'}
+        </div>
         <div className="flex items-center gap-0.5">
           {legendStops(max, isDark).map((s) => (
             <span
@@ -274,45 +302,13 @@ export function MapView({
               type="button"
               aria-label="Изчисти избора"
               onClick={() => onSelect(null)}
-              className={cn(
-                'shrink-0 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground',
-                'hover:bg-accent hover:text-accent-foreground',
-              )}
+              className="shrink-0 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             >
               ×
             </button>
           </div>
         </div>
       )}
-
-      {/* Zoom controls */}
-      <div className="absolute right-3 bottom-3 flex flex-col gap-1">
-        <button
-          type="button"
-          aria-label="Увеличи"
-          onClick={() => zoomAt({ x: W / 2, y: H / 2 }, 1.4)}
-          className="flex size-7 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
-        >
-          <Plus className="size-4" />
-        </button>
-        <button
-          type="button"
-          aria-label="Намали"
-          onClick={() => zoomAt({ x: W / 2, y: H / 2 }, 1 / 1.4)}
-          className="flex size-7 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
-        >
-          <Minus className="size-4" />
-        </button>
-        <button
-          type="button"
-          aria-label="Нулирай изгледа"
-          disabled={view.k === 1 && view.x === 0 && view.y === 0}
-          onClick={() => setView({ k: 1, x: 0, y: 0 })}
-          className="flex size-7 items-center justify-center rounded-md border bg-card/90 text-muted-foreground shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground disabled:opacity-40 disabled:hover:bg-card/90"
-        >
-          <RotateCcw className="size-4" />
-        </button>
-      </div>
     </div>
   );
 }

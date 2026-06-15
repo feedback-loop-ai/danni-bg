@@ -67,6 +67,8 @@ export interface RegionSummary {
   datasetCount: number;
   hasData: boolean;
   maxConfidence: number;
+  /** For municipalities: parent oblast entity id (drives map drill-down). */
+  oblastEntityId?: string | null;
   flagged?: 'unlinked';
 }
 
