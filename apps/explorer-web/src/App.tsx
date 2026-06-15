@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import municipalitiesRaw from '../../../packages/geo-boundaries/data/municipalities.geojson?raw';
 import oblastsRaw from '../../../packages/geo-boundaries/data/oblasts.geojson?raw';
 import { ChatPanel } from './chat/ChatPanel.tsx';
 import { ThemeToggle } from './components/ThemeToggle.tsx';
@@ -33,6 +34,7 @@ export function App() {
   const filters = useExplorer((s) => s.filters);
   const highlight = useExplorer((s) => s.highlight);
   const selectRegion = useExplorer((s) => s.selectRegion);
+  const selectedRegionId = useExplorer((s) => s.selectedRegionId);
 
   const [theme, setThemeState] = useState<Theme>(() => loadTheme(localStorage));
   const prefersDark = usePrefersDark();
@@ -46,6 +48,7 @@ export function App() {
   }
 
   const [regions, setRegions] = useState<RegionSummary[]>([]);
+  const [muniRegions, setMuniRegions] = useState<RegionSummary[]>([]);
   const [datasets, setDatasets] = useState<DatasetPointer[]>([]);
   const [total, setTotal] = useState(0);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
@@ -55,6 +58,13 @@ export function App() {
   const [rightOpen, setRightOpen] = useState(true);
 
   const boundaries = useMemo(() => JSON.parse(oblastsRaw) as BoundaryCollection, []);
+  const muniBoundaries = useMemo(() => JSON.parse(municipalitiesRaw) as BoundaryCollection, []);
+  const geoLabel = useMemo(() => {
+    const m = new Map(
+      regions.filter((r) => r.entityId).map((r) => [r.entityId as string, r.labelBg]),
+    );
+    return (id: string) => m.get(id) ?? id;
+  }, [regions]);
   const PAGE = 50;
   const loader = showNational ? fetchNational : fetchDatasets;
 
@@ -64,6 +74,11 @@ export function App() {
     fetchRegions(filters, 'oblast')
       .then((r) => {
         if (!cancelled) setRegions(r.regions);
+      })
+      .catch(() => undefined);
+    fetchRegions(filters, 'municipality')
+      .then((r) => {
+        if (!cancelled) setMuniRegions(r.regions);
       })
       .catch(() => undefined);
     loader(filters, PAGE, 0)
@@ -109,7 +124,7 @@ export function App() {
         >
           <div className="h-full w-[340px] space-y-3 overflow-y-auto p-4">
             <SearchBar loading={loading} />
-            <FilterPanel />
+            <FilterPanel geoLabel={geoLabel} />
             <Button
               variant="outline"
               size="sm"
@@ -153,7 +168,10 @@ export function App() {
             <MapView
               boundaries={boundaries}
               regions={regions}
+              municipalities={muniBoundaries}
+              municipalityRegions={muniRegions}
               highlightGeoIds={highlight.geoEntityIds}
+              selectedGeoId={selectedRegionId}
               onSelect={selectRegion}
               isDark={resolved === 'dark'}
             />

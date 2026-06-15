@@ -7,6 +7,7 @@ const oblast = (slug: string, iso: string): GeoCrosswalkEntry => ({
   level: 'oblast',
   boundaryFeatureId: iso,
   ekatte: null,
+  lauId: null,
   iso3166_2: iso,
   oblastEntityId: null,
 });

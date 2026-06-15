@@ -1,78 +1,37 @@
-// MapLibre choropleth render glue (US1). Per the constitution's sanctioned render-glue exception
-// (Principle VIII v1.1.0), the join/enrichment logic lives in lib/choropleth.ts (100% unit-tested);
-// this module only wires data-driven paint, fit-to-Bulgaria, hover, and click selection to the GPU
-// canvas, validated behaviorally by Playwright E2E.
+// SVG choropleth of Bulgaria with oblast→municipality drill-down. Geometry projection lives in
+// lib/projection.ts and the colour scale in lib/map-scale.ts (both pure + unit-tested); this renders
+// declarative SVG and wires hover/click. Click an oblast to zoom into it and reveal its
+// municipalities; "← Назад" returns. Plain DOM, so it renders + screenshot-tests headlessly.
 
-import maplibregl, {
-  type ExpressionSpecification,
-  type GeoJSONSource,
-  type Map as MlMap,
-} from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
-import { useEffect, useRef, useState } from 'react';
-import { type BoundaryCollection, boundaryToEntity, enrichBoundaries } from '../lib/choropleth.ts';
+import { ArrowLeft } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { type BoundaryCollection, maxCount } from '../lib/choropleth.ts';
+import { colorForCount, legendStops } from '../lib/map-scale.ts';
+import {
+  type ProjectedFeature,
+  fitTransform,
+  makeProjection,
+  projectWith,
+} from '../lib/projection.ts';
 import type { RegionSummary } from '../types.ts';
 
-const BG_BOUNDS: [[number, number], [number, number]] = [
-  [22.3, 41.2],
-  [28.7, 44.3],
-];
-const mapBg = (isDark: boolean) => (isDark ? '#0b1220' : '#dfe7ef');
-const outlineColor = (isDark: boolean) => (isDark ? '#0b1220' : '#ffffff');
-const hoverColor = (isDark: boolean) => (isDark ? '#e2e8f0' : '#1f2937');
+const W = 1000;
+const H = 560;
+const IDENTITY = { k: 1, x: 0, y: 0 };
 
-// Base style with a theme-correct background so a dark first load doesn't flash light.
-const blankStyle = (isDark: boolean) => ({
-  version: 8 as const,
-  sources: {},
-  layers: [{ id: 'bg', type: 'background' as const, paint: { 'background-color': mapBg(isDark) } }],
-});
 interface MapViewProps {
   boundaries: BoundaryCollection;
   regions: RegionSummary[];
+  municipalities: BoundaryCollection;
+  municipalityRegions: RegionSummary[];
   highlightGeoIds: string[];
+  selectedGeoId?: string | null;
   onSelect: (entityId: string | null) => void;
   isDark?: boolean;
 }
 
-// Theme-dependent paint. The 0-count colour anchors the choropleth ramp to the map background.
-function fillRamp(isDark: boolean) {
-  return isDark
-    ? [
-        'interpolate',
-        ['linear'],
-        ['get', 'count'],
-        0,
-        '#0f1c33',
-        1,
-        '#1d4ed8',
-        3,
-        '#3b82f6',
-        8,
-        '#60a5fa',
-        20,
-        '#93c5fd',
-      ]
-    : [
-        'interpolate',
-        ['linear'],
-        ['get', 'count'],
-        0,
-        '#edf2f7',
-        1,
-        '#9ecae1',
-        2,
-        '#4292c6',
-        3,
-        '#2171b5',
-        6,
-        '#08519c',
-      ];
-}
-
 interface Hover {
-  label: string;
-  count: number;
+  id: string;
   x: number;
   y: number;
 }
@@ -80,167 +39,274 @@ interface Hover {
 export function MapView({
   boundaries,
   regions,
+  municipalities,
+  municipalityRegions,
   highlightGeoIds,
+  selectedGeoId = null,
   onSelect,
   isDark = false,
 }: MapViewProps) {
   const container = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<MlMap | null>(null);
   const [hover, setHover] = useState<Hover | null>(null);
+  const [focus, setFocus] = useState<string | null>(null); // focused oblast entityId (drill-down)
 
-  useEffect(() => {
-    const el = container.current;
-    if (!el) return;
-    let map: MlMap;
-    try {
-      map = new maplibregl.Map({
-        container: el,
-        style: blankStyle(isDark),
-        bounds: BG_BOUNDS,
-        fitBoundsOptions: { padding: 24 },
-      });
-    } catch {
-      el.setAttribute('data-map-unavailable', 'true');
+  // One projection fitted to the country, shared so oblasts + municipalities align exactly.
+  const projection = useMemo(() => makeProjection(boundaries, W, H), [boundaries]);
+  const oblastFeatures = useMemo(
+    () => projectWith(projection, boundaries),
+    [projection, boundaries],
+  );
+  const muniFeatures = useMemo(
+    () => projectWith(projection, municipalities),
+    [projection, municipalities],
+  );
+
+  const oblastByBoundary = useMemo(
+    () => new Map(regions.map((r) => [r.boundaryFeatureId, r])),
+    [regions],
+  );
+  const muniByBoundary = useMemo(
+    () => new Map(municipalityRegions.map((r) => [r.boundaryFeatureId, r])),
+    [municipalityRegions],
+  );
+  const oblastEntityToBoundary = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of regions) if (r.entityId) m.set(r.entityId, r.boundaryFeatureId);
+    return m;
+  }, [regions]);
+  const muniEntityToBoundary = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of municipalityRegions) if (r.entityId) m.set(r.entityId, r.boundaryFeatureId);
+    return m;
+  }, [municipalityRegions]);
+
+  // Municipalities of the focused oblast (their boundary ids), and the projected features to draw.
+  const focusedBoundaryIds = useMemo(() => {
+    if (!focus) return new Set<string>();
+    return new Set(
+      municipalityRegions.filter((r) => r.oblastEntityId === focus).map((r) => r.boundaryFeatureId),
+    );
+  }, [focus, municipalityRegions]);
+
+  const focusedOblastFeature = focus
+    ? oblastFeatures.find((f) => f.boundaryFeatureId === oblastEntityToBoundary.get(focus))
+    : undefined;
+
+  // Active layer: oblasts (country view) or the focused oblast's municipalities (drill-down).
+  const activeFeatures: ProjectedFeature[] = focus
+    ? muniFeatures.filter((f) => focusedBoundaryIds.has(f.boundaryFeatureId))
+    : oblastFeatures;
+  const activeByBoundary = focus ? muniByBoundary : oblastByBoundary;
+  const max = focus
+    ? municipalityRegions
+        .filter((r) => focusedBoundaryIds.has(r.boundaryFeatureId))
+        .reduce((m, r) => Math.max(m, r.datasetCount), 0)
+    : maxCount(regions);
+
+  const transform = focusedOblastFeature
+    ? fitTransform(focusedOblastFeature.bounds, W, H)
+    : IDENTITY;
+
+  const selectedBoundary = selectedGeoId
+    ? (focus ? muniEntityToBoundary : oblastEntityToBoundary).get(selectedGeoId)
+    : undefined;
+  const highlightBoundaries = new Set(
+    highlightGeoIds
+      .map((id) => oblastEntityToBoundary.get(id) ?? muniEntityToBoundary.get(id))
+      .filter((b): b is string => !!b),
+  );
+
+  const outline = isDark ? '#1e293b' : '#ffffff';
+  const labelFill = isDark ? '#e2e8f0' : '#1f2937';
+  const bg = isDark ? '#0b1220' : '#dfe7ef';
+
+  const move = (id: string, e: React.MouseEvent) => {
+    const rect = container.current?.getBoundingClientRect();
+    setHover({ id, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) });
+  };
+  const activate = (boundaryId: string) => {
+    const region = activeByBoundary.get(boundaryId);
+    const entity = region?.entityId ?? null;
+    if (!focus) {
+      // Country view: drill into the oblast (and scope the list to it).
+      if (entity) {
+        setFocus(entity);
+        onSelect(entity);
+      }
       return;
     }
-    mapRef.current = map;
-    // The grid/absolute container can resolve its height a tick after init, leaving the GL canvas at a
-    // stale size — keep it in sync with the container.
-    const ro = new ResizeObserver(() => map.resize());
-    ro.observe(el);
-    map.on('load', () => {
-      map.resize();
-      map.addSource('regions', { type: 'geojson', data: enrichBoundaries(boundaries, []) });
-      map.addLayer({
-        id: 'regions-fill',
-        type: 'fill',
-        source: 'regions',
-        paint: {
-          'fill-color': fillRamp(isDark) as ExpressionSpecification,
-          'fill-opacity': 0.9,
-        },
-      });
-      map.addLayer({
-        id: 'regions-outline',
-        type: 'line',
-        source: 'regions',
-        paint: { 'line-color': outlineColor(isDark), 'line-width': 1 },
-      });
-      map.addLayer({
-        id: 'regions-hover',
-        type: 'line',
-        source: 'regions',
-        paint: { 'line-color': hoverColor(isDark), 'line-width': 1.5 },
-        filter: ['in', 'boundaryFeatureId', ''],
-      });
-      map.addLayer({
-        id: 'regions-highlight',
-        type: 'line',
-        source: 'regions',
-        paint: { 'line-color': '#f59e0b', 'line-width': 3 },
-        filter: ['in', 'boundaryFeatureId', ''],
-      });
-    });
-    return () => {
-      ro.disconnect();
-      map.remove();
-      mapRef.current = null;
-    };
-  }, [boundaries]);
+    // Drill-down view: toggle-select the municipality.
+    onSelect(entity && entity === selectedGeoId ? null : entity);
+  };
+  const back = () => {
+    setFocus(null);
+    onSelect(null);
+    setHover(null);
+  };
 
-  // Update choropleth data when regions change.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const apply = () => {
-      const src = map.getSource('regions') as GeoJSONSource | undefined;
-      src?.setData(
-        enrichBoundaries(boundaries, regions) as unknown as Parameters<GeoJSONSource['setData']>[0],
-      );
-    };
-    if (map.isStyleLoaded()) apply();
-    else map.once('load', apply);
-  }, [boundaries, regions]);
-
-  // Re-paint for the active theme (background, choropleth ramp, outlines/hover).
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const apply = () => {
-      map.setPaintProperty('bg', 'background-color', mapBg(isDark));
-      map.setPaintProperty(
-        'regions-fill',
-        'fill-color',
-        fillRamp(isDark) as ExpressionSpecification,
-      );
-      map.setPaintProperty('regions-outline', 'line-color', outlineColor(isDark));
-      map.setPaintProperty('regions-hover', 'line-color', hoverColor(isDark));
-    };
-    if (map.isStyleLoaded()) apply();
-    else map.once('load', apply);
-  }, [isDark]);
-
-  // Hover (tooltip + outline + cursor) and click selection.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const byBoundary = new Map(regions.map((r) => [r.boundaryFeatureId, r]));
-    const lookup = boundaryToEntity(regions);
-
-    const onMove = (e: maplibregl.MapLayerMouseEvent) => {
-      const id = e.features?.[0]?.properties?.boundaryFeatureId as string | undefined;
-      map.getCanvas().style.cursor = id ? 'pointer' : '';
-      if (map.getLayer('regions-hover'))
-        map.setFilter('regions-hover', ['in', 'boundaryFeatureId', id ?? '']);
-      const region = id ? byBoundary.get(id) : undefined;
-      if (region)
-        setHover({ label: region.labelBg, count: region.datasetCount, x: e.point.x, y: e.point.y });
-      else setHover(null);
-    };
-    const onLeave = () => {
-      map.getCanvas().style.cursor = '';
-      if (map.getLayer('regions-hover'))
-        map.setFilter('regions-hover', ['in', 'boundaryFeatureId', '']);
-      setHover(null);
-    };
-    const onClick = (e: maplibregl.MapLayerMouseEvent) => {
-      const id = e.features?.[0]?.properties?.boundaryFeatureId as string | undefined;
-      if (id) onSelect(lookup.get(id) ?? null);
-    };
-    map.on('mousemove', 'regions-fill', onMove);
-    map.on('mouseleave', 'regions-fill', onLeave);
-    map.on('click', 'regions-fill', onClick);
-    return () => {
-      map.off('mousemove', 'regions-fill', onMove);
-      map.off('mouseleave', 'regions-fill', onLeave);
-      map.off('click', 'regions-fill', onClick);
-    };
-  }, [regions, onSelect]);
-
-  // Highlight cited/selected regions.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map?.getLayer('regions-highlight')) return;
-    const ids = regions
-      .filter((r) => r.entityId && highlightGeoIds.includes(r.entityId))
-      .map((r) => r.boundaryFeatureId);
-    map.setFilter('regions-highlight', [
-      'in',
-      'boundaryFeatureId',
-      ...(ids.length > 0 ? ids : ['']),
-    ]);
-  }, [highlightGeoIds, regions]);
+  const hoverRegion = hover ? activeByBoundary.get(hover.id) : undefined;
+  const selectedRegion = selectedBoundary ? activeByBoundary.get(selectedBoundary) : undefined;
+  // Labels: every oblast in country view; only the larger municipalities when zoomed (avoid clutter).
+  const labelFeatures = focus
+    ? activeFeatures.filter((f) => {
+        const b = f.bounds;
+        return (b[1][0] - b[0][0]) * transform.k > 36;
+      })
+    : activeFeatures;
 
   return (
-    <div className="relative h-full w-full">
-      <div ref={container} className="h-full w-full" aria-label="Карта на България" />
-      {hover && (
+    <div ref={container} className="relative h-full w-full" aria-label="Карта на България">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="h-full w-full"
+        style={{ backgroundColor: bg }}
+        role="img"
+        aria-label="Карта на отворените данни по области"
+        onMouseLeave={() => setHover(null)}
+      >
+        <title>Карта на отворените данни по области</title>
+        <g transform={`translate(${transform.x} ${transform.y}) scale(${transform.k})`}>
+          {activeFeatures.map((f) => {
+            const region = activeByBoundary.get(f.boundaryFeatureId);
+            const count = region?.datasetCount ?? 0;
+            return (
+              <path
+                key={f.boundaryFeatureId}
+                d={f.d}
+                fill={colorForCount(count, max, isDark)}
+                stroke={outline}
+                strokeWidth={0.75}
+                vectorEffect="non-scaling-stroke"
+                className="cursor-pointer transition-[fill] duration-150 focus-visible:outline-none"
+                role="button"
+                tabIndex={0}
+                aria-label={region ? `${region.labelBg}: ${region.datasetCount} набора` : undefined}
+                onMouseMove={(e) => move(f.boundaryFeatureId, e)}
+                onMouseEnter={(e) => move(f.boundaryFeatureId, e)}
+                onClick={() => activate(f.boundaryFeatureId)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    activate(f.boundaryFeatureId);
+                  }
+                }}
+              />
+            );
+          })}
+          {/* Outline overlays drawn on top (selected / chat-highlight / hover). */}
+          {activeFeatures.map((f) => {
+            const isHi = highlightBoundaries.has(f.boundaryFeatureId);
+            const isSel = f.boundaryFeatureId === selectedBoundary;
+            const isHov = hover?.id === f.boundaryFeatureId;
+            if (!isHi && !isSel && !isHov) return null;
+            const stroke = isSel
+              ? 'var(--primary)'
+              : isHi
+                ? '#f59e0b'
+                : isDark
+                  ? '#e2e8f0'
+                  : '#1f2937';
+            return (
+              <path
+                key={`o-${f.boundaryFeatureId}`}
+                d={f.d}
+                fill="none"
+                stroke={stroke}
+                strokeWidth={isSel ? 3 : isHi ? 2.5 : 1.5}
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                className="pointer-events-none"
+              />
+            );
+          })}
+          {labelFeatures.map((f) => {
+            const region = activeByBoundary.get(f.boundaryFeatureId);
+            if (!region) return null;
+            return (
+              <text
+                key={`t-${f.boundaryFeatureId}`}
+                x={f.cx}
+                y={f.cy}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="pointer-events-none select-none"
+                style={{
+                  fontSize: 11 / transform.k,
+                  fill: labelFill,
+                  stroke: bg,
+                  strokeWidth: 2.5 / transform.k,
+                  paintOrder: 'stroke',
+                }}
+              >
+                {region.labelBg}
+              </text>
+            );
+          })}
+        </g>
+      </svg>
+
+      {hover && hoverRegion && (
         <div
           className="pointer-events-none absolute z-10 flex flex-col gap-0.5 rounded-md bg-foreground/90 px-2.5 py-1.5 text-xs text-background shadow-md"
           style={{ left: hover.x + 12, top: hover.y + 12 }}
         >
-          <strong>{hover.label}</strong>
-          <span className="opacity-80">{hover.count} набора</span>
+          <strong>{hoverRegion.labelBg}</strong>
+          <span className="opacity-80">{hoverRegion.datasetCount} набора</span>
+        </div>
+      )}
+
+      {/* Drill-down breadcrumb / back */}
+      {focus && (
+        <button
+          type="button"
+          onClick={back}
+          className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-md border bg-card/90 px-2.5 py-1.5 text-xs shadow-sm backdrop-blur hover:bg-accent hover:text-accent-foreground"
+        >
+          <ArrowLeft className="size-3.5" /> Назад към областите
+        </button>
+      )}
+
+      {/* Legend */}
+      <div className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-card/90 px-2.5 py-2 text-xs shadow-sm backdrop-blur">
+        <div className="mb-1 font-medium text-muted-foreground">
+          {focus ? 'Набори по община' : 'Набори по област'}
+        </div>
+        <div className="flex items-center gap-0.5">
+          {legendStops(max, isDark).map((s) => (
+            <span
+              key={s.color}
+              className="h-3 w-5 first:rounded-l last:rounded-r"
+              style={{ backgroundColor: s.color }}
+              title={`от ${s.from}`}
+            />
+          ))}
+        </div>
+        <div className="mt-0.5 flex justify-between text-[10px] text-muted-foreground">
+          <span>0</span>
+          <span>{max}</span>
+        </div>
+      </div>
+
+      {/* Selected-region info card */}
+      {selectedRegion && (
+        <div className="absolute top-3 right-3 max-w-56 rounded-md border bg-card/95 px-3 py-2 shadow-sm backdrop-blur">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="font-medium leading-tight">{selectedRegion.labelBg}</div>
+              <div className="text-xs text-muted-foreground">
+                {selectedRegion.datasetCount} набора
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-label="Изчисти избора"
+              onClick={() => onSelect(null)}
+              className="shrink-0 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
     </div>

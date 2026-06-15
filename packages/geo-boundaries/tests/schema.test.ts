@@ -6,6 +6,7 @@ const oblast = {
   level: 'oblast' as const,
   boundaryFeatureId: 'BG-18',
   ekatte: null,
+  lauId: null,
   iso3166_2: 'BG-18',
   oblastEntityId: null,
 };
@@ -14,6 +15,7 @@ const municipality = {
   level: 'municipality' as const,
   boundaryFeatureId: 'ekatte-63427',
   ekatte: '63427',
+  lauId: null,
   iso3166_2: null,
   oblastEntityId: 'geo:bg-oblast-ruse',
 };
@@ -22,6 +24,16 @@ describe('crosswalkEntrySchema level invariants', () => {
   it('accepts well-formed oblast and municipality entries', () => {
     expect(crosswalkEntrySchema.parse(oblast)).toEqual(oblast);
     expect(crosswalkEntrySchema.parse(municipality)).toEqual(municipality);
+  });
+
+  it('accepts a municipality keyed by LAU id instead of EKATTE', () => {
+    const lau = {
+      ...municipality,
+      boundaryFeatureId: 'lau-RSE40',
+      ekatte: null,
+      lauId: 'RSE40',
+    };
+    expect(crosswalkEntrySchema.parse(lau)).toEqual(lau);
   });
 
   it('rejects an oblast carrying ekatte / oblastEntityId, or missing iso3166_2', () => {

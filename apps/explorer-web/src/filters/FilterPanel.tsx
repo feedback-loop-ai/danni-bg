@@ -48,7 +48,12 @@ function FacetSection({
   );
 }
 
-export function FilterPanel() {
+interface FilterPanelProps {
+  /** Resolve a geo entity id to its Bulgarian label for the active-filter chip (from the map). */
+  geoLabel?: (entityId: string) => string;
+}
+
+export function FilterPanel({ geoLabel }: FilterPanelProps = {}) {
   const filters = useExplorer((s) => s.filters);
   const updateFilters = useExplorer((s) => s.updateFilters);
   const clearFilters = useExplorer((s) => s.clearFilters);
@@ -76,6 +81,7 @@ export function FilterPanel() {
       return `издател: ${facets.publishers.find((p) => p.id === chip.value)?.labelBg ?? chip.value}`;
     if (chip.kind === 'freshness')
       return `актуалност: ${FRESHNESS_LABEL[chip.value as FreshnessFilter]}`;
+    if (chip.kind === 'geo') return `регион: ${geoLabel?.(chip.value) ?? chip.value}`;
     return chip.label;
   };
 

@@ -1,0 +1,2122 @@
+[
+  {
+    "id": "geo:bg-municipality-dospat",
+    "labelBg": "Доспат",
+    "labelEn": "Dospat",
+    "oblastId": "geo:bg-oblast-smolyan",
+    "aliases": ["Община Доспат"],
+    "lauId": "SML10"
+  },
+  {
+    "id": "geo:bg-municipality-zlatograd",
+    "labelBg": "Златоград",
+    "labelEn": "Zlatograd",
+    "oblastId": "geo:bg-oblast-smolyan",
+    "aliases": ["Община Златоград"],
+    "lauId": "SML11"
+  },
+  {
+    "id": "geo:bg-municipality-madan",
+    "labelBg": "Мадан",
+    "labelEn": "Madan",
+    "oblastId": "geo:bg-oblast-smolyan",
+    "aliases": ["Община Мадан"],
+    "lauId": "SML16"
+  },
+  {
+    "id": "geo:bg-municipality-nedelino",
+    "labelBg": "Неделино",
+    "labelEn": "Nedelino",
+    "oblastId": "geo:bg-oblast-smolyan",
+    "aliases": ["Община Неделино"],
+    "lauId": "SML18"
+  },
+  {
+    "id": "geo:bg-municipality-rudozem",
+    "labelBg": "Рудозем",
+    "labelEn": "Rudozem",
+    "oblastId": "geo:bg-oblast-smolyan",
+    "aliases": ["Община Рудозем"],
+    "lauId": "SML27"
+  },
+  {
+    "id": "geo:bg-municipality-smolyan",
+    "labelBg": "Смолян",
+    "labelEn": "Smolyan",
+    "oblastId": "geo:bg-oblast-smolyan",
+    "aliases": ["Община Смолян"],
+    "lauId": "SML31"
+  },
+  {
+    "id": "geo:bg-municipality-vidin",
+    "labelBg": "Видин",
+    "labelEn": "Vidin",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Видин"],
+    "lauId": "VID09"
+  },
+  {
+    "id": "geo:bg-municipality-gramada",
+    "labelBg": "Грамада",
+    "labelEn": "Gramada",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Грамада"],
+    "lauId": "VID15"
+  },
+  {
+    "id": "geo:bg-municipality-dimovo",
+    "labelBg": "Димово",
+    "labelEn": "Dimovo",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Димово"],
+    "lauId": "VID16"
+  },
+  {
+    "id": "geo:bg-municipality-kula",
+    "labelBg": "Кула",
+    "labelEn": "Kula",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Кула"],
+    "lauId": "VID22"
+  },
+  {
+    "id": "geo:bg-municipality-makresh",
+    "labelBg": "Макреш",
+    "labelEn": "Makresh",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Макреш"],
+    "lauId": "VID25"
+  },
+  {
+    "id": "geo:bg-municipality-novo-selo",
+    "labelBg": "Ново село",
+    "labelEn": "Novo Selo",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Ново село"],
+    "lauId": "VID30"
+  },
+  {
+    "id": "geo:bg-municipality-ruzhintsi",
+    "labelBg": "Ружинци",
+    "labelEn": "Ruzhintsi",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Ружинци"],
+    "lauId": "VID33"
+  },
+  {
+    "id": "geo:bg-municipality-chuprene",
+    "labelBg": "Чупрене",
+    "labelEn": "Chuprene",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Чупрене"],
+    "lauId": "VID37"
+  },
+  {
+    "id": "geo:bg-municipality-miziya",
+    "labelBg": "Мизия",
+    "labelEn": "Miziya",
+    "oblastId": "geo:bg-oblast-vratsa",
+    "aliases": ["Община Мизия"],
+    "lauId": "VRC28"
+  },
+  {
+    "id": "geo:bg-municipality-oryahovo",
+    "labelBg": "Оряхово",
+    "labelEn": "Oryahovo",
+    "oblastId": "geo:bg-oblast-vratsa",
+    "aliases": ["Община Оряхово"],
+    "lauId": "VRC31"
+  },
+  {
+    "id": "geo:bg-municipality-pazardzhik",
+    "labelBg": "Пазарджик",
+    "labelEn": "Pazardzhik",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Пазарджик"],
+    "lauId": "PAZ19"
+  },
+  {
+    "id": "geo:bg-municipality-panagyurishte",
+    "labelBg": "Панагюрище",
+    "labelEn": "Panagyurishte",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Панагюрище"],
+    "lauId": "PAZ20"
+  },
+  {
+    "id": "geo:bg-municipality-peshtera",
+    "labelBg": "Пещера",
+    "labelEn": "Peshtera",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Пещера"],
+    "lauId": "PAZ21"
+  },
+  {
+    "id": "geo:bg-municipality-rakitovo",
+    "labelBg": "Ракитово",
+    "labelEn": "Rakitovo",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Ракитово"],
+    "lauId": "PAZ24"
+  },
+  {
+    "id": "geo:bg-municipality-radomir",
+    "labelBg": "Радомир",
+    "labelEn": "Radomir",
+    "oblastId": "geo:bg-oblast-pernik",
+    "aliases": ["Община Радомир"],
+    "lauId": "PER36"
+  },
+  {
+    "id": "geo:bg-municipality-ardino",
+    "labelBg": "Ардино",
+    "labelEn": "Ardino",
+    "oblastId": "geo:bg-oblast-kardzhali",
+    "aliases": ["Община Ардино"],
+    "lauId": "KRZ02"
+  },
+  {
+    "id": "geo:bg-municipality-dzhebel",
+    "labelBg": "Джебел",
+    "labelEn": "Dzhebel",
+    "oblastId": "geo:bg-oblast-kardzhali",
+    "aliases": ["Община Джебел"],
+    "lauId": "KRZ08"
+  },
+  {
+    "id": "geo:bg-municipality-kirkovo",
+    "labelBg": "Кирково",
+    "labelEn": "Kirkovo",
+    "oblastId": "geo:bg-oblast-kardzhali",
+    "aliases": ["Община Кирково"],
+    "lauId": "KRZ14"
+  },
+  {
+    "id": "geo:bg-municipality-krumovgrad",
+    "labelBg": "Крумовград",
+    "labelEn": "Krumovgrad",
+    "oblastId": "geo:bg-oblast-kardzhali",
+    "aliases": ["Община Крумовград"],
+    "lauId": "KRZ15"
+  },
+  {
+    "id": "geo:bg-municipality-kardzhali",
+    "labelBg": "Кърджали",
+    "labelEn": "Kardzhali",
+    "oblastId": "geo:bg-oblast-kardzhali",
+    "aliases": ["Община Кърджали"],
+    "lauId": "KRZ16"
+  },
+  {
+    "id": "geo:bg-municipality-momchilgrad",
+    "labelBg": "Момчилград",
+    "labelEn": "Momchilgrad",
+    "oblastId": "geo:bg-oblast-kardzhali",
+    "aliases": ["Община Момчилград"],
+    "lauId": "KRZ21"
+  },
+  {
+    "id": "geo:bg-municipality-gorna-malina",
+    "labelBg": "Горна Малина",
+    "labelEn": "Gorna Malina",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Горна Малина"],
+    "lauId": "SFO10"
+  },
+  {
+    "id": "geo:bg-municipality-dragoman",
+    "labelBg": "Драгоман",
+    "labelEn": "Dragoman",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Драгоман"],
+    "lauId": "SFO16"
+  },
+  {
+    "id": "geo:bg-municipality-elin-pelin",
+    "labelBg": "Елин Пелин",
+    "labelEn": "Elin Pelin",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Елин Пелин"],
+    "lauId": "SFO17"
+  },
+  {
+    "id": "geo:bg-municipality-septemvri",
+    "labelBg": "Септември",
+    "labelEn": "Septemvri",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Септември"],
+    "lauId": "PAZ29"
+  },
+  {
+    "id": "geo:bg-municipality-nova-zagora",
+    "labelBg": "Нова Загора",
+    "labelEn": "Nova Zagora",
+    "oblastId": "geo:bg-oblast-sliven",
+    "aliases": ["Община Нова Загора"],
+    "lauId": "SLV16"
+  },
+  {
+    "id": "geo:bg-municipality-sliven",
+    "labelBg": "Сливен",
+    "labelEn": "Sliven",
+    "oblastId": "geo:bg-oblast-sliven",
+    "aliases": ["Община Сливен"],
+    "lauId": "SLV20"
+  },
+  {
+    "id": "geo:bg-municipality-tvarditsa",
+    "labelBg": "Твърдица",
+    "labelEn": "Tvarditsa",
+    "oblastId": "geo:bg-oblast-sliven",
+    "aliases": ["Община Твърдица"],
+    "lauId": "SLV24"
+  },
+  {
+    "id": "geo:bg-municipality-banite",
+    "labelBg": "Баните",
+    "labelEn": "Banite",
+    "oblastId": "geo:bg-oblast-smolyan",
+    "aliases": ["Община Баните"],
+    "lauId": "SML02"
+  },
+  {
+    "id": "geo:bg-municipality-borino",
+    "labelBg": "Борино",
+    "labelEn": "Borino",
+    "oblastId": "geo:bg-oblast-smolyan",
+    "aliases": ["Община Борино"],
+    "lauId": "SML05"
+  },
+  {
+    "id": "geo:bg-municipality-tran",
+    "labelBg": "Трън",
+    "labelEn": "Tran",
+    "oblastId": "geo:bg-oblast-pernik",
+    "aliases": ["Община Трън"],
+    "lauId": "PER51"
+  },
+  {
+    "id": "geo:bg-municipality-belene",
+    "labelBg": "Белене",
+    "labelEn": "Belene",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Белене"],
+    "lauId": "PVN03"
+  },
+  {
+    "id": "geo:bg-municipality-gulyantsi",
+    "labelBg": "Гулянци",
+    "labelEn": "Gulyantsi",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Гулянци"],
+    "lauId": "PVN08"
+  },
+  {
+    "id": "geo:bg-municipality-dolna-mitropoliya",
+    "labelBg": "Долна Митрополия",
+    "labelEn": "Dolna Mitropoliya",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Долна Митрополия"],
+    "lauId": "PVN10"
+  },
+  {
+    "id": "geo:bg-municipality-dolni-dabnik",
+    "labelBg": "Долни Дъбник",
+    "labelEn": "Dolni Dabnik",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Долни Дъбник"],
+    "lauId": "PVN11"
+  },
+  {
+    "id": "geo:bg-municipality-levski",
+    "labelBg": "Левски",
+    "labelEn": "Levski",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Левски"],
+    "lauId": "PVN16"
+  },
+  {
+    "id": "geo:bg-municipality-etropole",
+    "labelBg": "Етрополе",
+    "labelEn": "Etropole",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Етрополе"],
+    "lauId": "SFO18"
+  },
+  {
+    "id": "geo:bg-municipality-ihtiman",
+    "labelBg": "Ихтиман",
+    "labelEn": "Ihtiman",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Ихтиман"],
+    "lauId": "SFO20"
+  },
+  {
+    "id": "geo:bg-municipality-koprivshtitsa",
+    "labelBg": "Копривщица",
+    "labelEn": "Koprivshtitsa",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Копривщица"],
+    "lauId": "SFO24"
+  },
+  {
+    "id": "geo:bg-municipality-kostenets",
+    "labelBg": "Костенец",
+    "labelEn": "Kostenets",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Костенец"],
+    "lauId": "SFO25"
+  },
+  {
+    "id": "geo:bg-municipality-roman",
+    "labelBg": "Роман",
+    "labelEn": "Roman",
+    "oblastId": "geo:bg-oblast-vratsa",
+    "aliases": ["Община Роман"],
+    "lauId": "VRC32"
+  },
+  {
+    "id": "geo:bg-municipality-hayredin",
+    "labelBg": "Хайредин",
+    "labelEn": "Hayredin",
+    "oblastId": "geo:bg-oblast-vratsa",
+    "aliases": ["Община Хайредин"],
+    "lauId": "VRC35"
+  },
+  {
+    "id": "geo:bg-municipality-veliko-tarnovo",
+    "labelBg": "Велико Търново",
+    "labelEn": "Veliko Tarnovo",
+    "oblastId": "geo:bg-oblast-veliko-tarnovo",
+    "aliases": ["Община Велико Търново"],
+    "lauId": "VTR04"
+  },
+  {
+    "id": "geo:bg-municipality-gorna-oryahovitsa",
+    "labelBg": "Горна Оряховица",
+    "labelEn": "Gorna Oryahovitsa",
+    "oblastId": "geo:bg-oblast-veliko-tarnovo",
+    "aliases": ["Община Горна Оряховица"],
+    "lauId": "VTR06"
+  },
+  {
+    "id": "geo:bg-municipality-chepelare",
+    "labelBg": "Чепеларе",
+    "labelEn": "Chepelare",
+    "oblastId": "geo:bg-oblast-smolyan",
+    "aliases": ["Община Чепеларе"],
+    "lauId": "SML38"
+  },
+  {
+    "id": "geo:bg-municipality-stolichna",
+    "labelBg": "Столична",
+    "labelEn": "Stolichna",
+    "oblastId": "geo:bg-oblast-sofia-grad",
+    "aliases": ["Община Столична"],
+    "lauId": "SOF46"
+  },
+  {
+    "id": "geo:bg-municipality-bratya-daskalovi",
+    "labelBg": "Братя Даскалови",
+    "labelEn": "Bratya Daskalovi",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Братя Даскалови"],
+    "lauId": "SZR04"
+  },
+  {
+    "id": "geo:bg-municipality-galabovo",
+    "labelBg": "Гълъбово",
+    "labelEn": "Galabovo",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Гълъбово"],
+    "lauId": "SZR07"
+  },
+  {
+    "id": "geo:bg-municipality-kazanlak",
+    "labelBg": "Казанлък",
+    "labelEn": "Kazanlak",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Казанлък"],
+    "lauId": "SZR12"
+  },
+  {
+    "id": "geo:bg-municipality-maglizh",
+    "labelBg": "Мъглиж",
+    "labelEn": "Maglizh",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Мъглиж"],
+    "lauId": "SZR22"
+  },
+  {
+    "id": "geo:bg-municipality-opan",
+    "labelBg": "Опан",
+    "labelEn": "Opan",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Опан"],
+    "lauId": "SZR23"
+  },
+  {
+    "id": "geo:bg-municipality-pavel-banya",
+    "labelBg": "Павел баня",
+    "labelEn": "Pavel Banya",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Павел баня"],
+    "lauId": "SZR24"
+  },
+  {
+    "id": "geo:bg-municipality-elena",
+    "labelBg": "Елена",
+    "labelEn": "Elena",
+    "oblastId": "geo:bg-oblast-veliko-tarnovo",
+    "aliases": ["Община Елена"],
+    "lauId": "VTR13"
+  },
+  {
+    "id": "geo:bg-municipality-zlataritsa",
+    "labelBg": "Златарица",
+    "labelEn": "Zlataritsa",
+    "oblastId": "geo:bg-oblast-veliko-tarnovo",
+    "aliases": ["Община Златарица"],
+    "lauId": "VTR14"
+  },
+  {
+    "id": "geo:bg-municipality-lyaskovets",
+    "labelBg": "Лясковец",
+    "labelEn": "Lyaskovets",
+    "oblastId": "geo:bg-oblast-veliko-tarnovo",
+    "aliases": ["Община Лясковец"],
+    "lauId": "VTR20"
+  },
+  {
+    "id": "geo:bg-municipality-pavlikeni",
+    "labelBg": "Павликени",
+    "labelEn": "Pavlikeni",
+    "oblastId": "geo:bg-oblast-veliko-tarnovo",
+    "aliases": ["Община Павликени"],
+    "lauId": "VTR22"
+  },
+  {
+    "id": "geo:bg-municipality-strelcha",
+    "labelBg": "Стрелча",
+    "labelEn": "Strelcha",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Стрелча"],
+    "lauId": "PAZ32"
+  },
+  {
+    "id": "geo:bg-municipality-asenovgrad",
+    "labelBg": "Асеновград",
+    "labelEn": "Asenovgrad",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Асеновград"],
+    "lauId": "PDV01"
+  },
+  {
+    "id": "geo:bg-municipality-brezovo",
+    "labelBg": "Брезово",
+    "labelEn": "Brezovo",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Брезово"],
+    "lauId": "PDV07"
+  },
+  {
+    "id": "geo:bg-municipality-chernoochene",
+    "labelBg": "Черноочене",
+    "labelEn": "Chernoochene",
+    "oblastId": "geo:bg-oblast-kardzhali",
+    "aliases": ["Община Черноочене"],
+    "lauId": "KRZ35"
+  },
+  {
+    "id": "geo:bg-municipality-letnitsa",
+    "labelBg": "Летница",
+    "labelEn": "Letnitsa",
+    "oblastId": "geo:bg-oblast-lovech",
+    "aliases": ["Община Летница"],
+    "lauId": "LOV17"
+  },
+  {
+    "id": "geo:bg-municipality-lovech",
+    "labelBg": "Ловеч",
+    "labelEn": "Lovech",
+    "oblastId": "geo:bg-oblast-lovech",
+    "aliases": ["Община Ловеч"],
+    "lauId": "LOV18"
+  },
+  {
+    "id": "geo:bg-municipality-lukovit",
+    "labelBg": "Луковит",
+    "labelEn": "Lukovit",
+    "oblastId": "geo:bg-oblast-lovech",
+    "aliases": ["Община Луковит"],
+    "lauId": "LOV19"
+  },
+  {
+    "id": "geo:bg-municipality-teteven",
+    "labelBg": "Тетевен",
+    "labelEn": "Teteven",
+    "oblastId": "geo:bg-oblast-lovech",
+    "aliases": ["Община Тетевен"],
+    "lauId": "LOV33"
+  },
+  {
+    "id": "geo:bg-municipality-kaloyanovo",
+    "labelBg": "Калояново",
+    "labelEn": "Kaloyanovo",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Калояново"],
+    "lauId": "PDV12"
+  },
+  {
+    "id": "geo:bg-municipality-karlovo",
+    "labelBg": "Карлово",
+    "labelEn": "Karlovo",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Карлово"],
+    "lauId": "PDV13"
+  },
+  {
+    "id": "geo:bg-municipality-nikopol",
+    "labelBg": "Никопол",
+    "labelEn": "Nikopol",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Никопол"],
+    "lauId": "PVN21"
+  },
+  {
+    "id": "geo:bg-municipality-iskar",
+    "labelBg": "Искър",
+    "labelEn": "Iskar",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Искър"],
+    "lauId": "PVN23"
+  },
+  {
+    "id": "geo:bg-municipality-pleven",
+    "labelBg": "Плевен",
+    "labelEn": "Pleven",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Плевен"],
+    "lauId": "PVN24"
+  },
+  {
+    "id": "geo:bg-municipality-pordim",
+    "labelBg": "Пордим",
+    "labelEn": "Pordim",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Пордим"],
+    "lauId": "PVN27"
+  },
+  {
+    "id": "geo:bg-municipality-cherven-bryag",
+    "labelBg": "Червен бряг",
+    "labelEn": "Cherven Bryag",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Червен бряг"],
+    "lauId": "PVN37"
+  },
+  {
+    "id": "geo:bg-municipality-knezha",
+    "labelBg": "Кнежа",
+    "labelEn": "Knezha",
+    "oblastId": "geo:bg-oblast-pleven",
+    "aliases": ["Община Кнежа"],
+    "lauId": "PVN39"
+  },
+  {
+    "id": "geo:bg-municipality-kostinbrod",
+    "labelBg": "Костинброд",
+    "labelEn": "Kostinbrod",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Костинброд"],
+    "lauId": "SFO26"
+  },
+  {
+    "id": "geo:bg-municipality-pravets",
+    "labelBg": "Правец",
+    "labelEn": "Pravets",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Правец"],
+    "lauId": "SFO34"
+  },
+  {
+    "id": "geo:bg-municipality-samokov",
+    "labelBg": "Самоков",
+    "labelEn": "Samokov",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Самоков"],
+    "lauId": "SFO39"
+  },
+  {
+    "id": "geo:bg-municipality-svoge",
+    "labelBg": "Своге",
+    "labelEn": "Svoge",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Своге"],
+    "lauId": "SFO43"
+  },
+  {
+    "id": "geo:bg-municipality-slivnitsa",
+    "labelBg": "Сливница",
+    "labelEn": "Slivnitsa",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Сливница"],
+    "lauId": "SFO45"
+  },
+  {
+    "id": "geo:bg-municipality-polski-trambesh",
+    "labelBg": "Полски Тръмбеш",
+    "labelEn": "Polski Trambesh",
+    "oblastId": "geo:bg-oblast-veliko-tarnovo",
+    "aliases": ["Община Полски Тръмбеш"],
+    "lauId": "VTR26"
+  },
+  {
+    "id": "geo:bg-municipality-svishtov",
+    "labelBg": "Свищов",
+    "labelEn": "Svishtov",
+    "oblastId": "geo:bg-oblast-veliko-tarnovo",
+    "aliases": ["Община Свищов"],
+    "lauId": "VTR28"
+  },
+  {
+    "id": "geo:bg-municipality-radnevo",
+    "labelBg": "Раднево",
+    "labelEn": "Radnevo",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Раднево"],
+    "lauId": "SZR27"
+  },
+  {
+    "id": "geo:bg-municipality-stara-zagora",
+    "labelBg": "Стара Загора",
+    "labelEn": "Stara Zagora",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Стара Загора"],
+    "lauId": "SZR31"
+  },
+  {
+    "id": "geo:bg-municipality-chirpan",
+    "labelBg": "Чирпан",
+    "labelEn": "Chirpan",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Чирпан"],
+    "lauId": "SZR36"
+  },
+  {
+    "id": "geo:bg-municipality-gurkovo",
+    "labelBg": "Гурково",
+    "labelEn": "Gurkovo",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Гурково"],
+    "lauId": "SZR37"
+  },
+  {
+    "id": "geo:bg-municipality-nikolaevo",
+    "labelBg": "Николаево",
+    "labelEn": "Nikolaevo",
+    "oblastId": "geo:bg-oblast-stara-zagora",
+    "aliases": ["Община Николаево"],
+    "lauId": "SZR38"
+  },
+  {
+    "id": "geo:bg-municipality-antonovo",
+    "labelBg": "Антоново",
+    "labelEn": "Antonovo",
+    "oblastId": "geo:bg-oblast-targovishte",
+    "aliases": ["Община Антоново"],
+    "lauId": "TGV02"
+  },
+  {
+    "id": "geo:bg-municipality-strazhitsa",
+    "labelBg": "Стражица",
+    "labelEn": "Strazhitsa",
+    "oblastId": "geo:bg-oblast-veliko-tarnovo",
+    "aliases": ["Община Стражица"],
+    "lauId": "VTR31"
+  },
+  {
+    "id": "geo:bg-municipality-suhindol",
+    "labelBg": "Сухиндол",
+    "labelEn": "Suhindol",
+    "oblastId": "geo:bg-oblast-veliko-tarnovo",
+    "aliases": ["Община Сухиндол"],
+    "lauId": "VTR32"
+  },
+  {
+    "id": "geo:bg-municipality-laki",
+    "labelBg": "Лъки",
+    "labelEn": "Laki",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Лъки"],
+    "lauId": "PDV15"
+  },
+  {
+    "id": "geo:bg-municipality-maritsa",
+    "labelBg": "Марица",
+    "labelEn": "Maritsa",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Марица"],
+    "lauId": "PDV17"
+  },
+  {
+    "id": "geo:bg-municipality-plovdiv",
+    "labelBg": "Пловдив",
+    "labelEn": "Plovdiv",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Пловдив"],
+    "lauId": "PDV22"
+  },
+  {
+    "id": "geo:bg-municipality-omurtag",
+    "labelBg": "Омуртаг",
+    "labelEn": "Omurtag",
+    "oblastId": "geo:bg-oblast-targovishte",
+    "aliases": ["Община Омуртаг"],
+    "lauId": "TGV22"
+  },
+  {
+    "id": "geo:bg-municipality-opaka",
+    "labelBg": "Опака",
+    "labelEn": "Opaka",
+    "oblastId": "geo:bg-oblast-targovishte",
+    "aliases": ["Община Опака"],
+    "lauId": "TGV23"
+  },
+  {
+    "id": "geo:bg-municipality-troyan",
+    "labelBg": "Троян",
+    "labelEn": "Troyan",
+    "oblastId": "geo:bg-oblast-lovech",
+    "aliases": ["Община Троян"],
+    "lauId": "LOV34"
+  },
+  {
+    "id": "geo:bg-municipality-ugarchin",
+    "labelBg": "Угърчин",
+    "labelEn": "Ugarchin",
+    "oblastId": "geo:bg-oblast-lovech",
+    "aliases": ["Община Угърчин"],
+    "lauId": "LOV36"
+  },
+  {
+    "id": "geo:bg-municipality-yablanitsa",
+    "labelBg": "Ябланица",
+    "labelEn": "Yablanitsa",
+    "oblastId": "geo:bg-oblast-lovech",
+    "aliases": ["Община Ябланица"],
+    "lauId": "LOV38"
+  },
+  {
+    "id": "geo:bg-municipality-berkovitsa",
+    "labelBg": "Берковица",
+    "labelEn": "Berkovitsa",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Берковица"],
+    "lauId": "MON02"
+  },
+  {
+    "id": "geo:bg-municipality-boychinovtsi",
+    "labelBg": "Бойчиновци",
+    "labelEn": "Boychinovtsi",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Бойчиновци"],
+    "lauId": "MON04"
+  },
+  {
+    "id": "geo:bg-municipality-brusartsi",
+    "labelBg": "Брусарци",
+    "labelEn": "Brusartsi",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Брусарци"],
+    "lauId": "MON07"
+  },
+  {
+    "id": "geo:bg-municipality-parvomay",
+    "labelBg": "Първомай",
+    "labelEn": "Parvomay",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Първомай"],
+    "lauId": "PDV23"
+  },
+  {
+    "id": "geo:bg-municipality-rakovski",
+    "labelBg": "Раковски",
+    "labelEn": "Rakovski",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Раковски"],
+    "lauId": "PDV25"
+  },
+  {
+    "id": "geo:bg-municipality-rodopi",
+    "labelBg": "Родопи",
+    "labelEn": "Rodopi",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Родопи"],
+    "lauId": "PDV26"
+  },
+  {
+    "id": "geo:bg-municipality-zavet",
+    "labelBg": "Завет",
+    "labelEn": "Zavet",
+    "oblastId": "geo:bg-oblast-razgrad",
+    "aliases": ["Община Завет"],
+    "lauId": "RAZ11"
+  },
+  {
+    "id": "geo:bg-municipality-isperih",
+    "labelBg": "Исперих",
+    "labelEn": "Isperih",
+    "oblastId": "geo:bg-oblast-razgrad",
+    "aliases": ["Община Исперих"],
+    "lauId": "RAZ14"
+  },
+  {
+    "id": "geo:bg-municipality-kubrat",
+    "labelBg": "Кубрат",
+    "labelEn": "Kubrat",
+    "oblastId": "geo:bg-oblast-razgrad",
+    "aliases": ["Община Кубрат"],
+    "lauId": "RAZ16"
+  },
+  {
+    "id": "geo:bg-municipality-loznitsa",
+    "labelBg": "Лозница",
+    "labelEn": "Loznitsa",
+    "oblastId": "geo:bg-oblast-razgrad",
+    "aliases": ["Община Лозница"],
+    "lauId": "RAZ17"
+  },
+  {
+    "id": "geo:bg-municipality-razgrad",
+    "labelBg": "Разград",
+    "labelEn": "Razgrad",
+    "oblastId": "geo:bg-oblast-razgrad",
+    "aliases": ["Община Разград"],
+    "lauId": "RAZ26"
+  },
+  {
+    "id": "geo:bg-municipality-samuil",
+    "labelBg": "Самуил",
+    "labelEn": "Samuil",
+    "oblastId": "geo:bg-oblast-razgrad",
+    "aliases": ["Община Самуил"],
+    "lauId": "RAZ29"
+  },
+  {
+    "id": "geo:bg-municipality-anton",
+    "labelBg": "Антон",
+    "labelEn": "Anton",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Антон"],
+    "lauId": "SFO54"
+  },
+  {
+    "id": "geo:bg-municipality-pirdop",
+    "labelBg": "Пирдоп",
+    "labelEn": "Pirdop",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Пирдоп"],
+    "lauId": "SFO55"
+  },
+  {
+    "id": "geo:bg-municipality-mirkovo",
+    "labelBg": "Мирково",
+    "labelEn": "Mirkovo",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Мирково"],
+    "lauId": "SFO56"
+  },
+  {
+    "id": "geo:bg-municipality-chavdar",
+    "labelBg": "Чавдар",
+    "labelEn": "Chavdar",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Чавдар"],
+    "lauId": "SFO57"
+  },
+  {
+    "id": "geo:bg-municipality-chelopech",
+    "labelBg": "Челопеч",
+    "labelEn": "Chelopech",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Челопеч"],
+    "lauId": "SFO58"
+  },
+  {
+    "id": "geo:bg-municipality-dolna-banya",
+    "labelBg": "Долна баня",
+    "labelEn": "Dolna Banya",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Долна баня"],
+    "lauId": "SFO59"
+  },
+  {
+    "id": "geo:bg-municipality-popovo",
+    "labelBg": "Попово",
+    "labelEn": "Popovo",
+    "oblastId": "geo:bg-oblast-targovishte",
+    "aliases": ["Община Попово"],
+    "lauId": "TGV24"
+  },
+  {
+    "id": "geo:bg-municipality-targovishte",
+    "labelBg": "Търговище",
+    "labelEn": "Targovishte",
+    "oblastId": "geo:bg-oblast-targovishte",
+    "aliases": ["Община Търговище"],
+    "lauId": "TGV35"
+  },
+  {
+    "id": "geo:bg-municipality-avren",
+    "labelBg": "Аврен",
+    "labelEn": "Avren",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Аврен"],
+    "lauId": "VAR01"
+  },
+  {
+    "id": "geo:bg-municipality-aksakovo",
+    "labelBg": "Аксаково",
+    "labelEn": "Aksakovo",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Аксаково"],
+    "lauId": "VAR02"
+  },
+  {
+    "id": "geo:bg-municipality-sadovo",
+    "labelBg": "Садово",
+    "labelEn": "Sadovo",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Садово"],
+    "lauId": "PDV28"
+  },
+  {
+    "id": "geo:bg-municipality-saedinenie",
+    "labelBg": "Съединение",
+    "labelEn": "Saedinenie",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Съединение"],
+    "lauId": "PDV33"
+  },
+  {
+    "id": "geo:bg-municipality-hisarya",
+    "labelBg": "Хисаря",
+    "labelEn": "Hisarya",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Хисаря"],
+    "lauId": "PDV37"
+  },
+  {
+    "id": "geo:bg-municipality-elhovo",
+    "labelBg": "Елхово",
+    "labelEn": "Elhovo",
+    "oblastId": "geo:bg-oblast-yambol",
+    "aliases": ["Община Елхово"],
+    "lauId": "JAM07"
+  },
+  {
+    "id": "geo:bg-municipality-straldzha",
+    "labelBg": "Стралджа",
+    "labelEn": "Straldzha",
+    "oblastId": "geo:bg-oblast-yambol",
+    "aliases": ["Община Стралджа"],
+    "lauId": "JAM22"
+  },
+  {
+    "id": "geo:bg-municipality-tundzha",
+    "labelBg": "Тунджа",
+    "labelEn": "Tundzha",
+    "oblastId": "geo:bg-oblast-yambol",
+    "aliases": ["Община Тунджа"],
+    "lauId": "JAM25"
+  },
+  {
+    "id": "geo:bg-municipality-yambol",
+    "labelBg": "Ямбол",
+    "labelEn": "Yambol",
+    "oblastId": "geo:bg-oblast-yambol",
+    "aliases": ["Община Ямбол"],
+    "lauId": "JAM26"
+  },
+  {
+    "id": "geo:bg-municipality-beloslav",
+    "labelBg": "Белослав",
+    "labelEn": "Beloslav",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Белослав"],
+    "lauId": "VAR04"
+  },
+  {
+    "id": "geo:bg-municipality-byala",
+    "labelBg": "Бяла",
+    "labelEn": "Byala",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Бяла"],
+    "lauId": "VAR05"
+  },
+  {
+    "id": "geo:bg-municipality-varna",
+    "labelBg": "Варна",
+    "labelEn": "Varna",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Варна"],
+    "lauId": "VAR06"
+  },
+  {
+    "id": "geo:bg-municipality-vetrino",
+    "labelBg": "Ветрино",
+    "labelEn": "Vetrino",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Ветрино"],
+    "lauId": "VAR08"
+  },
+  {
+    "id": "geo:bg-municipality-valchi-dol",
+    "labelBg": "Вълчи дол",
+    "labelEn": "Valchi Dol",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Вълчи дол"],
+    "lauId": "VAR09"
+  },
+  {
+    "id": "geo:bg-municipality-valchedram",
+    "labelBg": "Вълчедръм",
+    "labelEn": "Valchedram",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Вълчедръм"],
+    "lauId": "MON11"
+  },
+  {
+    "id": "geo:bg-municipality-varshets",
+    "labelBg": "Вършец",
+    "labelEn": "Varshets",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Вършец"],
+    "lauId": "MON12"
+  },
+  {
+    "id": "geo:bg-municipality-georgi-damyanovo",
+    "labelBg": "Георги Дамяново",
+    "labelEn": "Georgi Damyanovo",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Георги Дамяново"],
+    "lauId": "MON14"
+  },
+  {
+    "id": "geo:bg-municipality-lom",
+    "labelBg": "Лом",
+    "labelEn": "Lom",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Лом"],
+    "lauId": "MON24"
+  },
+  {
+    "id": "geo:bg-municipality-krichim",
+    "labelBg": "Кричим",
+    "labelEn": "Krichim",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Кричим"],
+    "lauId": "PDV39"
+  },
+  {
+    "id": "geo:bg-municipality-perushtitsa",
+    "labelBg": "Перущица",
+    "labelEn": "Perushtitsa",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Перущица"],
+    "lauId": "PDV40"
+  },
+  {
+    "id": "geo:bg-municipality-stamboliyski",
+    "labelBg": "Стамболийски",
+    "labelEn": "Stamboliyski",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Стамболийски"],
+    "lauId": "PDV41"
+  },
+  {
+    "id": "geo:bg-municipality-bobov-dol",
+    "labelBg": "Бобов дол",
+    "labelEn": "Bobov Dol",
+    "oblastId": "geo:bg-oblast-kyustendil",
+    "aliases": ["Община Бобов дол"],
+    "lauId": "KNL04"
+  },
+  {
+    "id": "geo:bg-municipality-boboshevo",
+    "labelBg": "Бобошево",
+    "labelEn": "Boboshevo",
+    "oblastId": "geo:bg-oblast-kyustendil",
+    "aliases": ["Община Бобошево"],
+    "lauId": "KNL05"
+  },
+  {
+    "id": "geo:bg-municipality-kocherinovo",
+    "labelBg": "Кочериново",
+    "labelEn": "Kocherinovo",
+    "oblastId": "geo:bg-oblast-kyustendil",
+    "aliases": ["Община Кочериново"],
+    "lauId": "KNL27"
+  },
+  {
+    "id": "geo:bg-municipality-tsar-kaloyan",
+    "labelBg": "Цар Калоян",
+    "labelEn": "Tsar Kaloyan",
+    "oblastId": "geo:bg-oblast-razgrad",
+    "aliases": ["Община Цар Калоян"],
+    "lauId": "RAZ36"
+  },
+  {
+    "id": "geo:bg-municipality-borovo",
+    "labelBg": "Борово",
+    "labelEn": "Borovo",
+    "oblastId": "geo:bg-oblast-ruse",
+    "aliases": ["Община Борово"],
+    "lauId": "RSE03"
+  },
+  {
+    "id": "geo:bg-municipality-byala-1",
+    "labelBg": "Бяла",
+    "labelEn": "Byala",
+    "oblastId": "geo:bg-oblast-ruse",
+    "aliases": ["Община Бяла"],
+    "lauId": "RSE04"
+  },
+  {
+    "id": "geo:bg-municipality-vetovo",
+    "labelBg": "Ветово",
+    "labelEn": "Vetovo",
+    "oblastId": "geo:bg-oblast-ruse",
+    "aliases": ["Община Ветово"],
+    "lauId": "RSE05"
+  },
+  {
+    "id": "geo:bg-municipality-dve-mogili",
+    "labelBg": "Две могили",
+    "labelEn": "Dve Mogili",
+    "oblastId": "geo:bg-oblast-ruse",
+    "aliases": ["Община Две могили"],
+    "lauId": "RSE08"
+  },
+  {
+    "id": "geo:bg-municipality-montana",
+    "labelBg": "Монтана",
+    "labelEn": "Montana",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Монтана"],
+    "lauId": "MON29"
+  },
+  {
+    "id": "geo:bg-municipality-venets",
+    "labelBg": "Венец",
+    "labelEn": "Venets",
+    "oblastId": "geo:bg-oblast-shumen",
+    "aliases": ["Община Венец"],
+    "lauId": "SHU07"
+  },
+  {
+    "id": "geo:bg-municipality-hitrino",
+    "labelBg": "Хитрино",
+    "labelEn": "Hitrino",
+    "oblastId": "geo:bg-oblast-shumen",
+    "aliases": ["Община Хитрино"],
+    "lauId": "SHU11"
+  },
+  {
+    "id": "geo:bg-municipality-kaolinovo",
+    "labelBg": "Каолиново",
+    "labelEn": "Kaolinovo",
+    "oblastId": "geo:bg-oblast-shumen",
+    "aliases": ["Община Каолиново"],
+    "lauId": "SHU18"
+  },
+  {
+    "id": "geo:bg-municipality-kaspichan",
+    "labelBg": "Каспичан",
+    "labelEn": "Kaspichan",
+    "oblastId": "geo:bg-oblast-shumen",
+    "aliases": ["Община Каспичан"],
+    "lauId": "SHU19"
+  },
+  {
+    "id": "geo:bg-municipality-nikola-kozlevo",
+    "labelBg": "Никола Козлево",
+    "labelEn": "Nikola Kozlevo",
+    "oblastId": "geo:bg-oblast-shumen",
+    "aliases": ["Община Никола Козлево"],
+    "lauId": "SHU21"
+  },
+  {
+    "id": "geo:bg-municipality-aytos",
+    "labelBg": "Айтос",
+    "labelEn": "Aytos",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Айтос"],
+    "lauId": "BGS01"
+  },
+  {
+    "id": "geo:bg-municipality-burgas",
+    "labelBg": "Бургас",
+    "labelEn": "Burgas",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Бургас"],
+    "lauId": "BGS04"
+  },
+  {
+    "id": "geo:bg-municipality-ivanovo",
+    "labelBg": "Иваново",
+    "labelEn": "Ivanovo",
+    "oblastId": "geo:bg-oblast-ruse",
+    "aliases": ["Община Иваново"],
+    "lauId": "RSE13"
+  },
+  {
+    "id": "geo:bg-municipality-dolni-chiflik",
+    "labelBg": "Долни чифлик",
+    "labelEn": "Dolni Chiflik",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Долни чифлик"],
+    "lauId": "VAR13"
+  },
+  {
+    "id": "geo:bg-municipality-devnya",
+    "labelBg": "Девня",
+    "labelEn": "Devnya",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Девня"],
+    "lauId": "VAR14"
+  },
+  {
+    "id": "geo:bg-municipality-kuklen",
+    "labelBg": "Куклен",
+    "labelEn": "Kuklen",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Куклен"],
+    "lauId": "PDV42"
+  },
+  {
+    "id": "geo:bg-municipality-sopot",
+    "labelBg": "Сопот",
+    "labelEn": "Sopot",
+    "oblastId": "geo:bg-oblast-plovdiv",
+    "aliases": ["Община Сопот"],
+    "lauId": "PDV43"
+  },
+  {
+    "id": "geo:bg-municipality-kyustendil",
+    "labelBg": "Кюстендил",
+    "labelEn": "Kyustendil",
+    "oblastId": "geo:bg-oblast-kyustendil",
+    "aliases": ["Община Кюстендил"],
+    "lauId": "KNL29"
+  },
+  {
+    "id": "geo:bg-municipality-nevestino",
+    "labelBg": "Невестино",
+    "labelEn": "Nevestino",
+    "oblastId": "geo:bg-oblast-kyustendil",
+    "aliases": ["Община Невестино"],
+    "lauId": "KNL31"
+  },
+  {
+    "id": "geo:bg-municipality-dalgopol",
+    "labelBg": "Дългопол",
+    "labelEn": "Dalgopol",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Дългопол"],
+    "lauId": "VAR16"
+  },
+  {
+    "id": "geo:bg-municipality-provadiya",
+    "labelBg": "Провадия",
+    "labelEn": "Provadiya",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Провадия"],
+    "lauId": "VAR24"
+  },
+  {
+    "id": "geo:bg-municipality-suvorovo",
+    "labelBg": "Суворово",
+    "labelEn": "Suvorovo",
+    "oblastId": "geo:bg-oblast-varna",
+    "aliases": ["Община Суворово"],
+    "lauId": "VAR26"
+  },
+  {
+    "id": "geo:bg-municipality-belogradchik",
+    "labelBg": "Белоградчик",
+    "labelEn": "Belogradchik",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Белоградчик"],
+    "lauId": "VID01"
+  },
+  {
+    "id": "geo:bg-municipality-boynitsa",
+    "labelBg": "Бойница",
+    "labelEn": "Boynitsa",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Бойница"],
+    "lauId": "VID03"
+  },
+  {
+    "id": "geo:bg-municipality-bregovo",
+    "labelBg": "Брегово",
+    "labelEn": "Bregovo",
+    "oblastId": "geo:bg-oblast-vidin",
+    "aliases": ["Община Брегово"],
+    "lauId": "VID06"
+  },
+  {
+    "id": "geo:bg-municipality-chiprovtsi",
+    "labelBg": "Чипровци",
+    "labelEn": "Chiprovtsi",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Чипровци"],
+    "lauId": "MON36"
+  },
+  {
+    "id": "geo:bg-municipality-yakimovo",
+    "labelBg": "Якимово",
+    "labelEn": "Yakimovo",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Якимово"],
+    "lauId": "MON38"
+  },
+  {
+    "id": "geo:bg-municipality-batak",
+    "labelBg": "Батак",
+    "labelEn": "Batak",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Батак"],
+    "lauId": "PAZ03"
+  },
+  {
+    "id": "geo:bg-municipality-dulovo",
+    "labelBg": "Дулово",
+    "labelEn": "Dulovo",
+    "oblastId": "geo:bg-oblast-silistra",
+    "aliases": ["Община Дулово"],
+    "lauId": "SLS10"
+  },
+  {
+    "id": "geo:bg-municipality-breznik",
+    "labelBg": "Брезник",
+    "labelEn": "Breznik",
+    "oblastId": "geo:bg-oblast-pernik",
+    "aliases": ["Община Брезник"],
+    "lauId": "PER08"
+  },
+  {
+    "id": "geo:bg-municipality-zemen",
+    "labelBg": "Земен",
+    "labelEn": "Zemen",
+    "oblastId": "geo:bg-oblast-pernik",
+    "aliases": ["Община Земен"],
+    "lauId": "PER19"
+  },
+  {
+    "id": "geo:bg-municipality-kovachevtsi",
+    "labelBg": "Ковачевци",
+    "labelEn": "Kovachevtsi",
+    "oblastId": "geo:bg-oblast-pernik",
+    "aliases": ["Община Ковачевци"],
+    "lauId": "PER22"
+  },
+  {
+    "id": "geo:bg-municipality-pernik",
+    "labelBg": "Перник",
+    "labelEn": "Pernik",
+    "oblastId": "geo:bg-oblast-pernik",
+    "aliases": ["Община Перник"],
+    "lauId": "PER32"
+  },
+  {
+    "id": "geo:bg-municipality-rila",
+    "labelBg": "Рила",
+    "labelEn": "Rila",
+    "oblastId": "geo:bg-oblast-kyustendil",
+    "aliases": ["Община Рила"],
+    "lauId": "KNL38"
+  },
+  {
+    "id": "geo:bg-municipality-sapareva-banya",
+    "labelBg": "Сапарева баня",
+    "labelEn": "Sapareva Banya",
+    "oblastId": "geo:bg-oblast-kyustendil",
+    "aliases": ["Община Сапарева баня"],
+    "lauId": "KNL41"
+  },
+  {
+    "id": "geo:bg-municipality-dupnitsa",
+    "labelBg": "Дупница",
+    "labelEn": "Dupnitsa",
+    "oblastId": "geo:bg-oblast-kyustendil",
+    "aliases": ["Община Дупница"],
+    "lauId": "KNL48"
+  },
+  {
+    "id": "geo:bg-municipality-treklyano",
+    "labelBg": "Трекляно",
+    "labelEn": "Treklyano",
+    "oblastId": "geo:bg-oblast-kyustendil",
+    "aliases": ["Община Трекляно"],
+    "lauId": "KNL50"
+  },
+  {
+    "id": "geo:bg-municipality-ruse",
+    "labelBg": "Русе",
+    "labelEn": "Ruse",
+    "oblastId": "geo:bg-oblast-ruse",
+    "aliases": ["Община Русе"],
+    "lauId": "RSE27"
+  },
+  {
+    "id": "geo:bg-municipality-slivo-pole",
+    "labelBg": "Сливо поле",
+    "labelEn": "Slivo Pole",
+    "oblastId": "geo:bg-oblast-ruse",
+    "aliases": ["Община Сливо поле"],
+    "lauId": "RSE33"
+  },
+  {
+    "id": "geo:bg-municipality-tsenovo",
+    "labelBg": "Ценово",
+    "labelEn": "Tsenovo",
+    "oblastId": "geo:bg-oblast-ruse",
+    "aliases": ["Община Ценово"],
+    "lauId": "RSE37"
+  },
+  {
+    "id": "geo:bg-municipality-bozhurishte",
+    "labelBg": "Божурище",
+    "labelEn": "Bozhurishte",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Божурище"],
+    "lauId": "SFO06"
+  },
+  {
+    "id": "geo:bg-municipality-bratsigovo",
+    "labelBg": "Брацигово",
+    "labelEn": "Bratsigovo",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Брацигово"],
+    "lauId": "PAZ06"
+  },
+  {
+    "id": "geo:bg-municipality-velingrad",
+    "labelBg": "Велинград",
+    "labelEn": "Velingrad",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Велинград"],
+    "lauId": "PAZ08"
+  },
+  {
+    "id": "geo:bg-municipality-novi-pazar",
+    "labelBg": "Нови пазар",
+    "labelEn": "Novi Pazar",
+    "oblastId": "geo:bg-oblast-shumen",
+    "aliases": ["Община Нови пазар"],
+    "lauId": "SHU22"
+  },
+  {
+    "id": "geo:bg-municipality-veliki-preslav",
+    "labelBg": "Велики Преслав",
+    "labelEn": "Veliki Preslav",
+    "oblastId": "geo:bg-oblast-shumen",
+    "aliases": ["Община Велики Преслав"],
+    "lauId": "SHU23"
+  },
+  {
+    "id": "geo:bg-municipality-smyadovo",
+    "labelBg": "Смядово",
+    "labelEn": "Smyadovo",
+    "oblastId": "geo:bg-oblast-shumen",
+    "aliases": ["Община Смядово"],
+    "lauId": "SHU25"
+  },
+  {
+    "id": "geo:bg-municipality-shumen",
+    "labelBg": "Шумен",
+    "labelEn": "Shumen",
+    "oblastId": "geo:bg-oblast-shumen",
+    "aliases": ["Община Шумен"],
+    "lauId": "SHU30"
+  },
+  {
+    "id": "geo:bg-municipality-alfatar",
+    "labelBg": "Алфатар",
+    "labelEn": "Alfatar",
+    "oblastId": "geo:bg-oblast-silistra",
+    "aliases": ["Община Алфатар"],
+    "lauId": "SLS01"
+  },
+  {
+    "id": "geo:bg-municipality-kaynardzha",
+    "labelBg": "Кайнарджа",
+    "labelEn": "Kaynardzha",
+    "oblastId": "geo:bg-oblast-silistra",
+    "aliases": ["Община Кайнарджа"],
+    "lauId": "SLS15"
+  },
+  {
+    "id": "geo:bg-municipality-silistra",
+    "labelBg": "Силистра",
+    "labelEn": "Silistra",
+    "oblastId": "geo:bg-oblast-silistra",
+    "aliases": ["Община Силистра"],
+    "lauId": "SLS31"
+  },
+  {
+    "id": "geo:bg-municipality-sitovo",
+    "labelBg": "Ситово",
+    "labelEn": "Sitovo",
+    "oblastId": "geo:bg-oblast-silistra",
+    "aliases": ["Община Ситово"],
+    "lauId": "SLS32"
+  },
+  {
+    "id": "geo:bg-municipality-tutrakan",
+    "labelBg": "Тутракан",
+    "labelEn": "Tutrakan",
+    "oblastId": "geo:bg-oblast-silistra",
+    "aliases": ["Община Тутракан"],
+    "lauId": "SLS34"
+  },
+  {
+    "id": "geo:bg-municipality-kotel",
+    "labelBg": "Котел",
+    "labelEn": "Kotel",
+    "oblastId": "geo:bg-oblast-sliven",
+    "aliases": ["Община Котел"],
+    "lauId": "SLV11"
+  },
+  {
+    "id": "geo:bg-municipality-botevgrad",
+    "labelBg": "Ботевград",
+    "labelEn": "Botevgrad",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Ботевград"],
+    "lauId": "SFO07"
+  },
+  {
+    "id": "geo:bg-municipality-godech",
+    "labelBg": "Годеч",
+    "labelEn": "Godech",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Годеч"],
+    "lauId": "SFO09"
+  },
+  {
+    "id": "geo:bg-municipality-glavinitsa",
+    "labelBg": "Главиница",
+    "labelEn": "Glavinitsa",
+    "oblastId": "geo:bg-oblast-silistra",
+    "aliases": ["Община Главиница"],
+    "lauId": "SLS07"
+  },
+  {
+    "id": "geo:bg-municipality-borovan",
+    "labelBg": "Борован",
+    "labelEn": "Borovan",
+    "oblastId": "geo:bg-oblast-vratsa",
+    "aliases": ["Община Борован"],
+    "lauId": "VRC05"
+  },
+  {
+    "id": "geo:bg-municipality-byala-slatina",
+    "labelBg": "Бяла Слатина",
+    "labelEn": "Byala Slatina",
+    "oblastId": "geo:bg-oblast-vratsa",
+    "aliases": ["Община Бяла Слатина"],
+    "lauId": "VRC08"
+  },
+  {
+    "id": "geo:bg-municipality-vratsa",
+    "labelBg": "Враца",
+    "labelEn": "Vratsa",
+    "oblastId": "geo:bg-oblast-vratsa",
+    "aliases": ["Община Враца"],
+    "lauId": "VRC10"
+  },
+  {
+    "id": "geo:bg-municipality-kozloduy",
+    "labelBg": "Козлодуй",
+    "labelEn": "Kozloduy",
+    "oblastId": "geo:bg-oblast-vratsa",
+    "aliases": ["Община Козлодуй"],
+    "lauId": "VRC20"
+  },
+  {
+    "id": "geo:bg-municipality-krivodol",
+    "labelBg": "Криводол",
+    "labelEn": "Krivodol",
+    "oblastId": "geo:bg-oblast-vratsa",
+    "aliases": ["Община Криводол"],
+    "lauId": "VRC21"
+  },
+  {
+    "id": "geo:bg-municipality-mezdra",
+    "labelBg": "Мездра",
+    "labelEn": "Mezdra",
+    "oblastId": "geo:bg-oblast-vratsa",
+    "aliases": ["Община Мездра"],
+    "lauId": "VRC27"
+  },
+  {
+    "id": "geo:bg-municipality-sandanski",
+    "labelBg": "Сандански",
+    "labelEn": "Sandanski",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Сандански"],
+    "lauId": "BLG40"
+  },
+  {
+    "id": "geo:bg-municipality-simitli",
+    "labelBg": "Симитли",
+    "labelEn": "Simitli",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Симитли"],
+    "lauId": "BLG44"
+  },
+  {
+    "id": "geo:bg-municipality-strumyani",
+    "labelBg": "Струмяни",
+    "labelEn": "Strumyani",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Струмяни"],
+    "lauId": "BLG49"
+  },
+  {
+    "id": "geo:bg-municipality-hadzhidimovo",
+    "labelBg": "Хаджидимово",
+    "labelEn": "Hadzhidimovo",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Хаджидимово"],
+    "lauId": "BLG52"
+  },
+  {
+    "id": "geo:bg-municipality-yakoruda",
+    "labelBg": "Якоруда",
+    "labelEn": "Yakoruda",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Якоруда"],
+    "lauId": "BLG53"
+  },
+  {
+    "id": "geo:bg-municipality-balchik",
+    "labelBg": "Балчик",
+    "labelEn": "Balchik",
+    "oblastId": "geo:bg-oblast-dobrich",
+    "aliases": ["Община Балчик"],
+    "lauId": "DOB03"
+  },
+  {
+    "id": "geo:bg-municipality-general-toshevo",
+    "labelBg": "Генерал Тошево",
+    "labelEn": "General Toshevo",
+    "oblastId": "geo:bg-oblast-dobrich",
+    "aliases": ["Община Генерал Тошево"],
+    "lauId": "DOB12"
+  },
+  {
+    "id": "geo:bg-municipality-dobrich-selska",
+    "labelBg": "Добрич-селска",
+    "labelEn": "Dobrich-Selska",
+    "oblastId": "geo:bg-oblast-dobrich",
+    "aliases": ["Община Добрич-селска"],
+    "lauId": "DOB15"
+  },
+  {
+    "id": "geo:bg-municipality-kavarna",
+    "labelBg": "Каварна",
+    "labelEn": "Kavarna",
+    "oblastId": "geo:bg-oblast-dobrich",
+    "aliases": ["Община Каварна"],
+    "lauId": "DOB17"
+  },
+  {
+    "id": "geo:bg-municipality-krushari",
+    "labelBg": "Крушари",
+    "labelEn": "Krushari",
+    "oblastId": "geo:bg-oblast-dobrich",
+    "aliases": ["Община Крушари"],
+    "lauId": "DOB20"
+  },
+  {
+    "id": "geo:bg-municipality-tervel",
+    "labelBg": "Тервел",
+    "labelEn": "Tervel",
+    "oblastId": "geo:bg-oblast-dobrich",
+    "aliases": ["Община Тервел"],
+    "lauId": "DOB27"
+  },
+  {
+    "id": "geo:bg-municipality-sredets",
+    "labelBg": "Средец",
+    "labelEn": "Sredets",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Средец"],
+    "lauId": "BGS06"
+  },
+  {
+    "id": "geo:bg-municipality-kameno",
+    "labelBg": "Камено",
+    "labelEn": "Kameno",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Камено"],
+    "lauId": "BGS08"
+  },
+  {
+    "id": "geo:bg-municipality-karnobat",
+    "labelBg": "Карнобат",
+    "labelEn": "Karnobat",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Карнобат"],
+    "lauId": "BGS09"
+  },
+  {
+    "id": "geo:bg-municipality-malko-tarnovo",
+    "labelBg": "Малко Търново",
+    "labelEn": "Malko Tarnovo",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Малко Търново"],
+    "lauId": "BGS12"
+  },
+  {
+    "id": "geo:bg-municipality-tsarevo",
+    "labelBg": "Царево",
+    "labelEn": "Tsarevo",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Царево"],
+    "lauId": "BGS13"
+  },
+  {
+    "id": "geo:bg-municipality-nesebar",
+    "labelBg": "Несебър",
+    "labelEn": "Nesebar",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Несебър"],
+    "lauId": "BGS15"
+  },
+  {
+    "id": "geo:bg-municipality-pomorie",
+    "labelBg": "Поморие",
+    "labelEn": "Pomorie",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Поморие"],
+    "lauId": "BGS17"
+  },
+  {
+    "id": "geo:bg-municipality-gabrovo",
+    "labelBg": "Габрово",
+    "labelEn": "Gabrovo",
+    "oblastId": "geo:bg-oblast-gabrovo",
+    "aliases": ["Община Габрово"],
+    "lauId": "GAB05"
+  },
+  {
+    "id": "geo:bg-municipality-dryanovo",
+    "labelBg": "Дряново",
+    "labelEn": "Dryanovo",
+    "oblastId": "geo:bg-oblast-gabrovo",
+    "aliases": ["Община Дряново"],
+    "lauId": "GAB12"
+  },
+  {
+    "id": "geo:bg-municipality-sevlievo",
+    "labelBg": "Севлиево",
+    "labelEn": "Sevlievo",
+    "oblastId": "geo:bg-oblast-gabrovo",
+    "aliases": ["Община Севлиево"],
+    "lauId": "GAB29"
+  },
+  {
+    "id": "geo:bg-municipality-tryavna",
+    "labelBg": "Трявна",
+    "labelEn": "Tryavna",
+    "oblastId": "geo:bg-oblast-gabrovo",
+    "aliases": ["Община Трявна"],
+    "lauId": "GAB35"
+  },
+  {
+    "id": "geo:bg-municipality-ruen",
+    "labelBg": "Руен",
+    "labelEn": "Ruen",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Руен"],
+    "lauId": "BGS18"
+  },
+  {
+    "id": "geo:bg-municipality-sozopol",
+    "labelBg": "Созопол",
+    "labelEn": "Sozopol",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Созопол"],
+    "lauId": "BGS21"
+  },
+  {
+    "id": "geo:bg-municipality-sungurlare",
+    "labelBg": "Сунгурларе",
+    "labelEn": "Sungurlare",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Сунгурларе"],
+    "lauId": "BGS23"
+  },
+  {
+    "id": "geo:bg-municipality-primorsko",
+    "labelBg": "Приморско",
+    "labelEn": "Primorsko",
+    "oblastId": "geo:bg-oblast-burgas",
+    "aliases": ["Община Приморско"],
+    "lauId": "BGS27"
+  },
+  {
+    "id": "geo:bg-municipality-bansko",
+    "labelBg": "Банско",
+    "labelEn": "Bansko",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Банско"],
+    "lauId": "BLG01"
+  },
+  {
+    "id": "geo:bg-municipality-belitsa",
+    "labelBg": "Белица",
+    "labelEn": "Belitsa",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Белица"],
+    "lauId": "BLG02"
+  },
+  {
+    "id": "geo:bg-municipality-dimitrovgrad",
+    "labelBg": "Димитровград",
+    "labelEn": "Dimitrovgrad",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Димитровград"],
+    "lauId": "HKV09"
+  },
+  {
+    "id": "geo:bg-municipality-ivaylovgrad",
+    "labelBg": "Ивайловград",
+    "labelEn": "Ivaylovgrad",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Ивайловград"],
+    "lauId": "HKV11"
+  },
+  {
+    "id": "geo:bg-municipality-lyubimets",
+    "labelBg": "Любимец",
+    "labelEn": "Lyubimets",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Любимец"],
+    "lauId": "HKV17"
+  },
+  {
+    "id": "geo:bg-municipality-madzharovo",
+    "labelBg": "Маджарово",
+    "labelEn": "Madzharovo",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Маджарово"],
+    "lauId": "HKV18"
+  },
+  {
+    "id": "geo:bg-municipality-mineralni-bani",
+    "labelBg": "Минерални бани",
+    "labelEn": "Mineralni Bani",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Минерални бани"],
+    "lauId": "HKV19"
+  },
+  {
+    "id": "geo:bg-municipality-svilengrad",
+    "labelBg": "Свиленград",
+    "labelEn": "Svilengrad",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Свиленград"],
+    "lauId": "HKV28"
+  },
+  {
+    "id": "geo:bg-municipality-blagoevgrad",
+    "labelBg": "Благоевград",
+    "labelEn": "Blagoevgrad",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Благоевград"],
+    "lauId": "BLG03"
+  },
+  {
+    "id": "geo:bg-municipality-gotse-delchev",
+    "labelBg": "Гоце Делчев",
+    "labelEn": "Gotse Delchev",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Гоце Делчев"],
+    "lauId": "BLG11"
+  },
+  {
+    "id": "geo:bg-municipality-garmen",
+    "labelBg": "Гърмен",
+    "labelEn": "Garmen",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Гърмен"],
+    "lauId": "BLG13"
+  },
+  {
+    "id": "geo:bg-municipality-kresna",
+    "labelBg": "Кресна",
+    "labelEn": "Kresna",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Кресна"],
+    "lauId": "BLG28"
+  },
+  {
+    "id": "geo:bg-municipality-petrich",
+    "labelBg": "Петрич",
+    "labelEn": "Petrich",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Петрич"],
+    "lauId": "BLG33"
+  },
+  {
+    "id": "geo:bg-municipality-razlog",
+    "labelBg": "Разлог",
+    "labelEn": "Razlog",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Разлог"],
+    "lauId": "BLG37"
+  },
+  {
+    "id": "geo:bg-municipality-haskovo",
+    "labelBg": "Хасково",
+    "labelEn": "Haskovo",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Хасково"],
+    "lauId": "HKV34"
+  },
+  {
+    "id": "geo:bg-municipality-bolyarovo",
+    "labelBg": "Болярово",
+    "labelEn": "Bolyarovo",
+    "oblastId": "geo:bg-oblast-yambol",
+    "aliases": ["Община Болярово"],
+    "lauId": "JAM03"
+  },
+  {
+    "id": "geo:bg-municipality-simeonovgrad",
+    "labelBg": "Симеоновград",
+    "labelEn": "Simeonovgrad",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Симеоновград"],
+    "lauId": "HKV29"
+  },
+  {
+    "id": "geo:bg-municipality-stambolovo",
+    "labelBg": "Стамболово",
+    "labelEn": "Stambolovo",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Стамболово"],
+    "lauId": "HKV30"
+  },
+  {
+    "id": "geo:bg-municipality-topolovgrad",
+    "labelBg": "Тополовград",
+    "labelEn": "Topolovgrad",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Тополовград"],
+    "lauId": "HKV32"
+  },
+  {
+    "id": "geo:bg-municipality-harmanli",
+    "labelBg": "Харманли",
+    "labelEn": "Harmanli",
+    "oblastId": "geo:bg-oblast-haskovo",
+    "aliases": ["Община Харманли"],
+    "lauId": "HKV33"
+  },
+  {
+    "id": "geo:bg-municipality-lesichovo",
+    "labelBg": "Лесичово",
+    "labelEn": "Lesichovo",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Лесичово"],
+    "lauId": "PAZ14"
+  },
+  {
+    "id": "geo:bg-municipality-devin",
+    "labelBg": "Девин",
+    "labelEn": "Devin",
+    "oblastId": "geo:bg-oblast-smolyan",
+    "aliases": ["Община Девин"],
+    "lauId": "SML09"
+  },
+  {
+    "id": "geo:bg-municipality-sarnitsa",
+    "labelBg": "Сърница",
+    "labelEn": "Sarnitsa",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Сърница"],
+    "lauId": "PAZ39"
+  },
+  {
+    "id": "geo:bg-municipality-apriltsi",
+    "labelBg": "Априлци",
+    "labelEn": "Apriltsi",
+    "oblastId": "geo:bg-oblast-lovech",
+    "aliases": ["Община Априлци"],
+    "lauId": "LOV02"
+  },
+  {
+    "id": "geo:bg-municipality-zlatitsa",
+    "labelBg": "Златица",
+    "labelEn": "Zlatitsa",
+    "oblastId": "geo:bg-oblast-sofia",
+    "aliases": ["Община Златица"],
+    "lauId": "SFO47"
+  },
+  {
+    "id": "geo:bg-municipality-medkovets",
+    "labelBg": "Медковец",
+    "labelEn": "Medkovets",
+    "oblastId": "geo:bg-oblast-montana",
+    "aliases": ["Община Медковец"],
+    "lauId": "MON26"
+  },
+  {
+    "id": "geo:bg-municipality-varbitsa",
+    "labelBg": "Върбица",
+    "labelEn": "Varbitsa",
+    "oblastId": "geo:bg-oblast-shumen",
+    "aliases": ["Община Върбица"],
+    "lauId": "SHU10"
+  },
+  {
+    "id": "geo:bg-municipality-belovo",
+    "labelBg": "Белово",
+    "labelEn": "Belovo",
+    "oblastId": "geo:bg-oblast-pazardzhik",
+    "aliases": ["Община Белово"],
+    "lauId": "PAZ04"
+  },
+  {
+    "id": "geo:bg-municipality-satovcha",
+    "labelBg": "Сатовча",
+    "labelEn": "Satovcha",
+    "oblastId": "geo:bg-oblast-blagoevgrad",
+    "aliases": ["Община Сатовча"],
+    "lauId": "BLG42"
+  },
+  {
+    "id": "geo:bg-municipality-dobrich",
+    "labelBg": "Добрич",
+    "labelEn": "Dobrich",
+    "oblastId": "geo:bg-oblast-dobrich",
+    "aliases": ["Община Добрич"],
+    "lauId": "DOB28"
+  },
+  {
+    "id": "geo:bg-municipality-shabla",
+    "labelBg": "Шабла",
+    "labelEn": "Shabla",
+    "oblastId": "geo:bg-oblast-dobrich",
+    "aliases": ["Община Шабла"],
+    "lauId": "DOB29"
+  }
+]

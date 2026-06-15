@@ -51,6 +51,7 @@ export function aggregateRegions(input: AggregateRegionsInput): RegionSummary[] 
       datasetCount,
       hasData: datasetCount > 0,
       maxConfidence: bucket ? bucket.maxConfidence : 0,
+      oblastEntityId: entry.oblastEntityId ?? null,
     };
   });
 }
