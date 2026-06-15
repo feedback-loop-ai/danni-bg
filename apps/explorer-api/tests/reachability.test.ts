@@ -56,9 +56,9 @@ describe('dataset reachability (SC-009)', () => {
     const ents = new EntitiesRepo(db);
     ents.upsert({ id: 'geo:bg-oblast-ruse', kind: 'geographic_unit', canonicalLabelBg: 'Русе' });
     ents.upsert({
-      id: 'geo:bg-municipality-sofia',
+      id: 'geo:bg-municipality-stolichna',
       kind: 'geographic_unit',
-      canonicalLabelBg: 'Столична община',
+      canonicalLabelBg: 'Столична',
     });
     ents.attach({
       datasetId: 'geo1',
@@ -68,7 +68,7 @@ describe('dataset reachability (SC-009)', () => {
     });
     ents.attach({
       datasetId: 'geo2',
-      entityId: 'geo:bg-municipality-sofia',
+      entityId: 'geo:bg-municipality-stolichna',
       extractor: 'g',
       confidence: 0.8,
     });

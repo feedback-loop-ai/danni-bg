@@ -16,7 +16,9 @@ import { ResourcesRepo } from '../../src/store/repos/resources.ts';
 import { TranslationsRepo } from '../../src/store/repos/translations.ts';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const SOFIA_ENTITY = 'geo:bg-municipality-sofia';
+// Sofia's municipality is "Столична община"; its canonical id in the LAU-derived
+// gazetteer is `geo:bg-municipality-stolichna` (labelBg "Столична").
+const SOFIA_ENTITY = 'geo:bg-municipality-stolichna';
 
 interface Seed {
   id: string;
