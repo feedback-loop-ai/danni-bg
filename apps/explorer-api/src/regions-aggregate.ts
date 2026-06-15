@@ -1,7 +1,11 @@
 // Pure RegionSummary aggregation (T022). Buckets in-scope datasets by the administrative unit they
 // link to and emits one RegionSummary per crosswalk entry. Counts are de-duplicated across
-// multi-region datasets (each dataset contributes at most once per region). Kept DB-free so the
-// aggregation rules are unit-tested in isolation; the route layer supplies the inputs.
+// multi-region datasets (each dataset contributes at most once per region). An optional `rollup`
+// maps a dataset's link to the region ids it should count toward — used to roll municipalities up
+// into their parent oblast, so an oblast's count is the de-duplicated union of datasets linked
+// directly to it AND datasets linked to any of its municipalities (a dataset linked to both the
+// oblast and one of its municipalities is still counted once). Kept DB-free so the aggregation
+// rules are unit-tested in isolation; the route layer supplies the inputs.
 
 import type { GeoCrosswalkEntry } from '../../../packages/geo-boundaries/src/schema.ts';
 import type { RegionSummary } from './schemas.ts';
@@ -21,20 +25,36 @@ export interface AggregateRegionsInput {
   entries: GeoCrosswalkEntry[];
   labelOf: (entityId: string) => RegionLabel | undefined;
   datasets: DatasetGeoLink[];
+  /**
+   * Maps a dataset link's entity id to the region ids (at the requested level) it counts toward.
+   * Defaults to identity (flat: each link counts for its own entity). Supply a roll-up mapping —
+   * e.g. municipality → parent oblast — to aggregate hierarchically.
+   */
+  rollup?: (linkEntityId: string) => string[];
 }
 
 export function aggregateRegions(input: AggregateRegionsInput): RegionSummary[] {
-  // Index links by region entity id once: entityId -> array of { datasetId, confidence }.
+  const rollup = input.rollup ?? ((id) => [id]);
+  // Index by target region id once. Per dataset we first collapse its links to the strongest
+  // confidence per target, so a dataset that reaches the same region via several links (e.g. the
+  // oblast directly AND one of its municipalities) is counted once, at its strongest placement.
   const byRegion = new Map<string, { datasetIds: Set<string>; maxConfidence: number }>();
   for (const ds of input.datasets) {
+    const perTarget = new Map<string, number>();
     for (const link of ds.geoLinks) {
-      let bucket = byRegion.get(link.entityId);
+      for (const target of rollup(link.entityId)) {
+        const prev = perTarget.get(target);
+        if (prev === undefined || link.confidence > prev) perTarget.set(target, link.confidence);
+      }
+    }
+    for (const [target, confidence] of perTarget) {
+      let bucket = byRegion.get(target);
       if (!bucket) {
         bucket = { datasetIds: new Set(), maxConfidence: 0 };
-        byRegion.set(link.entityId, bucket);
+        byRegion.set(target, bucket);
       }
       bucket.datasetIds.add(ds.datasetId);
-      if (link.confidence > bucket.maxConfidence) bucket.maxConfidence = link.confidence;
+      if (confidence > bucket.maxConfidence) bucket.maxConfidence = confidence;
     }
   }
 
