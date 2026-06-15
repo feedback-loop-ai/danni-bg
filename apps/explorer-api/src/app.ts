@@ -15,7 +15,7 @@ import {
   serverDefaultFromEnv,
 } from './chat/providers.ts';
 import { SessionStore } from './chat/session.ts';
-import { hasGeo, liteConfidenceFor, liteToPointer, matchesFiltersLite } from './dataset-lite.ts';
+import { type DatasetLite, hasGeo, liteToPointer, matchesFiltersLite } from './dataset-lite.ts';
 import type { ReadBridge } from './read-bridge.ts';
 import { viewToPointer } from './read-bridge.ts';
 import { aggregateRegions } from './regions-aggregate.ts';
@@ -113,6 +113,19 @@ export function createApp(ctx: AppContext): Hono {
   const scopedLites = (f: FilterState) =>
     ctx.bridge.listLite().filter((l) => matchesFiltersLite(l, f));
 
+  // Maps a dataset's geo-link entity id to the region ids (at `level`) it should count toward.
+  // Municipalities roll up into their parent oblast so an oblast aggregates its own direct links
+  // plus all of its municipalities' (de-duplicated per dataset in the aggregator / belongs check).
+  const rollupTargets =
+    (level: 'oblast' | 'municipality') =>
+    (linkEntityId: string): string[] => {
+      const e = ctx.crosswalk.entry(linkEntityId);
+      if (!e) return [];
+      if (level === 'municipality') return e.level === 'municipality' ? [e.entityId] : [];
+      if (e.level === 'oblast') return [e.entityId];
+      return e.oblastEntityId ? [e.oblastEntityId] : [];
+    };
+
   app.get('/api/datasets', async (c) => {
     const f = parseFilters(new URL(c.req.url).searchParams);
     const q = new URL(c.req.url).searchParams;
@@ -191,6 +204,7 @@ export function createApp(ctx: AppContext): Hono {
       entries: ctx.crosswalk.entriesForLevel(level),
       labelOf: (id) => LABELS.get(id),
       datasets,
+      rollup: rollupTargets(level),
     });
     return c.json({ regions });
   });
@@ -206,7 +220,18 @@ export function createApp(ctx: AppContext): Hono {
     const f = parseFilters(q);
     const limit = clampInt(q.get('limit'), 50, 200);
     const offset = clampInt(q.get('offset'), 0, Number.MAX_SAFE_INTEGER);
-    const lites = scopedLites(f).filter((l) => l.geoLinks.some((g) => g.entityId === entityId));
+    // Roll-up–aware membership: an oblast also contains datasets linked to any of its
+    // municipalities. `belongsConfidence` returns the strongest confidence among the links that
+    // roll up to this region, or -1 when none — so the list + count match the aggregate exactly,
+    // and each dataset is included at most once.
+    const targetsFor = rollupTargets(entry.level);
+    const belongsConfidence = (l: DatasetLite): number => {
+      let best = -1;
+      for (const g of l.geoLinks)
+        if (targetsFor(g.entityId).includes(entityId) && g.confidence > best) best = g.confidence;
+      return best;
+    };
+    const lites = scopedLites(f).filter((l) => belongsConfidence(l) >= 0);
     const label = LABELS.get(entityId);
     const region: RegionSummary = {
       entityId,
@@ -216,7 +241,7 @@ export function createApp(ctx: AppContext): Hono {
       boundaryFeatureId: entry.boundaryFeatureId,
       datasetCount: lites.length,
       hasData: lites.length > 0,
-      maxConfidence: lites.reduce((m, l) => Math.max(m, liteConfidenceFor(l, entityId)), 0),
+      maxConfidence: lites.reduce((m, l) => Math.max(m, belongsConfidence(l)), 0),
     };
     const datasets = lites.slice(offset, offset + limit).map((l) => liteToPointer(l));
     return c.json({ region, datasets, total: lites.length });

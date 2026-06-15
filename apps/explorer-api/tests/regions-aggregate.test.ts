@@ -12,6 +12,16 @@ const oblast = (slug: string, iso: string): GeoCrosswalkEntry => ({
   oblastEntityId: null,
 });
 
+const muni = (slug: string, oblastSlug: string): GeoCrosswalkEntry => ({
+  entityId: `geo:bg-municipality-${slug}`,
+  level: 'municipality',
+  boundaryFeatureId: `lau-${slug}`,
+  ekatte: null,
+  lauId: slug.toUpperCase(),
+  iso3166_2: null,
+  oblastEntityId: `geo:bg-oblast-${oblastSlug}`,
+});
+
 const labels: Record<string, { labelBg: string; labelEn: string | null }> = {
   'geo:bg-oblast-sofia-grad': { labelBg: 'София (град)', labelEn: 'Sofia (city)' },
   'geo:bg-oblast-ruse': { labelBg: 'Русе', labelEn: 'Ruse' },
@@ -52,6 +62,57 @@ describe('aggregateRegions', () => {
     expect(out.every((r) => r.datasetCount === 0 && !r.hasData && r.maxConfidence === 0)).toBe(
       true,
     );
+  });
+
+  it('rolls municipalities up into their parent oblast, de-duplicated per dataset', () => {
+    // Crosswalk: oblast Sofia-grad with two municipalities; oblast Ruse with one.
+    const xwalk = [
+      muni('stolichna', 'sofia-grad'),
+      muni('bozhurishte', 'sofia-grad'),
+      muni('ruse-grad', 'ruse'),
+    ];
+    const oblastOf = new Map(xwalk.map((m) => [m.entityId, m.oblastEntityId as string]));
+    // Roll-up mirrors the route: oblast links → themselves; municipality links → parent oblast.
+    const rollup = (id: string): string[] => {
+      if (id.startsWith('geo:bg-oblast-')) return [id];
+      const parent = oblastOf.get(id);
+      return parent ? [parent] : [];
+    };
+
+    const out = aggregateRegions({
+      entries,
+      labelOf,
+      rollup,
+      datasets: [
+        // Tagged to a municipality only → rolls up to its oblast.
+        {
+          datasetId: 'd1',
+          geoLinks: [{ entityId: 'geo:bg-municipality-bozhurishte', confidence: 0.7 }],
+        },
+        // Tagged to BOTH the oblast directly AND one of its municipalities → counted once,
+        // at the stronger confidence (0.95).
+        {
+          datasetId: 'd2',
+          geoLinks: [
+            { entityId: 'geo:bg-oblast-sofia-grad', confidence: 0.95 },
+            { entityId: 'geo:bg-municipality-stolichna', confidence: 0.75 },
+          ],
+        },
+        // A different oblast's municipality.
+        {
+          datasetId: 'd3',
+          geoLinks: [{ entityId: 'geo:bg-municipality-ruse-grad', confidence: 0.6 }],
+        },
+      ],
+    });
+
+    const sofia = out.find((r) => r.entityId === 'geo:bg-oblast-sofia-grad');
+    const ruse = out.find((r) => r.entityId === 'geo:bg-oblast-ruse');
+    // d1 + d2 → 2 distinct datasets under Sofia-grad (d2 not double-counted).
+    expect(sofia?.datasetCount).toBe(2);
+    expect(sofia?.maxConfidence).toBe(0.95);
+    expect(ruse?.datasetCount).toBe(1);
+    expect(ruse?.maxConfidence).toBe(0.6);
   });
 
   it('falls back to the entity id when no label is known', () => {
