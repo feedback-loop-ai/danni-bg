@@ -19,6 +19,12 @@ export const chatRequestSchema = z
     sessionId: z.string().nullable().optional(),
     message: z.string().min(1),
     scope: scopeDescriptorSchema.optional(),
+    /**
+     * Datasets to ground the turn in (their rows are injected as context) WITHOUT restricting tool
+     * scope — e.g. the dataset currently open in the reader. Distinct from `scope.datasetIds`, which
+     * is a hard focus that also narrows what tools may read.
+     */
+    groundingDatasetIds: z.array(z.string()).optional(),
     provider: providerConfigSchema,
   })
   .strict();
@@ -44,11 +50,17 @@ export function chatHandler(deps: ChatRouteDeps) {
     const conv = deps.sessions.getOrCreate(body.sessionId ?? null);
     deps.sessions.append(conv.sessionId, { role: 'user', content: body.message });
     const scope = body.scope ?? {};
-    // Sticky grounding: ground this turn in the explicitly-focused dataset(s) if given, otherwise in
-    // whatever the conversation is already about (set from the previous turn). Drives row injection
-    // only — not tool scope — so follow-ups stay grounded without narrowing the tools.
+    // Grounding precedence (row injection only — never narrows tool scope): an explicit hard focus
+    // (scope.datasetIds) > the dataset open in the reader (body.groundingDatasetIds) > whatever the
+    // conversation was already about (sticky session context from the previous turn).
     const explicitFocus = scope.datasetIds ?? [];
-    const groundingDatasetIds = explicitFocus.length > 0 ? explicitFocus : conv.contextDatasetIds;
+    const readerFocus = body.groundingDatasetIds ?? [];
+    const groundingDatasetIds =
+      explicitFocus.length > 0
+        ? explicitFocus
+        : readerFocus.length > 0
+          ? readerFocus
+          : conv.contextDatasetIds;
 
     // Resolve the model up front so provider misconfig becomes a clean error event (FR-023).
     let model: LanguageModel;
@@ -111,10 +123,15 @@ export function chatHandler(deps: ChatRouteDeps) {
           citations: result.citations,
           anchors: result.anchors,
         });
-        // Carry grounding forward: the conversation is now "about" the explicitly-focused dataset(s)
-        // if any, else whatever this answer cited — so the next follow-up re-injects their rows.
+        // Carry grounding forward: the conversation is now "about" the hard-focused dataset(s) if any,
+        // else the dataset open in the reader, else whatever this answer cited — so the next
+        // follow-up re-injects their rows.
         const nextContext =
-          explicitFocus.length > 0 ? explicitFocus : result.citations.map((cite) => cite.datasetId);
+          explicitFocus.length > 0
+            ? explicitFocus
+            : readerFocus.length > 0
+              ? readerFocus
+              : result.citations.map((cite) => cite.datasetId);
         if (nextContext.length > 0) {
           deps.sessions.setContext(conv.sessionId, nextContext.slice(0, MAX_CONTEXT_DATASETS));
         }
