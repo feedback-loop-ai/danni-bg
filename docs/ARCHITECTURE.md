@@ -115,6 +115,13 @@ CuratorRegistry.select(resource)  ── sniff(magic bytes + extension + declare
 
 **Writes:** `store/curated/<dataset>/<resource>/data.ndjson|data.json|data.xml|data.txt` + `schema.json`, and a `curated_artifacts` row. Re-curation is idempotent per `curator_version`.
 
+**`danni curate --entities-only`** re-runs only the enrich half — extractors + cross-dataset linking +
+entity-relation materialisation (§3) — and skips resource parsing into curated artifacts *and*
+translation. It is the low-memory path for re-running after an extractor or gazetteer change: a full
+re-curate parses every resource and can exhaust memory on the ~16k-resource mirror (~20 GB RSS), whereas
+the entities-only pass runs against metadata at ~140 MB. All writes are PK-guarded upserts, so it is
+idempotent over the whole catalog.
+
 ### 3 · Enrich — runs inside the curate orchestrator (`src/enrich`)
 
 Attaches machine-meaning to each dataset.
@@ -122,12 +129,32 @@ Attaches machine-meaning to each dataset.
 ```
 Extractors (src/enrich/extractors)         registerEntities → entities + dataset_entities
   ckan_organization · ckan_groups · ckan_tags
-  bg_admin_gazetteer (28 oblasts + municipalities)   linkDatasets → dataset_links
-  iso8601_dates · bg_month_dates · column_name_heuristics   (shared entity, undirected)
-
+  bg_admin_gazetteer (28 oblasts + 265 municipalities)   linkDatasets → dataset_links
+  bg_admin_publisher (place from publisher org name)     (shared entity, undirected)
+  iso8601_dates · bg_month_dates · column_name_heuristics
+                                            registerEntityRelations → entity_relations
+                                              (part_of: municipality → oblast, from gazetteer)
 Translators (src/enrich/translators)       translate → translations
   local-marianmt (stub) │ hosted-api        BG preserved byte-exact; EN added with provenance/confidence
 ```
+
+**Publisher-derived geo recall** (`bg_admin_publisher`, `BgAdminPublisherExtractor`). The
+in-content gazetteer extractor only places a dataset that *names* a place in its own title/description,
+which left a large class of municipal/regional datasets (whose own metadata names no place) in the
+non-georeferenced "national" bucket. `BgAdminPublisherExtractor` recovers them by matching the dataset's
+**publisher organisation name** (`Община Бургас` → Бургас) against the same gazetteer, at a deliberately
+lower confidence (canonical `0.7` / alias `0.6`, below the in-content `0.95` / `0.75`) so an in-content
+placement always wins for the same `(dataset, entity)` pair (its `dataset_entities` PK includes the
+extractor, so both rows coexist and the read layer takes the max). This shrank the national bucket from
+~57% to ~15% of the mirror (georeferenced datasets ~43% → ~85%).
+
+**Entity knowledge graph** (`registerEntityRelations`, `src/enrich/relations`). Beyond dataset→entity
+edges (`dataset_entities`), curate also materialises **typed directed entity↔entity relations** into
+`entity_relations` — triples `(subject_id, predicate, object_id)` with `confidence` and `evidence_json`
+provenance, drawn from a controlled predicate vocabulary (`src/enrich/relations/vocabulary.ts`; currently
+just `part_of`, asserting municipality → parent-oblast from the bundled gazetteer). The roll-up,
+drill-down and `GET /api/entities/:id` read all build on this graph; it is also re-asserted by
+`curate --entities-only` (§2).
 
 `linkDatasets` is pairwise per shared entity (O(n²)), so generic "stop-word" entities (the tags
 `регистър`/`община`, a whole oblast, a ministry publisher) would form huge cliques — one tag on 4k
@@ -183,6 +210,7 @@ Migrations are applied in numeric order by a checksum-guarded runner (`src/store
 | `004_index_failures` | `index_failures` | batch embedding |
 | `005_index_state` | `index_state` (incremental fingerprints) | incremental indexing |
 | `006_crawl_checkpoint` | `crawl_checkpoint` | resumable crawl |
+| `007_entity_relations` | `entity_relations` (typed `(subject, predicate, object)` triples + confidence/provenance) | entity knowledge graph |
 
 Vectors are stored as plain BLOBs; similarity search is in-process cosine + Reciprocal-Rank-Fusion with FTS5 (the `sqlite-vec` virtual-table path is a future upgrade for large corpora).
 
@@ -217,7 +245,7 @@ Vectors are stored as plain BLOBs; similarity search is in-process cosine + Reci
 | `config/` | zod-validated config schema + loader |
 | `crawler/` | portal clients (ckan/egov), `PortalHttp`, rate-limit/backoff/robots, discovery, capture, checkpoint/resume |
 | `curate/` | curator registry + per-format curators, sniff/encoding/normalize/schema, curate orchestrator |
-| `enrich/` | entity extractors, gazetteer, entity registrar, cross-dataset linker, translators |
+| `enrich/` | entity extractors (incl. publisher-derived geo), gazetteer, entity registrar, cross-dataset linker, `relations/` (entity-relation materialiser + predicate vocabulary), translators |
 | `index/` | FTS + vector builders, embedders, incremental `index_state`, `batch-embed`, query/search |
 | `manifest/` | `beginSyncRun`, run records, lock, manifest writer |
 | `store/` | `bun:sqlite` open/migrate + typed repos per table |
@@ -232,24 +260,25 @@ The pipeline *builds* the store; the serving layer *only reads* it through one s
 
 - **MCP server** — `danni mcp`, read-only tools for LLM agents (see [CONSUMERS.md](./CONSUMERS.md)).
 - **Web explorer** — `apps/explorer-api` (Bun + Hono) + `apps/explorer-web` (React 19 + Vite +
-  Tailwind/shadcn): an interactive Bulgaria choropleth with filters, dataset drilldown, and a
+  Tailwind/shadcn): an interactive Bulgaria choropleth (headless-renderable SVG, drill-down to
+  municipalities) with faceted filters, a dataset document-reader + grid drilldown, and a
   grounded chat assistant.
 
 ```mermaid
 flowchart TD
-  subgraph WEB["apps/explorer-web — React 19 · Vite · MapLibre · Tailwind/shadcn"]
-    MAP["Choropleth map<br/>oblast fill by dataset count"]
-    FILT["Filters + facets"]
-    DRILL["Dataset drilldown<br/>table · bar/line charts · download"]
+  subgraph WEB["apps/explorer-web — React 19 · Vite · SVG D3-geo · Tailwind/shadcn"]
+    MAP["SVG choropleth<br/>28 oblasts → click drills into<br/>265 municipalities (zoom + back)"]
+    FILT["Faceted filters + chips"]
+    DRILL["Dataset drilldown<br/>document reader · sortable/filterable grid"]
     CHATUI["Chat panel (SSE)"]
   end
   subgraph API["apps/explorer-api — Bun · Hono · Zod"]
-    REST["/api/datasets · /api/regions<br/>/api/national · /api/facets"]
+    REST["/api/datasets · /api/regions(level) · /api/regions/:id<br/>/api/national · /api/facets · /api/entities/:id"]
     CHATR["/api/chat — SSE stream"]
   end
-  BRIDGE["ReadBridge<br/>listLite (bulk projection) · view/detail · rows · search"]
+  BRIDGE["ReadBridge<br/>listLite (bulk projection) · view/detail · rows (sort/filter) · search · partOfParents"]
   RUN["chat turn<br/>tool loop ⟷ RAG fallback · grounding · caps"]
-  GEO["packages/geo-boundaries<br/>GISCO NUTS3 → oblast crosswalk"]
+  GEO["packages/geo-boundaries<br/>NUTS3 oblasts + LAU municipalities crosswalk"]
   DB[("store/danni.sqlite")]
   LLM[("LLM provider<br/>OpenAI-compatible / Anthropic")]
 
@@ -268,8 +297,29 @@ flowchart TD
 national / facets) project the store through `ReadBridge.listLite()`: four set-based SQL queries +
 an in-memory join, instead of materializing a full `CuratedDatasetView` (≈7 queries) per dataset. At
 the full ~12k-dataset mirror the per-dataset fan-out cost tens of GB of RAM and timed out; the bulk
-projection answers in tens of milliseconds at ~140 MB. Detail / rows endpoints stay keyed by id.
-`regions-aggregate.ts` buckets each dataset's `geo:` entities into per-oblast choropleth counts.
+projection answers in tens of milliseconds at ~140 MB. Detail / rows endpoints stay keyed by id; the
+`rows` endpoint does **server-side sort + per-column (Excel-style) substring filters** over the whole
+resource (scanning up to a cap, with a `gridTruncated` flag) so the grid is not limited to the loaded
+page.
+
+**Hierarchical region roll-up.** `regions-aggregate.ts` no longer just buckets per-oblast counts: at
+`level=oblast` an oblast's `datasetCount` is the **de-duplicated union of its own and its municipalities'**
+datasets (a dataset linked to both a municipality and its oblast counts once, at its strongest
+confidence). The municipality→oblast parent is resolved from the `part_of` knowledge graph via
+`ReadBridge.partOfParents()` (reading `entity_relations`), not from geometry. `GET /api/regions` takes
+`level=oblast|municipality`; each `RegionSummary` carries `oblastEntityId` (null for an oblast, the parent
+oblast for a municipality), which drives the map drill-down. `GET /api/regions/:id` paginates the datasets
+behind a region. `GET /api/entities/:id` returns one entity's graph node — canonical labels, outgoing /
+incoming `entity_relations` edges (resolved far-end nodes), and its direct dataset count.
+
+**Map — SVG choropleth + drill-down.** The map is a **headless-renderable SVG D3-geo choropleth**
+(`apps/explorer-web/src/map/MapView.tsx` + pure `lib/projection.ts` / `lib/map-scale.ts`), not a
+WebGL/MapLibre canvas. It renders the 28 oblasts; clicking one **zooms into its 265-municipality
+geometry** (real Eurostat GISCO LAU 2021 boundaries, Cyrillic names) as a sub-choropleth, with a back
+action to the national view. The dataset drilldown opens a **centre document reader** plus the sortable /
+filterable grid; the old bar/line charts were removed entirely. A **faceted search panel** (`GET
+/api/facets`) returns conjunctive tag/publisher facet counts and freshness buckets over the current
+filter scope, surfaced as removable chips with a debounced search box.
 
 **Chat — grounded, provider-agnostic.** `/api/chat` streams Server-Sent Events. A turn runs a tool
 loop over four **scope-filtered** tools — `mirrorSearch`, `mirrorEntitySearch`, `mirrorInfo`,
@@ -283,13 +333,25 @@ large artifact can't overflow the model's window; `maxOutputTokens` reserves out
 runs up to 16 steps so a multi-dataset question (comparing periods/regions) can read one figure per
 dataset before answering.
 
+Answers are **grounded by construction**. The actual rows of the focused/open dataset(s) are pre-read
+and injected as a ground-truth context block (a "ДАННИ" block) in **both** the tool loop and the RAG
+fallback, listing each resource's exact column names and `resourceId`. Grounding has three precedence
+tiers: an explicit hard `scope.datasetIds` focus (injects rows *and* narrows tool scope); a
+`groundingDatasetIds` reader focus that **auto-focuses the dataset open in the reader** (injects its rows
+*without* narrowing tool scope); and **sticky session grounding** (`contextDatasetIds`, capped and
+session-only) that carries the dataset(s) a conversation is about forward across turns, re-injected every
+turn. Recent turns are replayed within a char budget. A grounded dataset is always cited even with no tool
+call, `readResource` gained a **value-filter** (exact column → case-insensitive substring, matching over
+the whole resource) and exposes column names, and a hardened **anti-fabrication** system prompt forbids
+stating any specific value not present verbatim in a tool result or the injected context.
+
 **Serving-layer source map**
 
 | Path | Responsibility |
 |---|---|
-| `apps/explorer-api/` | Hono routes, `ReadBridge` (`listLite`/view/detail/rows/search), regions aggregation, scope filtering, chat (`chat/{run,tools,grounding,cap,scope,session,providers}.ts`), SSE |
-| `apps/explorer-web/` | React SPA: MapLibre map, filters, dataset list/detail + chart/table drilldown, chat panel, Zustand store, pure `lib/*` (choropleth/pagination/table/chart/markdown/theme) |
-| `packages/geo-boundaries/` | GISCO NUTS3 → 28-oblast crosswalk + geometry, joined by Cyrillic name |
+| `apps/explorer-api/` | Hono routes (incl. `/api/regions(:id)` roll-up + `/api/entities/:id` graph + `/api/facets`), `ReadBridge` (`listLite`/view/detail/rows-with-sort+filter/search/`partOfParents`), `regions-aggregate.ts`, scope filtering, chat (`chat/{run,tools,grounding,cap,scope,session,providers}.ts`), SSE |
+| `apps/explorer-web/` | React SPA: SVG D3-geo choropleth with oblast→municipality drill-down, faceted filters + chips, dataset document-reader + sortable/filterable grid, chat panel, Zustand store, pure `lib/*` (projection/map-scale/choropleth/pagination/grid/markdown/theme) |
+| `packages/geo-boundaries/` | crosswalk + geometry: 28 NUTS3 oblasts + 265 LAU (2021) municipalities, joined by official code (ISO-3166-2 / EKATTE / LAU id) |
 | `src/read/`, `src/index/query.ts` | the shared read substrate both front doors consume |
 
 ---
@@ -306,4 +368,8 @@ dataset before answering.
 *See `specs/001-egov-data-sync/` for the foundational spec/plan; `specs/002-006-*/` for the
 incremental-index, batch-embedding, crawl-resume, pipeline-hardening, and embedding-eval features;
 `specs/007-read-api-mcp/` for the read API + MCP server; and `specs/008-map-data-explorer/` for the
-map explorer + chat (each with its clarified spec, plan, contracts, and task list).*
+map explorer + chat. The explorer has since evolved across `specs/009-017-*/`: document-reader + grid
+(009), grid filters + facets (010), new-conversation chat (011), SVG map drill-down (012), hierarchical
+region roll-up (013), publisher-derived geo recall (014), entities-only curate (015), the entity
+knowledge graph (016), and grounded-chat hardening (017) — each with its clarified spec, plan, contracts,
+and task list.*
