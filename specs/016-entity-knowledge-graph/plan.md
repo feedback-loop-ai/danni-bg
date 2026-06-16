@@ -23,7 +23,7 @@ Promote the implicit administrative hierarchy (municipality → parent oblast), 
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.* Evaluated against constitution v1.1.0.
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.* Evaluated against constitution v1.1.1.
 
 - **I. AI-Native Development**: PASS. The graph is a derived, machine-parseable read layer. Edges carry confidence + `evidence_json` provenance (`{ source: "gazetteer" }`); the read path does not invent or alter authoritative portal data — it materialises a hierarchy from the bundled gazetteer and surfaces it as a typed node. `GET /api/entities/:id` returns a structured node; unknown ids return the structured `not_found` envelope (no generic errors).
 - **III. Contract-First API Design**: PASS. The new endpoint's response contract is captured as `contracts/entities-get.md` (+ `entities-get.schema.json`) and reuses the shared error envelope/codes from 008's HTTP API contract. The predicate set is a closed, documented vocabulary — relations map to a defined administrative concept, not an invented abstraction.

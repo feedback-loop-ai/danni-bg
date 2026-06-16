@@ -116,6 +116,7 @@ Single-project layout (inherited from 001, plan.md §Project Structure):
 
 - [P] tasks = different files, no dependencies on incomplete tasks in the same phase.
 - [Story] label maps each task to its user story (US1–US3).
+- Task-ID ordering: T009 was added under Phase 3 (US3) after T008 already existed; T008 is the final validation gate in Phase 4 and is intentionally executed LAST despite its lower number. Numeric order ≠ execution order — follow the phase grouping.
 - Tests are MANDATORY and TDD (Constitution VII/VIII): the new branch (parse-loop `break`; translation guard) is covered by the new `--entities-only` test plus the existing full-run and no-translator tests. There is **no new portal endpoint and no new published read contract** — only the `--entities-only` CLI flag (`contracts/cli.md`) — so there is **no parity-matrix entry** to add.
 - No new migration: entities-only reuses the existing `dataset_entities` / `dataset_links` / `entity_relations` PK-guarded `INSERT OR REPLACE` upserts and the existing `RunCurateResult` shape (FR-007, FR-008).
 - The OOM cause was the per-resource parse loop (≈20 GB RSS on the live mirror); the fix is to not enter it (research.md R1/R2). Entities-only runs at ≈140 MB RSS.
