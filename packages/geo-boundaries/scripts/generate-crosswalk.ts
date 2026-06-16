@@ -89,6 +89,9 @@ const municipalityFeatures: Feature[] = withGeometry.map((m) => {
   };
 });
 
+// The administrative hierarchy (municipality -> oblast) is NOT carried here: it lives in the
+// entity_relations knowledge graph (predicate part_of), materialised from the gazetteer during
+// curate. The crosswalk only joins each entity to its boundary feature + official codes.
 interface CrosswalkEntry {
   entityId: string;
   level: 'oblast' | 'municipality';
@@ -96,7 +99,6 @@ interface CrosswalkEntry {
   ekatte: string | null;
   lauId: string | null;
   iso3166_2: string | null;
-  oblastEntityId: string | null;
 }
 
 const entries: CrosswalkEntry[] = [
@@ -107,7 +109,6 @@ const entries: CrosswalkEntry[] = [
     ekatte: null,
     lauId: null,
     iso3166_2: o.iso3166_2,
-    oblastEntityId: null,
   })),
   ...withGeometry.map((m) => ({
     entityId: m.id,
@@ -116,7 +117,6 @@ const entries: CrosswalkEntry[] = [
     ekatte: null,
     lauId: m.lauId as string,
     iso3166_2: null,
-    oblastEntityId: m.oblastId,
   })),
 ];
 

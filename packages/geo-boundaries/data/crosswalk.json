@@ -7,8 +7,7 @@
       "boundaryFeatureId": "BG-22",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-22",
-      "oblastEntityId": null
+      "iso3166_2": "BG-22"
     },
     {
       "entityId": "geo:bg-oblast-sofia",
@@ -16,8 +15,7 @@
       "boundaryFeatureId": "BG-23",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-23",
-      "oblastEntityId": null
+      "iso3166_2": "BG-23"
     },
     {
       "entityId": "geo:bg-oblast-blagoevgrad",
@@ -25,8 +23,7 @@
       "boundaryFeatureId": "BG-01",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-01",
-      "oblastEntityId": null
+      "iso3166_2": "BG-01"
     },
     {
       "entityId": "geo:bg-oblast-burgas",
@@ -34,8 +31,7 @@
       "boundaryFeatureId": "BG-02",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-02",
-      "oblastEntityId": null
+      "iso3166_2": "BG-02"
     },
     {
       "entityId": "geo:bg-oblast-varna",
@@ -43,8 +39,7 @@
       "boundaryFeatureId": "BG-03",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-03",
-      "oblastEntityId": null
+      "iso3166_2": "BG-03"
     },
     {
       "entityId": "geo:bg-oblast-veliko-tarnovo",
@@ -52,8 +47,7 @@
       "boundaryFeatureId": "BG-04",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-04",
-      "oblastEntityId": null
+      "iso3166_2": "BG-04"
     },
     {
       "entityId": "geo:bg-oblast-vidin",
@@ -61,8 +55,7 @@
       "boundaryFeatureId": "BG-05",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-05",
-      "oblastEntityId": null
+      "iso3166_2": "BG-05"
     },
     {
       "entityId": "geo:bg-oblast-vratsa",
@@ -70,8 +63,7 @@
       "boundaryFeatureId": "BG-06",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-06",
-      "oblastEntityId": null
+      "iso3166_2": "BG-06"
     },
     {
       "entityId": "geo:bg-oblast-gabrovo",
@@ -79,8 +71,7 @@
       "boundaryFeatureId": "BG-07",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-07",
-      "oblastEntityId": null
+      "iso3166_2": "BG-07"
     },
     {
       "entityId": "geo:bg-oblast-dobrich",
@@ -88,8 +79,7 @@
       "boundaryFeatureId": "BG-08",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-08",
-      "oblastEntityId": null
+      "iso3166_2": "BG-08"
     },
     {
       "entityId": "geo:bg-oblast-kardzhali",
@@ -97,8 +87,7 @@
       "boundaryFeatureId": "BG-09",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-09",
-      "oblastEntityId": null
+      "iso3166_2": "BG-09"
     },
     {
       "entityId": "geo:bg-oblast-kyustendil",
@@ -106,8 +95,7 @@
       "boundaryFeatureId": "BG-10",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-10",
-      "oblastEntityId": null
+      "iso3166_2": "BG-10"
     },
     {
       "entityId": "geo:bg-oblast-lovech",
@@ -115,8 +103,7 @@
       "boundaryFeatureId": "BG-11",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-11",
-      "oblastEntityId": null
+      "iso3166_2": "BG-11"
     },
     {
       "entityId": "geo:bg-oblast-montana",
@@ -124,8 +111,7 @@
       "boundaryFeatureId": "BG-12",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-12",
-      "oblastEntityId": null
+      "iso3166_2": "BG-12"
     },
     {
       "entityId": "geo:bg-oblast-pazardzhik",
@@ -133,8 +119,7 @@
       "boundaryFeatureId": "BG-13",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-13",
-      "oblastEntityId": null
+      "iso3166_2": "BG-13"
     },
     {
       "entityId": "geo:bg-oblast-pernik",
@@ -142,8 +127,7 @@
       "boundaryFeatureId": "BG-14",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-14",
-      "oblastEntityId": null
+      "iso3166_2": "BG-14"
     },
     {
       "entityId": "geo:bg-oblast-pleven",
@@ -151,8 +135,7 @@
       "boundaryFeatureId": "BG-15",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-15",
-      "oblastEntityId": null
+      "iso3166_2": "BG-15"
     },
     {
       "entityId": "geo:bg-oblast-plovdiv",
@@ -160,8 +143,7 @@
       "boundaryFeatureId": "BG-16",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-16",
-      "oblastEntityId": null
+      "iso3166_2": "BG-16"
     },
     {
       "entityId": "geo:bg-oblast-razgrad",
@@ -169,8 +151,7 @@
       "boundaryFeatureId": "BG-17",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-17",
-      "oblastEntityId": null
+      "iso3166_2": "BG-17"
     },
     {
       "entityId": "geo:bg-oblast-ruse",
@@ -178,8 +159,7 @@
       "boundaryFeatureId": "BG-18",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-18",
-      "oblastEntityId": null
+      "iso3166_2": "BG-18"
     },
     {
       "entityId": "geo:bg-oblast-silistra",
@@ -187,8 +167,7 @@
       "boundaryFeatureId": "BG-19",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-19",
-      "oblastEntityId": null
+      "iso3166_2": "BG-19"
     },
     {
       "entityId": "geo:bg-oblast-sliven",
@@ -196,8 +175,7 @@
       "boundaryFeatureId": "BG-20",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-20",
-      "oblastEntityId": null
+      "iso3166_2": "BG-20"
     },
     {
       "entityId": "geo:bg-oblast-smolyan",
@@ -205,8 +183,7 @@
       "boundaryFeatureId": "BG-21",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-21",
-      "oblastEntityId": null
+      "iso3166_2": "BG-21"
     },
     {
       "entityId": "geo:bg-oblast-stara-zagora",
@@ -214,8 +191,7 @@
       "boundaryFeatureId": "BG-24",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-24",
-      "oblastEntityId": null
+      "iso3166_2": "BG-24"
     },
     {
       "entityId": "geo:bg-oblast-targovishte",
@@ -223,8 +199,7 @@
       "boundaryFeatureId": "BG-25",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-25",
-      "oblastEntityId": null
+      "iso3166_2": "BG-25"
     },
     {
       "entityId": "geo:bg-oblast-haskovo",
@@ -232,8 +207,7 @@
       "boundaryFeatureId": "BG-26",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-26",
-      "oblastEntityId": null
+      "iso3166_2": "BG-26"
     },
     {
       "entityId": "geo:bg-oblast-shumen",
@@ -241,8 +215,7 @@
       "boundaryFeatureId": "BG-27",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-27",
-      "oblastEntityId": null
+      "iso3166_2": "BG-27"
     },
     {
       "entityId": "geo:bg-oblast-yambol",
@@ -250,8 +223,7 @@
       "boundaryFeatureId": "BG-28",
       "ekatte": null,
       "lauId": null,
-      "iso3166_2": "BG-28",
-      "oblastEntityId": null
+      "iso3166_2": "BG-28"
     },
     {
       "entityId": "geo:bg-municipality-dospat",
@@ -259,8 +231,7 @@
       "boundaryFeatureId": "lau-SML10",
       "ekatte": null,
       "lauId": "SML10",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-smolyan"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-zlatograd",
@@ -268,8 +239,7 @@
       "boundaryFeatureId": "lau-SML11",
       "ekatte": null,
       "lauId": "SML11",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-smolyan"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-madan",
@@ -277,8 +247,7 @@
       "boundaryFeatureId": "lau-SML16",
       "ekatte": null,
       "lauId": "SML16",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-smolyan"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-nedelino",
@@ -286,8 +255,7 @@
       "boundaryFeatureId": "lau-SML18",
       "ekatte": null,
       "lauId": "SML18",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-smolyan"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-rudozem",
@@ -295,8 +263,7 @@
       "boundaryFeatureId": "lau-SML27",
       "ekatte": null,
       "lauId": "SML27",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-smolyan"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-smolyan",
@@ -304,8 +271,7 @@
       "boundaryFeatureId": "lau-SML31",
       "ekatte": null,
       "lauId": "SML31",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-smolyan"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-vidin",
@@ -313,8 +279,7 @@
       "boundaryFeatureId": "lau-VID09",
       "ekatte": null,
       "lauId": "VID09",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-gramada",
@@ -322,8 +287,7 @@
       "boundaryFeatureId": "lau-VID15",
       "ekatte": null,
       "lauId": "VID15",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dimovo",
@@ -331,8 +295,7 @@
       "boundaryFeatureId": "lau-VID16",
       "ekatte": null,
       "lauId": "VID16",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kula",
@@ -340,8 +303,7 @@
       "boundaryFeatureId": "lau-VID22",
       "ekatte": null,
       "lauId": "VID22",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-makresh",
@@ -349,8 +311,7 @@
       "boundaryFeatureId": "lau-VID25",
       "ekatte": null,
       "lauId": "VID25",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-novo-selo",
@@ -358,8 +319,7 @@
       "boundaryFeatureId": "lau-VID30",
       "ekatte": null,
       "lauId": "VID30",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-ruzhintsi",
@@ -367,8 +327,7 @@
       "boundaryFeatureId": "lau-VID33",
       "ekatte": null,
       "lauId": "VID33",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-chuprene",
@@ -376,8 +335,7 @@
       "boundaryFeatureId": "lau-VID37",
       "ekatte": null,
       "lauId": "VID37",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-miziya",
@@ -385,8 +343,7 @@
       "boundaryFeatureId": "lau-VRC28",
       "ekatte": null,
       "lauId": "VRC28",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vratsa"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-oryahovo",
@@ -394,8 +351,7 @@
       "boundaryFeatureId": "lau-VRC31",
       "ekatte": null,
       "lauId": "VRC31",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vratsa"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-pazardzhik",
@@ -403,8 +359,7 @@
       "boundaryFeatureId": "lau-PAZ19",
       "ekatte": null,
       "lauId": "PAZ19",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-panagyurishte",
@@ -412,8 +367,7 @@
       "boundaryFeatureId": "lau-PAZ20",
       "ekatte": null,
       "lauId": "PAZ20",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-peshtera",
@@ -421,8 +375,7 @@
       "boundaryFeatureId": "lau-PAZ21",
       "ekatte": null,
       "lauId": "PAZ21",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-rakitovo",
@@ -430,8 +383,7 @@
       "boundaryFeatureId": "lau-PAZ24",
       "ekatte": null,
       "lauId": "PAZ24",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-radomir",
@@ -439,8 +391,7 @@
       "boundaryFeatureId": "lau-PER36",
       "ekatte": null,
       "lauId": "PER36",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pernik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-ardino",
@@ -448,8 +399,7 @@
       "boundaryFeatureId": "lau-KRZ02",
       "ekatte": null,
       "lauId": "KRZ02",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kardzhali"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dzhebel",
@@ -457,8 +407,7 @@
       "boundaryFeatureId": "lau-KRZ08",
       "ekatte": null,
       "lauId": "KRZ08",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kardzhali"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kirkovo",
@@ -466,8 +415,7 @@
       "boundaryFeatureId": "lau-KRZ14",
       "ekatte": null,
       "lauId": "KRZ14",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kardzhali"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-krumovgrad",
@@ -475,8 +423,7 @@
       "boundaryFeatureId": "lau-KRZ15",
       "ekatte": null,
       "lauId": "KRZ15",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kardzhali"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kardzhali",
@@ -484,8 +431,7 @@
       "boundaryFeatureId": "lau-KRZ16",
       "ekatte": null,
       "lauId": "KRZ16",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kardzhali"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-momchilgrad",
@@ -493,8 +439,7 @@
       "boundaryFeatureId": "lau-KRZ21",
       "ekatte": null,
       "lauId": "KRZ21",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kardzhali"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-gorna-malina",
@@ -502,8 +447,7 @@
       "boundaryFeatureId": "lau-SFO10",
       "ekatte": null,
       "lauId": "SFO10",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dragoman",
@@ -511,8 +455,7 @@
       "boundaryFeatureId": "lau-SFO16",
       "ekatte": null,
       "lauId": "SFO16",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-elin-pelin",
@@ -520,8 +463,7 @@
       "boundaryFeatureId": "lau-SFO17",
       "ekatte": null,
       "lauId": "SFO17",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-septemvri",
@@ -529,8 +471,7 @@
       "boundaryFeatureId": "lau-PAZ29",
       "ekatte": null,
       "lauId": "PAZ29",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-nova-zagora",
@@ -538,8 +479,7 @@
       "boundaryFeatureId": "lau-SLV16",
       "ekatte": null,
       "lauId": "SLV16",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sliven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sliven",
@@ -547,8 +487,7 @@
       "boundaryFeatureId": "lau-SLV20",
       "ekatte": null,
       "lauId": "SLV20",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sliven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-tvarditsa",
@@ -556,8 +495,7 @@
       "boundaryFeatureId": "lau-SLV24",
       "ekatte": null,
       "lauId": "SLV24",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sliven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-banite",
@@ -565,8 +503,7 @@
       "boundaryFeatureId": "lau-SML02",
       "ekatte": null,
       "lauId": "SML02",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-smolyan"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-borino",
@@ -574,8 +511,7 @@
       "boundaryFeatureId": "lau-SML05",
       "ekatte": null,
       "lauId": "SML05",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-smolyan"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-tran",
@@ -583,8 +519,7 @@
       "boundaryFeatureId": "lau-PER51",
       "ekatte": null,
       "lauId": "PER51",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pernik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-belene",
@@ -592,8 +527,7 @@
       "boundaryFeatureId": "lau-PVN03",
       "ekatte": null,
       "lauId": "PVN03",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-gulyantsi",
@@ -601,8 +535,7 @@
       "boundaryFeatureId": "lau-PVN08",
       "ekatte": null,
       "lauId": "PVN08",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dolna-mitropoliya",
@@ -610,8 +543,7 @@
       "boundaryFeatureId": "lau-PVN10",
       "ekatte": null,
       "lauId": "PVN10",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dolni-dabnik",
@@ -619,8 +551,7 @@
       "boundaryFeatureId": "lau-PVN11",
       "ekatte": null,
       "lauId": "PVN11",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-levski",
@@ -628,8 +559,7 @@
       "boundaryFeatureId": "lau-PVN16",
       "ekatte": null,
       "lauId": "PVN16",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-etropole",
@@ -637,8 +567,7 @@
       "boundaryFeatureId": "lau-SFO18",
       "ekatte": null,
       "lauId": "SFO18",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-ihtiman",
@@ -646,8 +575,7 @@
       "boundaryFeatureId": "lau-SFO20",
       "ekatte": null,
       "lauId": "SFO20",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-koprivshtitsa",
@@ -655,8 +583,7 @@
       "boundaryFeatureId": "lau-SFO24",
       "ekatte": null,
       "lauId": "SFO24",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kostenets",
@@ -664,8 +591,7 @@
       "boundaryFeatureId": "lau-SFO25",
       "ekatte": null,
       "lauId": "SFO25",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-roman",
@@ -673,8 +599,7 @@
       "boundaryFeatureId": "lau-VRC32",
       "ekatte": null,
       "lauId": "VRC32",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vratsa"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-hayredin",
@@ -682,8 +607,7 @@
       "boundaryFeatureId": "lau-VRC35",
       "ekatte": null,
       "lauId": "VRC35",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vratsa"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-veliko-tarnovo",
@@ -691,8 +615,7 @@
       "boundaryFeatureId": "lau-VTR04",
       "ekatte": null,
       "lauId": "VTR04",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-veliko-tarnovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-gorna-oryahovitsa",
@@ -700,8 +623,7 @@
       "boundaryFeatureId": "lau-VTR06",
       "ekatte": null,
       "lauId": "VTR06",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-veliko-tarnovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-chepelare",
@@ -709,8 +631,7 @@
       "boundaryFeatureId": "lau-SML38",
       "ekatte": null,
       "lauId": "SML38",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-smolyan"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-stolichna",
@@ -718,8 +639,7 @@
       "boundaryFeatureId": "lau-SOF46",
       "ekatte": null,
       "lauId": "SOF46",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia-grad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-bratya-daskalovi",
@@ -727,8 +647,7 @@
       "boundaryFeatureId": "lau-SZR04",
       "ekatte": null,
       "lauId": "SZR04",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-galabovo",
@@ -736,8 +655,7 @@
       "boundaryFeatureId": "lau-SZR07",
       "ekatte": null,
       "lauId": "SZR07",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kazanlak",
@@ -745,8 +663,7 @@
       "boundaryFeatureId": "lau-SZR12",
       "ekatte": null,
       "lauId": "SZR12",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-maglizh",
@@ -754,8 +671,7 @@
       "boundaryFeatureId": "lau-SZR22",
       "ekatte": null,
       "lauId": "SZR22",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-opan",
@@ -763,8 +679,7 @@
       "boundaryFeatureId": "lau-SZR23",
       "ekatte": null,
       "lauId": "SZR23",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-pavel-banya",
@@ -772,8 +687,7 @@
       "boundaryFeatureId": "lau-SZR24",
       "ekatte": null,
       "lauId": "SZR24",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-elena",
@@ -781,8 +695,7 @@
       "boundaryFeatureId": "lau-VTR13",
       "ekatte": null,
       "lauId": "VTR13",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-veliko-tarnovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-zlataritsa",
@@ -790,8 +703,7 @@
       "boundaryFeatureId": "lau-VTR14",
       "ekatte": null,
       "lauId": "VTR14",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-veliko-tarnovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-lyaskovets",
@@ -799,8 +711,7 @@
       "boundaryFeatureId": "lau-VTR20",
       "ekatte": null,
       "lauId": "VTR20",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-veliko-tarnovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-pavlikeni",
@@ -808,8 +719,7 @@
       "boundaryFeatureId": "lau-VTR22",
       "ekatte": null,
       "lauId": "VTR22",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-veliko-tarnovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-strelcha",
@@ -817,8 +727,7 @@
       "boundaryFeatureId": "lau-PAZ32",
       "ekatte": null,
       "lauId": "PAZ32",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-asenovgrad",
@@ -826,8 +735,7 @@
       "boundaryFeatureId": "lau-PDV01",
       "ekatte": null,
       "lauId": "PDV01",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-brezovo",
@@ -835,8 +743,7 @@
       "boundaryFeatureId": "lau-PDV07",
       "ekatte": null,
       "lauId": "PDV07",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-chernoochene",
@@ -844,8 +751,7 @@
       "boundaryFeatureId": "lau-KRZ35",
       "ekatte": null,
       "lauId": "KRZ35",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kardzhali"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-letnitsa",
@@ -853,8 +759,7 @@
       "boundaryFeatureId": "lau-LOV17",
       "ekatte": null,
       "lauId": "LOV17",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-lovech"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-lovech",
@@ -862,8 +767,7 @@
       "boundaryFeatureId": "lau-LOV18",
       "ekatte": null,
       "lauId": "LOV18",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-lovech"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-lukovit",
@@ -871,8 +775,7 @@
       "boundaryFeatureId": "lau-LOV19",
       "ekatte": null,
       "lauId": "LOV19",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-lovech"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-teteven",
@@ -880,8 +783,7 @@
       "boundaryFeatureId": "lau-LOV33",
       "ekatte": null,
       "lauId": "LOV33",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-lovech"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kaloyanovo",
@@ -889,8 +791,7 @@
       "boundaryFeatureId": "lau-PDV12",
       "ekatte": null,
       "lauId": "PDV12",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-karlovo",
@@ -898,8 +799,7 @@
       "boundaryFeatureId": "lau-PDV13",
       "ekatte": null,
       "lauId": "PDV13",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-nikopol",
@@ -907,8 +807,7 @@
       "boundaryFeatureId": "lau-PVN21",
       "ekatte": null,
       "lauId": "PVN21",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-iskar",
@@ -916,8 +815,7 @@
       "boundaryFeatureId": "lau-PVN23",
       "ekatte": null,
       "lauId": "PVN23",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-pleven",
@@ -925,8 +823,7 @@
       "boundaryFeatureId": "lau-PVN24",
       "ekatte": null,
       "lauId": "PVN24",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-pordim",
@@ -934,8 +831,7 @@
       "boundaryFeatureId": "lau-PVN27",
       "ekatte": null,
       "lauId": "PVN27",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-cherven-bryag",
@@ -943,8 +839,7 @@
       "boundaryFeatureId": "lau-PVN37",
       "ekatte": null,
       "lauId": "PVN37",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-knezha",
@@ -952,8 +847,7 @@
       "boundaryFeatureId": "lau-PVN39",
       "ekatte": null,
       "lauId": "PVN39",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pleven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kostinbrod",
@@ -961,8 +855,7 @@
       "boundaryFeatureId": "lau-SFO26",
       "ekatte": null,
       "lauId": "SFO26",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-pravets",
@@ -970,8 +863,7 @@
       "boundaryFeatureId": "lau-SFO34",
       "ekatte": null,
       "lauId": "SFO34",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-samokov",
@@ -979,8 +871,7 @@
       "boundaryFeatureId": "lau-SFO39",
       "ekatte": null,
       "lauId": "SFO39",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-svoge",
@@ -988,8 +879,7 @@
       "boundaryFeatureId": "lau-SFO43",
       "ekatte": null,
       "lauId": "SFO43",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-slivnitsa",
@@ -997,8 +887,7 @@
       "boundaryFeatureId": "lau-SFO45",
       "ekatte": null,
       "lauId": "SFO45",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-polski-trambesh",
@@ -1006,8 +895,7 @@
       "boundaryFeatureId": "lau-VTR26",
       "ekatte": null,
       "lauId": "VTR26",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-veliko-tarnovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-svishtov",
@@ -1015,8 +903,7 @@
       "boundaryFeatureId": "lau-VTR28",
       "ekatte": null,
       "lauId": "VTR28",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-veliko-tarnovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-radnevo",
@@ -1024,8 +911,7 @@
       "boundaryFeatureId": "lau-SZR27",
       "ekatte": null,
       "lauId": "SZR27",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-stara-zagora",
@@ -1033,8 +919,7 @@
       "boundaryFeatureId": "lau-SZR31",
       "ekatte": null,
       "lauId": "SZR31",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-chirpan",
@@ -1042,8 +927,7 @@
       "boundaryFeatureId": "lau-SZR36",
       "ekatte": null,
       "lauId": "SZR36",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-gurkovo",
@@ -1051,8 +935,7 @@
       "boundaryFeatureId": "lau-SZR37",
       "ekatte": null,
       "lauId": "SZR37",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-nikolaevo",
@@ -1060,8 +943,7 @@
       "boundaryFeatureId": "lau-SZR38",
       "ekatte": null,
       "lauId": "SZR38",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-stara-zagora"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-antonovo",
@@ -1069,8 +951,7 @@
       "boundaryFeatureId": "lau-TGV02",
       "ekatte": null,
       "lauId": "TGV02",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-targovishte"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-strazhitsa",
@@ -1078,8 +959,7 @@
       "boundaryFeatureId": "lau-VTR31",
       "ekatte": null,
       "lauId": "VTR31",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-veliko-tarnovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-suhindol",
@@ -1087,8 +967,7 @@
       "boundaryFeatureId": "lau-VTR32",
       "ekatte": null,
       "lauId": "VTR32",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-veliko-tarnovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-laki",
@@ -1096,8 +975,7 @@
       "boundaryFeatureId": "lau-PDV15",
       "ekatte": null,
       "lauId": "PDV15",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-maritsa",
@@ -1105,8 +983,7 @@
       "boundaryFeatureId": "lau-PDV17",
       "ekatte": null,
       "lauId": "PDV17",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-plovdiv",
@@ -1114,8 +991,7 @@
       "boundaryFeatureId": "lau-PDV22",
       "ekatte": null,
       "lauId": "PDV22",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-omurtag",
@@ -1123,8 +999,7 @@
       "boundaryFeatureId": "lau-TGV22",
       "ekatte": null,
       "lauId": "TGV22",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-targovishte"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-opaka",
@@ -1132,8 +1007,7 @@
       "boundaryFeatureId": "lau-TGV23",
       "ekatte": null,
       "lauId": "TGV23",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-targovishte"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-troyan",
@@ -1141,8 +1015,7 @@
       "boundaryFeatureId": "lau-LOV34",
       "ekatte": null,
       "lauId": "LOV34",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-lovech"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-ugarchin",
@@ -1150,8 +1023,7 @@
       "boundaryFeatureId": "lau-LOV36",
       "ekatte": null,
       "lauId": "LOV36",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-lovech"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-yablanitsa",
@@ -1159,8 +1031,7 @@
       "boundaryFeatureId": "lau-LOV38",
       "ekatte": null,
       "lauId": "LOV38",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-lovech"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-berkovitsa",
@@ -1168,8 +1039,7 @@
       "boundaryFeatureId": "lau-MON02",
       "ekatte": null,
       "lauId": "MON02",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-boychinovtsi",
@@ -1177,8 +1047,7 @@
       "boundaryFeatureId": "lau-MON04",
       "ekatte": null,
       "lauId": "MON04",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-brusartsi",
@@ -1186,8 +1055,7 @@
       "boundaryFeatureId": "lau-MON07",
       "ekatte": null,
       "lauId": "MON07",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-parvomay",
@@ -1195,8 +1063,7 @@
       "boundaryFeatureId": "lau-PDV23",
       "ekatte": null,
       "lauId": "PDV23",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-rakovski",
@@ -1204,8 +1071,7 @@
       "boundaryFeatureId": "lau-PDV25",
       "ekatte": null,
       "lauId": "PDV25",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-rodopi",
@@ -1213,8 +1079,7 @@
       "boundaryFeatureId": "lau-PDV26",
       "ekatte": null,
       "lauId": "PDV26",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-zavet",
@@ -1222,8 +1087,7 @@
       "boundaryFeatureId": "lau-RAZ11",
       "ekatte": null,
       "lauId": "RAZ11",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-razgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-isperih",
@@ -1231,8 +1095,7 @@
       "boundaryFeatureId": "lau-RAZ14",
       "ekatte": null,
       "lauId": "RAZ14",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-razgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kubrat",
@@ -1240,8 +1103,7 @@
       "boundaryFeatureId": "lau-RAZ16",
       "ekatte": null,
       "lauId": "RAZ16",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-razgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-loznitsa",
@@ -1249,8 +1111,7 @@
       "boundaryFeatureId": "lau-RAZ17",
       "ekatte": null,
       "lauId": "RAZ17",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-razgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-razgrad",
@@ -1258,8 +1119,7 @@
       "boundaryFeatureId": "lau-RAZ26",
       "ekatte": null,
       "lauId": "RAZ26",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-razgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-samuil",
@@ -1267,8 +1127,7 @@
       "boundaryFeatureId": "lau-RAZ29",
       "ekatte": null,
       "lauId": "RAZ29",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-razgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-anton",
@@ -1276,8 +1135,7 @@
       "boundaryFeatureId": "lau-SFO54",
       "ekatte": null,
       "lauId": "SFO54",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-pirdop",
@@ -1285,8 +1143,7 @@
       "boundaryFeatureId": "lau-SFO55",
       "ekatte": null,
       "lauId": "SFO55",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-mirkovo",
@@ -1294,8 +1151,7 @@
       "boundaryFeatureId": "lau-SFO56",
       "ekatte": null,
       "lauId": "SFO56",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-chavdar",
@@ -1303,8 +1159,7 @@
       "boundaryFeatureId": "lau-SFO57",
       "ekatte": null,
       "lauId": "SFO57",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-chelopech",
@@ -1312,8 +1167,7 @@
       "boundaryFeatureId": "lau-SFO58",
       "ekatte": null,
       "lauId": "SFO58",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dolna-banya",
@@ -1321,8 +1175,7 @@
       "boundaryFeatureId": "lau-SFO59",
       "ekatte": null,
       "lauId": "SFO59",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-popovo",
@@ -1330,8 +1183,7 @@
       "boundaryFeatureId": "lau-TGV24",
       "ekatte": null,
       "lauId": "TGV24",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-targovishte"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-targovishte",
@@ -1339,8 +1191,7 @@
       "boundaryFeatureId": "lau-TGV35",
       "ekatte": null,
       "lauId": "TGV35",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-targovishte"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-avren",
@@ -1348,8 +1199,7 @@
       "boundaryFeatureId": "lau-VAR01",
       "ekatte": null,
       "lauId": "VAR01",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-aksakovo",
@@ -1357,8 +1207,7 @@
       "boundaryFeatureId": "lau-VAR02",
       "ekatte": null,
       "lauId": "VAR02",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sadovo",
@@ -1366,8 +1215,7 @@
       "boundaryFeatureId": "lau-PDV28",
       "ekatte": null,
       "lauId": "PDV28",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-saedinenie",
@@ -1375,8 +1223,7 @@
       "boundaryFeatureId": "lau-PDV33",
       "ekatte": null,
       "lauId": "PDV33",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-hisarya",
@@ -1384,8 +1231,7 @@
       "boundaryFeatureId": "lau-PDV37",
       "ekatte": null,
       "lauId": "PDV37",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-elhovo",
@@ -1393,8 +1239,7 @@
       "boundaryFeatureId": "lau-JAM07",
       "ekatte": null,
       "lauId": "JAM07",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-yambol"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-straldzha",
@@ -1402,8 +1247,7 @@
       "boundaryFeatureId": "lau-JAM22",
       "ekatte": null,
       "lauId": "JAM22",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-yambol"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-tundzha",
@@ -1411,8 +1255,7 @@
       "boundaryFeatureId": "lau-JAM25",
       "ekatte": null,
       "lauId": "JAM25",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-yambol"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-yambol",
@@ -1420,8 +1263,7 @@
       "boundaryFeatureId": "lau-JAM26",
       "ekatte": null,
       "lauId": "JAM26",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-yambol"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-beloslav",
@@ -1429,8 +1271,7 @@
       "boundaryFeatureId": "lau-VAR04",
       "ekatte": null,
       "lauId": "VAR04",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-byala",
@@ -1438,8 +1279,7 @@
       "boundaryFeatureId": "lau-VAR05",
       "ekatte": null,
       "lauId": "VAR05",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-varna",
@@ -1447,8 +1287,7 @@
       "boundaryFeatureId": "lau-VAR06",
       "ekatte": null,
       "lauId": "VAR06",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-vetrino",
@@ -1456,8 +1295,7 @@
       "boundaryFeatureId": "lau-VAR08",
       "ekatte": null,
       "lauId": "VAR08",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-valchi-dol",
@@ -1465,8 +1303,7 @@
       "boundaryFeatureId": "lau-VAR09",
       "ekatte": null,
       "lauId": "VAR09",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-valchedram",
@@ -1474,8 +1311,7 @@
       "boundaryFeatureId": "lau-MON11",
       "ekatte": null,
       "lauId": "MON11",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-varshets",
@@ -1483,8 +1319,7 @@
       "boundaryFeatureId": "lau-MON12",
       "ekatte": null,
       "lauId": "MON12",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-georgi-damyanovo",
@@ -1492,8 +1327,7 @@
       "boundaryFeatureId": "lau-MON14",
       "ekatte": null,
       "lauId": "MON14",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-lom",
@@ -1501,8 +1335,7 @@
       "boundaryFeatureId": "lau-MON24",
       "ekatte": null,
       "lauId": "MON24",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-krichim",
@@ -1510,8 +1343,7 @@
       "boundaryFeatureId": "lau-PDV39",
       "ekatte": null,
       "lauId": "PDV39",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-perushtitsa",
@@ -1519,8 +1351,7 @@
       "boundaryFeatureId": "lau-PDV40",
       "ekatte": null,
       "lauId": "PDV40",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-stamboliyski",
@@ -1528,8 +1359,7 @@
       "boundaryFeatureId": "lau-PDV41",
       "ekatte": null,
       "lauId": "PDV41",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-bobov-dol",
@@ -1537,8 +1367,7 @@
       "boundaryFeatureId": "lau-KNL04",
       "ekatte": null,
       "lauId": "KNL04",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kyustendil"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-boboshevo",
@@ -1546,8 +1375,7 @@
       "boundaryFeatureId": "lau-KNL05",
       "ekatte": null,
       "lauId": "KNL05",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kyustendil"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kocherinovo",
@@ -1555,8 +1383,7 @@
       "boundaryFeatureId": "lau-KNL27",
       "ekatte": null,
       "lauId": "KNL27",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kyustendil"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-tsar-kaloyan",
@@ -1564,8 +1391,7 @@
       "boundaryFeatureId": "lau-RAZ36",
       "ekatte": null,
       "lauId": "RAZ36",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-razgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-borovo",
@@ -1573,8 +1399,7 @@
       "boundaryFeatureId": "lau-RSE03",
       "ekatte": null,
       "lauId": "RSE03",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-ruse"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-byala-1",
@@ -1582,8 +1407,7 @@
       "boundaryFeatureId": "lau-RSE04",
       "ekatte": null,
       "lauId": "RSE04",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-ruse"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-vetovo",
@@ -1591,8 +1415,7 @@
       "boundaryFeatureId": "lau-RSE05",
       "ekatte": null,
       "lauId": "RSE05",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-ruse"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dve-mogili",
@@ -1600,8 +1423,7 @@
       "boundaryFeatureId": "lau-RSE08",
       "ekatte": null,
       "lauId": "RSE08",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-ruse"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-montana",
@@ -1609,8 +1431,7 @@
       "boundaryFeatureId": "lau-MON29",
       "ekatte": null,
       "lauId": "MON29",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-venets",
@@ -1618,8 +1439,7 @@
       "boundaryFeatureId": "lau-SHU07",
       "ekatte": null,
       "lauId": "SHU07",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-shumen"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-hitrino",
@@ -1627,8 +1447,7 @@
       "boundaryFeatureId": "lau-SHU11",
       "ekatte": null,
       "lauId": "SHU11",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-shumen"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kaolinovo",
@@ -1636,8 +1455,7 @@
       "boundaryFeatureId": "lau-SHU18",
       "ekatte": null,
       "lauId": "SHU18",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-shumen"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kaspichan",
@@ -1645,8 +1463,7 @@
       "boundaryFeatureId": "lau-SHU19",
       "ekatte": null,
       "lauId": "SHU19",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-shumen"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-nikola-kozlevo",
@@ -1654,8 +1471,7 @@
       "boundaryFeatureId": "lau-SHU21",
       "ekatte": null,
       "lauId": "SHU21",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-shumen"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-aytos",
@@ -1663,8 +1479,7 @@
       "boundaryFeatureId": "lau-BGS01",
       "ekatte": null,
       "lauId": "BGS01",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-burgas",
@@ -1672,8 +1487,7 @@
       "boundaryFeatureId": "lau-BGS04",
       "ekatte": null,
       "lauId": "BGS04",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-ivanovo",
@@ -1681,8 +1495,7 @@
       "boundaryFeatureId": "lau-RSE13",
       "ekatte": null,
       "lauId": "RSE13",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-ruse"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dolni-chiflik",
@@ -1690,8 +1503,7 @@
       "boundaryFeatureId": "lau-VAR13",
       "ekatte": null,
       "lauId": "VAR13",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-devnya",
@@ -1699,8 +1511,7 @@
       "boundaryFeatureId": "lau-VAR14",
       "ekatte": null,
       "lauId": "VAR14",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kuklen",
@@ -1708,8 +1519,7 @@
       "boundaryFeatureId": "lau-PDV42",
       "ekatte": null,
       "lauId": "PDV42",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sopot",
@@ -1717,8 +1527,7 @@
       "boundaryFeatureId": "lau-PDV43",
       "ekatte": null,
       "lauId": "PDV43",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-plovdiv"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kyustendil",
@@ -1726,8 +1535,7 @@
       "boundaryFeatureId": "lau-KNL29",
       "ekatte": null,
       "lauId": "KNL29",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kyustendil"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-nevestino",
@@ -1735,8 +1543,7 @@
       "boundaryFeatureId": "lau-KNL31",
       "ekatte": null,
       "lauId": "KNL31",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kyustendil"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dalgopol",
@@ -1744,8 +1551,7 @@
       "boundaryFeatureId": "lau-VAR16",
       "ekatte": null,
       "lauId": "VAR16",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-provadiya",
@@ -1753,8 +1559,7 @@
       "boundaryFeatureId": "lau-VAR24",
       "ekatte": null,
       "lauId": "VAR24",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-suvorovo",
@@ -1762,8 +1567,7 @@
       "boundaryFeatureId": "lau-VAR26",
       "ekatte": null,
       "lauId": "VAR26",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-varna"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-belogradchik",
@@ -1771,8 +1575,7 @@
       "boundaryFeatureId": "lau-VID01",
       "ekatte": null,
       "lauId": "VID01",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-boynitsa",
@@ -1780,8 +1583,7 @@
       "boundaryFeatureId": "lau-VID03",
       "ekatte": null,
       "lauId": "VID03",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-bregovo",
@@ -1789,8 +1591,7 @@
       "boundaryFeatureId": "lau-VID06",
       "ekatte": null,
       "lauId": "VID06",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vidin"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-chiprovtsi",
@@ -1798,8 +1599,7 @@
       "boundaryFeatureId": "lau-MON36",
       "ekatte": null,
       "lauId": "MON36",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-yakimovo",
@@ -1807,8 +1607,7 @@
       "boundaryFeatureId": "lau-MON38",
       "ekatte": null,
       "lauId": "MON38",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-batak",
@@ -1816,8 +1615,7 @@
       "boundaryFeatureId": "lau-PAZ03",
       "ekatte": null,
       "lauId": "PAZ03",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dulovo",
@@ -1825,8 +1623,7 @@
       "boundaryFeatureId": "lau-SLS10",
       "ekatte": null,
       "lauId": "SLS10",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-silistra"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-breznik",
@@ -1834,8 +1631,7 @@
       "boundaryFeatureId": "lau-PER08",
       "ekatte": null,
       "lauId": "PER08",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pernik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-zemen",
@@ -1843,8 +1639,7 @@
       "boundaryFeatureId": "lau-PER19",
       "ekatte": null,
       "lauId": "PER19",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pernik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kovachevtsi",
@@ -1852,8 +1647,7 @@
       "boundaryFeatureId": "lau-PER22",
       "ekatte": null,
       "lauId": "PER22",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pernik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-pernik",
@@ -1861,8 +1655,7 @@
       "boundaryFeatureId": "lau-PER32",
       "ekatte": null,
       "lauId": "PER32",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pernik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-rila",
@@ -1870,8 +1663,7 @@
       "boundaryFeatureId": "lau-KNL38",
       "ekatte": null,
       "lauId": "KNL38",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kyustendil"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sapareva-banya",
@@ -1879,8 +1671,7 @@
       "boundaryFeatureId": "lau-KNL41",
       "ekatte": null,
       "lauId": "KNL41",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kyustendil"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dupnitsa",
@@ -1888,8 +1679,7 @@
       "boundaryFeatureId": "lau-KNL48",
       "ekatte": null,
       "lauId": "KNL48",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kyustendil"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-treklyano",
@@ -1897,8 +1687,7 @@
       "boundaryFeatureId": "lau-KNL50",
       "ekatte": null,
       "lauId": "KNL50",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-kyustendil"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-ruse",
@@ -1906,8 +1695,7 @@
       "boundaryFeatureId": "lau-RSE27",
       "ekatte": null,
       "lauId": "RSE27",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-ruse"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-slivo-pole",
@@ -1915,8 +1703,7 @@
       "boundaryFeatureId": "lau-RSE33",
       "ekatte": null,
       "lauId": "RSE33",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-ruse"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-tsenovo",
@@ -1924,8 +1711,7 @@
       "boundaryFeatureId": "lau-RSE37",
       "ekatte": null,
       "lauId": "RSE37",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-ruse"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-bozhurishte",
@@ -1933,8 +1719,7 @@
       "boundaryFeatureId": "lau-SFO06",
       "ekatte": null,
       "lauId": "SFO06",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-bratsigovo",
@@ -1942,8 +1727,7 @@
       "boundaryFeatureId": "lau-PAZ06",
       "ekatte": null,
       "lauId": "PAZ06",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-velingrad",
@@ -1951,8 +1735,7 @@
       "boundaryFeatureId": "lau-PAZ08",
       "ekatte": null,
       "lauId": "PAZ08",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-novi-pazar",
@@ -1960,8 +1743,7 @@
       "boundaryFeatureId": "lau-SHU22",
       "ekatte": null,
       "lauId": "SHU22",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-shumen"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-veliki-preslav",
@@ -1969,8 +1751,7 @@
       "boundaryFeatureId": "lau-SHU23",
       "ekatte": null,
       "lauId": "SHU23",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-shumen"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-smyadovo",
@@ -1978,8 +1759,7 @@
       "boundaryFeatureId": "lau-SHU25",
       "ekatte": null,
       "lauId": "SHU25",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-shumen"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-shumen",
@@ -1987,8 +1767,7 @@
       "boundaryFeatureId": "lau-SHU30",
       "ekatte": null,
       "lauId": "SHU30",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-shumen"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-alfatar",
@@ -1996,8 +1775,7 @@
       "boundaryFeatureId": "lau-SLS01",
       "ekatte": null,
       "lauId": "SLS01",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-silistra"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kaynardzha",
@@ -2005,8 +1783,7 @@
       "boundaryFeatureId": "lau-SLS15",
       "ekatte": null,
       "lauId": "SLS15",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-silistra"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-silistra",
@@ -2014,8 +1791,7 @@
       "boundaryFeatureId": "lau-SLS31",
       "ekatte": null,
       "lauId": "SLS31",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-silistra"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sitovo",
@@ -2023,8 +1799,7 @@
       "boundaryFeatureId": "lau-SLS32",
       "ekatte": null,
       "lauId": "SLS32",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-silistra"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-tutrakan",
@@ -2032,8 +1807,7 @@
       "boundaryFeatureId": "lau-SLS34",
       "ekatte": null,
       "lauId": "SLS34",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-silistra"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kotel",
@@ -2041,8 +1815,7 @@
       "boundaryFeatureId": "lau-SLV11",
       "ekatte": null,
       "lauId": "SLV11",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sliven"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-botevgrad",
@@ -2050,8 +1823,7 @@
       "boundaryFeatureId": "lau-SFO07",
       "ekatte": null,
       "lauId": "SFO07",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-godech",
@@ -2059,8 +1831,7 @@
       "boundaryFeatureId": "lau-SFO09",
       "ekatte": null,
       "lauId": "SFO09",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-glavinitsa",
@@ -2068,8 +1839,7 @@
       "boundaryFeatureId": "lau-SLS07",
       "ekatte": null,
       "lauId": "SLS07",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-silistra"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-borovan",
@@ -2077,8 +1847,7 @@
       "boundaryFeatureId": "lau-VRC05",
       "ekatte": null,
       "lauId": "VRC05",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vratsa"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-byala-slatina",
@@ -2086,8 +1855,7 @@
       "boundaryFeatureId": "lau-VRC08",
       "ekatte": null,
       "lauId": "VRC08",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vratsa"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-vratsa",
@@ -2095,8 +1863,7 @@
       "boundaryFeatureId": "lau-VRC10",
       "ekatte": null,
       "lauId": "VRC10",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vratsa"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kozloduy",
@@ -2104,8 +1871,7 @@
       "boundaryFeatureId": "lau-VRC20",
       "ekatte": null,
       "lauId": "VRC20",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vratsa"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-krivodol",
@@ -2113,8 +1879,7 @@
       "boundaryFeatureId": "lau-VRC21",
       "ekatte": null,
       "lauId": "VRC21",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vratsa"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-mezdra",
@@ -2122,8 +1887,7 @@
       "boundaryFeatureId": "lau-VRC27",
       "ekatte": null,
       "lauId": "VRC27",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-vratsa"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sandanski",
@@ -2131,8 +1895,7 @@
       "boundaryFeatureId": "lau-BLG40",
       "ekatte": null,
       "lauId": "BLG40",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-simitli",
@@ -2140,8 +1903,7 @@
       "boundaryFeatureId": "lau-BLG44",
       "ekatte": null,
       "lauId": "BLG44",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-strumyani",
@@ -2149,8 +1911,7 @@
       "boundaryFeatureId": "lau-BLG49",
       "ekatte": null,
       "lauId": "BLG49",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-hadzhidimovo",
@@ -2158,8 +1919,7 @@
       "boundaryFeatureId": "lau-BLG52",
       "ekatte": null,
       "lauId": "BLG52",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-yakoruda",
@@ -2167,8 +1927,7 @@
       "boundaryFeatureId": "lau-BLG53",
       "ekatte": null,
       "lauId": "BLG53",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-balchik",
@@ -2176,8 +1935,7 @@
       "boundaryFeatureId": "lau-DOB03",
       "ekatte": null,
       "lauId": "DOB03",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-dobrich"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-general-toshevo",
@@ -2185,8 +1943,7 @@
       "boundaryFeatureId": "lau-DOB12",
       "ekatte": null,
       "lauId": "DOB12",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-dobrich"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dobrich-selska",
@@ -2194,8 +1951,7 @@
       "boundaryFeatureId": "lau-DOB15",
       "ekatte": null,
       "lauId": "DOB15",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-dobrich"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kavarna",
@@ -2203,8 +1959,7 @@
       "boundaryFeatureId": "lau-DOB17",
       "ekatte": null,
       "lauId": "DOB17",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-dobrich"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-krushari",
@@ -2212,8 +1967,7 @@
       "boundaryFeatureId": "lau-DOB20",
       "ekatte": null,
       "lauId": "DOB20",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-dobrich"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-tervel",
@@ -2221,8 +1975,7 @@
       "boundaryFeatureId": "lau-DOB27",
       "ekatte": null,
       "lauId": "DOB27",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-dobrich"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sredets",
@@ -2230,8 +1983,7 @@
       "boundaryFeatureId": "lau-BGS06",
       "ekatte": null,
       "lauId": "BGS06",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kameno",
@@ -2239,8 +1991,7 @@
       "boundaryFeatureId": "lau-BGS08",
       "ekatte": null,
       "lauId": "BGS08",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-karnobat",
@@ -2248,8 +1999,7 @@
       "boundaryFeatureId": "lau-BGS09",
       "ekatte": null,
       "lauId": "BGS09",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-malko-tarnovo",
@@ -2257,8 +2007,7 @@
       "boundaryFeatureId": "lau-BGS12",
       "ekatte": null,
       "lauId": "BGS12",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-tsarevo",
@@ -2266,8 +2015,7 @@
       "boundaryFeatureId": "lau-BGS13",
       "ekatte": null,
       "lauId": "BGS13",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-nesebar",
@@ -2275,8 +2023,7 @@
       "boundaryFeatureId": "lau-BGS15",
       "ekatte": null,
       "lauId": "BGS15",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-pomorie",
@@ -2284,8 +2031,7 @@
       "boundaryFeatureId": "lau-BGS17",
       "ekatte": null,
       "lauId": "BGS17",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-gabrovo",
@@ -2293,8 +2039,7 @@
       "boundaryFeatureId": "lau-GAB05",
       "ekatte": null,
       "lauId": "GAB05",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-gabrovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dryanovo",
@@ -2302,8 +2047,7 @@
       "boundaryFeatureId": "lau-GAB12",
       "ekatte": null,
       "lauId": "GAB12",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-gabrovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sevlievo",
@@ -2311,8 +2055,7 @@
       "boundaryFeatureId": "lau-GAB29",
       "ekatte": null,
       "lauId": "GAB29",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-gabrovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-tryavna",
@@ -2320,8 +2063,7 @@
       "boundaryFeatureId": "lau-GAB35",
       "ekatte": null,
       "lauId": "GAB35",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-gabrovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-ruen",
@@ -2329,8 +2071,7 @@
       "boundaryFeatureId": "lau-BGS18",
       "ekatte": null,
       "lauId": "BGS18",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sozopol",
@@ -2338,8 +2079,7 @@
       "boundaryFeatureId": "lau-BGS21",
       "ekatte": null,
       "lauId": "BGS21",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sungurlare",
@@ -2347,8 +2087,7 @@
       "boundaryFeatureId": "lau-BGS23",
       "ekatte": null,
       "lauId": "BGS23",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-primorsko",
@@ -2356,8 +2095,7 @@
       "boundaryFeatureId": "lau-BGS27",
       "ekatte": null,
       "lauId": "BGS27",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-burgas"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-bansko",
@@ -2365,8 +2103,7 @@
       "boundaryFeatureId": "lau-BLG01",
       "ekatte": null,
       "lauId": "BLG01",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-belitsa",
@@ -2374,8 +2111,7 @@
       "boundaryFeatureId": "lau-BLG02",
       "ekatte": null,
       "lauId": "BLG02",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dimitrovgrad",
@@ -2383,8 +2119,7 @@
       "boundaryFeatureId": "lau-HKV09",
       "ekatte": null,
       "lauId": "HKV09",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-ivaylovgrad",
@@ -2392,8 +2127,7 @@
       "boundaryFeatureId": "lau-HKV11",
       "ekatte": null,
       "lauId": "HKV11",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-lyubimets",
@@ -2401,8 +2135,7 @@
       "boundaryFeatureId": "lau-HKV17",
       "ekatte": null,
       "lauId": "HKV17",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-madzharovo",
@@ -2410,8 +2143,7 @@
       "boundaryFeatureId": "lau-HKV18",
       "ekatte": null,
       "lauId": "HKV18",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-mineralni-bani",
@@ -2419,8 +2151,7 @@
       "boundaryFeatureId": "lau-HKV19",
       "ekatte": null,
       "lauId": "HKV19",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-svilengrad",
@@ -2428,8 +2159,7 @@
       "boundaryFeatureId": "lau-HKV28",
       "ekatte": null,
       "lauId": "HKV28",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-blagoevgrad",
@@ -2437,8 +2167,7 @@
       "boundaryFeatureId": "lau-BLG03",
       "ekatte": null,
       "lauId": "BLG03",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-gotse-delchev",
@@ -2446,8 +2175,7 @@
       "boundaryFeatureId": "lau-BLG11",
       "ekatte": null,
       "lauId": "BLG11",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-garmen",
@@ -2455,8 +2183,7 @@
       "boundaryFeatureId": "lau-BLG13",
       "ekatte": null,
       "lauId": "BLG13",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-kresna",
@@ -2464,8 +2191,7 @@
       "boundaryFeatureId": "lau-BLG28",
       "ekatte": null,
       "lauId": "BLG28",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-petrich",
@@ -2473,8 +2199,7 @@
       "boundaryFeatureId": "lau-BLG33",
       "ekatte": null,
       "lauId": "BLG33",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-razlog",
@@ -2482,8 +2207,7 @@
       "boundaryFeatureId": "lau-BLG37",
       "ekatte": null,
       "lauId": "BLG37",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-haskovo",
@@ -2491,8 +2215,7 @@
       "boundaryFeatureId": "lau-HKV34",
       "ekatte": null,
       "lauId": "HKV34",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-bolyarovo",
@@ -2500,8 +2223,7 @@
       "boundaryFeatureId": "lau-JAM03",
       "ekatte": null,
       "lauId": "JAM03",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-yambol"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-simeonovgrad",
@@ -2509,8 +2231,7 @@
       "boundaryFeatureId": "lau-HKV29",
       "ekatte": null,
       "lauId": "HKV29",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-stambolovo",
@@ -2518,8 +2239,7 @@
       "boundaryFeatureId": "lau-HKV30",
       "ekatte": null,
       "lauId": "HKV30",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-topolovgrad",
@@ -2527,8 +2247,7 @@
       "boundaryFeatureId": "lau-HKV32",
       "ekatte": null,
       "lauId": "HKV32",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-harmanli",
@@ -2536,8 +2255,7 @@
       "boundaryFeatureId": "lau-HKV33",
       "ekatte": null,
       "lauId": "HKV33",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-haskovo"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-lesichovo",
@@ -2545,8 +2263,7 @@
       "boundaryFeatureId": "lau-PAZ14",
       "ekatte": null,
       "lauId": "PAZ14",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-devin",
@@ -2554,8 +2271,7 @@
       "boundaryFeatureId": "lau-SML09",
       "ekatte": null,
       "lauId": "SML09",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-smolyan"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-sarnitsa",
@@ -2563,8 +2279,7 @@
       "boundaryFeatureId": "lau-PAZ39",
       "ekatte": null,
       "lauId": "PAZ39",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-apriltsi",
@@ -2572,8 +2287,7 @@
       "boundaryFeatureId": "lau-LOV02",
       "ekatte": null,
       "lauId": "LOV02",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-lovech"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-zlatitsa",
@@ -2581,8 +2295,7 @@
       "boundaryFeatureId": "lau-SFO47",
       "ekatte": null,
       "lauId": "SFO47",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-sofia"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-medkovets",
@@ -2590,8 +2303,7 @@
       "boundaryFeatureId": "lau-MON26",
       "ekatte": null,
       "lauId": "MON26",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-montana"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-varbitsa",
@@ -2599,8 +2311,7 @@
       "boundaryFeatureId": "lau-SHU10",
       "ekatte": null,
       "lauId": "SHU10",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-shumen"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-belovo",
@@ -2608,8 +2319,7 @@
       "boundaryFeatureId": "lau-PAZ04",
       "ekatte": null,
       "lauId": "PAZ04",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-pazardzhik"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-satovcha",
@@ -2617,8 +2327,7 @@
       "boundaryFeatureId": "lau-BLG42",
       "ekatte": null,
       "lauId": "BLG42",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-blagoevgrad"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-dobrich",
@@ -2626,8 +2335,7 @@
       "boundaryFeatureId": "lau-DOB28",
       "ekatte": null,
       "lauId": "DOB28",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-dobrich"
+      "iso3166_2": null
     },
     {
       "entityId": "geo:bg-municipality-shabla",
@@ -2635,8 +2343,7 @@
       "boundaryFeatureId": "lau-DOB29",
       "ekatte": null,
       "lauId": "DOB29",
-      "iso3166_2": null,
-      "oblastEntityId": "geo:bg-oblast-dobrich"
+      "iso3166_2": null
     }
   ],
   "knownGaps": []

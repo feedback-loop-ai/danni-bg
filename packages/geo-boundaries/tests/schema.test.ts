@@ -8,7 +8,6 @@ const oblast = {
   ekatte: null,
   lauId: null,
   iso3166_2: 'BG-18',
-  oblastEntityId: null,
 };
 const municipality = {
   entityId: 'geo:bg-municipality-ruse',
@@ -17,7 +16,6 @@ const municipality = {
   ekatte: '63427',
   lauId: null,
   iso3166_2: null,
-  oblastEntityId: 'geo:bg-oblast-ruse',
 };
 
 describe('crosswalkEntrySchema level invariants', () => {
@@ -36,22 +34,16 @@ describe('crosswalkEntrySchema level invariants', () => {
     expect(crosswalkEntrySchema.parse(lau)).toEqual(lau);
   });
 
-  it('rejects an oblast carrying ekatte / oblastEntityId, or missing iso3166_2', () => {
+  it('rejects an oblast carrying ekatte, or missing iso3166_2', () => {
     expect(crosswalkEntrySchema.safeParse({ ...oblast, ekatte: '63427' }).success).toBe(false);
-    expect(
-      crosswalkEntrySchema.safeParse({ ...oblast, oblastEntityId: 'geo:bg-oblast-x' }).success,
-    ).toBe(false);
     expect(crosswalkEntrySchema.safeParse({ ...oblast, iso3166_2: null }).success).toBe(false);
   });
 
-  it('rejects a municipality carrying iso3166_2, or missing ekatte / oblastEntityId', () => {
+  it('rejects a municipality carrying iso3166_2, or missing both ekatte and lauId', () => {
     expect(crosswalkEntrySchema.safeParse({ ...municipality, iso3166_2: 'BG-18' }).success).toBe(
       false,
     );
     expect(crosswalkEntrySchema.safeParse({ ...municipality, ekatte: null }).success).toBe(false);
-    expect(crosswalkEntrySchema.safeParse({ ...municipality, oblastEntityId: null }).success).toBe(
-      false,
-    );
   });
 
   it('rejects malformed codes and unknown keys', () => {

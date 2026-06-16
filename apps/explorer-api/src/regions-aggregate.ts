@@ -33,8 +33,7 @@ export interface AggregateRegionsInput {
   rollup?: (linkEntityId: string) => string[];
   /**
    * Resolves a region entity's parent oblast id for the emitted `oblastEntityId` (drives the map
-   * drill-down). When omitted, falls back to the crosswalk entry's `oblastEntityId`. Supply a
-   * graph-backed resolver to source the hierarchy from `part_of` rather than the crosswalk.
+   * drill-down), backed by the `part_of` knowledge graph. When omitted, `oblastEntityId` is null.
    */
   parentOf?: (entityId: string) => string | undefined;
 }
@@ -77,7 +76,7 @@ export function aggregateRegions(input: AggregateRegionsInput): RegionSummary[] 
       datasetCount,
       hasData: datasetCount > 0,
       maxConfidence: bucket ? bucket.maxConfidence : 0,
-      oblastEntityId: input.parentOf?.(entry.entityId) ?? entry.oblastEntityId ?? null,
+      oblastEntityId: input.parentOf?.(entry.entityId) ?? null,
     };
   });
 }
