@@ -30,6 +30,13 @@ export interface RunCurateOptions {
   datasetIds?: string[];
   since?: string;
   translator?: Translator;
+  /**
+   * Re-run only entity extraction + cross-dataset linking, skipping resource parsing and
+   * translation. Extraction reads dataset/resource METADATA rows (not the parsed artifacts), so
+   * this is the cheap, low-memory way to refresh entities after an extractor/gazetteer change —
+   * a full re-curate re-parses every captured file and can exhaust memory on a large mirror.
+   */
+  entitiesOnly?: boolean;
 }
 
 export interface RunCurateResult {
@@ -54,8 +61,10 @@ export async function runCurate(opts: RunCurateOptions): Promise<RunCurateResult
     new CkanOrganizationExtractor(orgsRepo),
     new CkanGroupsExtractor(),
     new CkanTagsExtractor(),
-    // Publisher-derived place BEFORE in-content place: when a dataset matches both, the stronger
-    // in-content confidence (BgAdminGazetteerExtractor) wins the attach upsert (last writer wins).
+    // Publisher-derived place (weaker signal, lower confidence) alongside in-content place. When a
+    // dataset matches both, dataset_entities keeps a row per extractor (PK includes the extractor),
+    // and the read layer takes the max confidence per (dataset, entity) — so the stronger in-content
+    // 0.95/0.75 wins downstream over this extractor's 0.7/0.6.
     new BgAdminPublisherExtractor(orgsRepo),
     new BgAdminGazetteerExtractor(),
     new Iso8601DatesExtractor(),
@@ -80,6 +89,7 @@ export async function runCurate(opts: RunCurateOptions): Promise<RunCurateResult
   for (const dataset of targets) {
     const resources = resourcesRepo.listByDataset(dataset.id);
     for (const r of resources) {
+      if (opts.entitiesOnly) break; // entities-only: don't re-parse captured files
       // Skip resources without a successful capture — a prior raw_path may be
       // stale (upstream withdrawn/emptied on re-sync) and must not be re-curated.
       if (!r.raw_path || r.last_outcome !== 'success') continue;
@@ -134,7 +144,7 @@ export async function runCurate(opts: RunCurateOptions): Promise<RunCurateResult
     entitiesAttached += result.attached;
     for (const c of result.candidates) touchedEntityIds.add(c.candidate.id);
 
-    if (opts.translator) {
+    if (opts.translator && !opts.entitiesOnly) {
       const subjects = [
         { subjectKind: 'dataset_title' as const, subjectId: dataset.id, textBg: dataset.title_bg },
         ...(dataset.description_bg

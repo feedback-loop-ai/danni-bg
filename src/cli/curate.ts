@@ -10,6 +10,7 @@ interface CurateFlags {
   datasets?: string[];
   since?: string;
   curatorVersion?: string;
+  entitiesOnly?: boolean;
 }
 
 export function parseFlags(args: string[]): CurateFlags {
@@ -34,9 +35,11 @@ export function parseFlags(args: string[]): CurateFlags {
       if (!v) throw new Error('--curator-version requires a value');
       flags.curatorVersion = v;
       i++;
+    } else if (a === '--entities-only') {
+      flags.entitiesOnly = true;
     } else if (a === '--help' || a === '-h') {
       process.stdout.write(
-        'danni curate [--datasets <id1,id2,...>] [--since <iso>] [--curator-version <v>]\n',
+        'danni curate [--datasets <id1,id2,...>] [--since <iso>] [--curator-version <v>] [--entities-only]\n',
       );
       throw new Error('__HELP__');
     } else {
@@ -79,7 +82,8 @@ export async function run(args: string[]): Promise<number> {
       curatorVersion: flags.curatorVersion ?? '0.1.0',
       ...(flags.datasets ? { datasetIds: flags.datasets } : {}),
       ...(flags.since ? { since: flags.since } : {}),
-      translator: buildTranslator(config),
+      // Entities-only skips translation, so don't construct a translator (avoids needless LAN/config).
+      ...(flags.entitiesOnly ? { entitiesOnly: true } : { translator: buildTranslator(config) }),
     });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return 0;
