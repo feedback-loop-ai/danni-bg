@@ -339,6 +339,24 @@ describe('chat tool wrappers (direct)', () => {
     expect(out.outOfScope).toBe(true);
   });
 
+  it('readResource forwards column filters to the grid query', async () => {
+    // Spy over the real bridge (preserves view/scope behaviour) to capture the grid it receives.
+    let grid: unknown;
+    const spy = Object.assign(Object.create(bridge), {
+      rows: (d: string, r: string, l?: number, o?: number, g?: unknown) => {
+        grid = g;
+        return bridge.rows(d, r, l, o, g as never);
+      },
+    });
+    const { tools } = buildTools(spy as ReadBridge, {});
+    await callTool(tools, 'readResource', {
+      datasetId: 'd1',
+      resourceId: 'r1',
+      filters: { rayon: 'Панчарево' },
+    });
+    expect((grid as { filters?: Record<string, string> })?.filters).toEqual({ rayon: 'Панчарево' });
+  });
+
   it('readResource reads rows in scope, blocks out of scope', async () => {
     const rows = (await callTool(buildTools(bridge, {}).tools, 'readResource', {
       datasetId: 'd1',

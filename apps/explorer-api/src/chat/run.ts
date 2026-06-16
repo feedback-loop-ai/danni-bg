@@ -72,7 +72,9 @@ const resolver =
 const FOCUS_ROWS = 1000;
 const GROUNDING_TOTAL_CHARS = 90_000;
 const FOCUS_HEADER =
-  'ДАННИ (ground truth) — потребителят разглежда следните набори; отговаряй само от тези редове:';
+  'ДАННИ (ground truth) — потребителят разглежда следните набори. Отговаряй от тези редове; ако ' +
+  'извадката е частична (отбелязано) или търсиш конкретни стойности в дадена колона, извикай ' +
+  'readResource с filters (име на колона → подниз), за да получиш точните редове:';
 
 /**
  * Build a grounded context block for the datasets the user has focused ("ask about this dataset").
@@ -106,8 +108,10 @@ export function buildFocusContext(
         let body = '';
         if (c.rows.length > 0) {
           body = JSON.stringify(c.rows);
+          // Surface the exact column keys so the model can target readResource filters precisely.
+          const cols = Object.keys((c.rows[0] ?? {}) as Record<string, unknown>);
           parts.push(
-            `Ресурс „${r.name ?? r.resourceId}“ — ${c.total} реда общо, показани ${c.rows.length}${note}:`,
+            `Ресурс „${r.name ?? r.resourceId}“ (resourceId: ${r.resourceId}) — ${c.total} реда общо, показани ${c.rows.length}${note}. Колони: ${cols.join(', ')}.`,
             body,
           );
         } else if (c.document !== undefined) {
