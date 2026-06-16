@@ -8,6 +8,7 @@ import { type LanguageModel, type ModelMessage, stepCountIs, streamText } from '
 import type { CuratedDatasetView } from '../../../../src/read/dataset-view.ts';
 import type { ReadBridge } from '../read-bridge.ts';
 import type { ScopeDescriptor } from '../schemas.ts';
+import { capResourceContent } from './cap.ts';
 import {
   type Citation,
   type MapAnchor,
@@ -59,6 +60,56 @@ const resolver =
     }
   };
 
+// Sampling bounds for the focused-dataset context block.
+const FOCUS_ROWS = 50;
+const FOCUS_MAX_RESOURCES = 4;
+const FOCUS_HEADER =
+  'ДАННИ (ground truth) — потребителят е фокусиран върху следните набори; отговаряй само от тези редове:';
+
+/**
+ * Build a grounded context block for the datasets the user has focused ("ask about this dataset").
+ * The focus id only *scopes* the tools; the model is never told what it is or shown its rows — so it
+ * confabulates. We pre-read a capped sample of each focused dataset's resources and hand it over as
+ * ground truth, so the answer is grounded by construction (and the RAG fallback works at all).
+ */
+export function buildFocusContext(
+  bridge: ReadBridge,
+  datasetIds: string[],
+  resolve: (id: string) => CuratedDatasetView | null,
+): { text: string; ids: string[] } | null {
+  const blocks: string[] = [];
+  const ids: string[] = [];
+  for (const id of datasetIds) {
+    const view = resolve(id);
+    if (!view) continue;
+    ids.push(view.datasetId);
+    const parts = [`Набор от данни „${view.title.bg}“ (id: ${view.datasetId}).`];
+    for (const r of view.resources.slice(0, FOCUS_MAX_RESOURCES)) {
+      try {
+        const c = capResourceContent(bridge.rows(view.datasetId, r.resourceId, FOCUS_ROWS, 0));
+        const note = c.truncated ? ' (частична извадка)' : '';
+        if (c.rows.length > 0) {
+          parts.push(
+            `Ресурс „${r.name ?? r.resourceId}“ — ${c.total} реда общо, показани ${c.rows.length}${note}:`,
+            JSON.stringify(c.rows),
+          );
+        } else if (c.document !== undefined) {
+          parts.push(
+            `Ресурс „${r.name ?? r.resourceId}“ (документ)${note}:`,
+            JSON.stringify(c.document),
+          );
+        } else if (c.text !== undefined) {
+          parts.push(`Ресурс „${r.name ?? r.resourceId}“ (текст)${note}:`, c.text);
+        }
+      } catch {
+        // Unreadable resource (no successful capture) — skip; the model can still readResource.
+      }
+    }
+    blocks.push(parts.join('\n'));
+  }
+  return blocks.length > 0 ? { text: blocks.join('\n\n'), ids } : null;
+}
+
 /** True when the provider rejected tool-calling (so we should retry without tools). */
 export function isToolChoiceUnsupported(error: unknown): boolean {
   const m = (error instanceof Error ? error.message : String(error)).toLowerCase();
@@ -92,10 +143,14 @@ export async function runChatTurn(opts: RunChatTurnOptions): Promise<ChatTurnRes
 export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnResult> {
   const { model, bridge, scope, messages, events } = opts;
   const { tools, citedDatasetIds } = buildTools(bridge, scope);
+  const resolve = resolver(bridge);
+  // Pre-read focused datasets so the model is grounded in real rows, not the title alone.
+  const focus = buildFocusContext(bridge, scope.datasetIds ?? [], resolve);
+  const system = focus ? `${SYSTEM_PROMPT}\n\n${FOCUS_HEADER}\n${focus.text}` : SYSTEM_PROMPT;
 
   const result = streamText({
     model,
-    system: SYSTEM_PROMPT,
+    system,
     messages,
     tools,
     maxOutputTokens: MAX_OUTPUT_TOKENS,
@@ -119,8 +174,10 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
   if (text.trim() === '') {
     return { text: NO_DATA_REPLY, citations: [], anchors: EMPTY_ANCHOR };
   }
-  const resolve = resolver(bridge);
-  const citations = buildCitations(citedDatasetIds, resolve, (v) => inScope(v, scope));
+  // Cite the focused datasets (their rows were the ground truth) plus any the model read via tools.
+  const citations = buildCitations([...(focus?.ids ?? []), ...citedDatasetIds], resolve, (v) =>
+    inScope(v, scope),
+  );
   return { text, citations, anchors: buildAnchors(citations, resolve) };
 }
 
@@ -167,8 +224,11 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
         `${i + 1}. ${v.title.bg} (издател: ${v.publisher?.title.bg ?? '—'}; ${v.freshness.isStale ? 'остарели' : 'актуални'} данни)`,
     )
     .join('\n');
-  const system = `${SYSTEM_PROMPT}\nОтговаряй само въз основа на изброените по-долу набори от данни. Позовавай се на тях по заглавие; НЕ показвай технически идентификатори. Ако никой не е релевантен на въпроса, отговори, че няма релевантни публични данни. Форматирай отговора с Markdown.`;
-  const userMsg = `Налични набори от данни:\n${context}\n\nВъпрос: ${query}`;
+  // For focused datasets, include the actual sampled rows — not just titles — so a "what's in it"
+  // question is answered from data instead of being fabricated.
+  const focus = buildFocusContext(bridge, scope.datasetIds ?? [], resolve);
+  const system = `${SYSTEM_PROMPT}\nОтговаряй само въз основа на данните по-долу. Позовавай се на наборите по заглавие; НЕ показвай технически идентификатори. Не измисляй стойности (имена, ЕИК, числа) — ако данните не ги съдържат, кажи го. Ако никой не е релевантен на въпроса, отговори, че няма релевантни публични данни. Форматирай отговора с Markdown.`;
+  const userMsg = `${focus ? `${FOCUS_HEADER}\n${focus.text}\n\n` : ''}Налични набори от данни:\n${context}\n\nВъпрос: ${query}`;
 
   const result = streamText({
     model,
