@@ -9,17 +9,6 @@ const oblast = (slug: string, iso: string): GeoCrosswalkEntry => ({
   ekatte: null,
   lauId: null,
   iso3166_2: iso,
-  oblastEntityId: null,
-});
-
-const muni = (slug: string, oblastSlug: string): GeoCrosswalkEntry => ({
-  entityId: `geo:bg-municipality-${slug}`,
-  level: 'municipality',
-  boundaryFeatureId: `lau-${slug}`,
-  ekatte: null,
-  lauId: slug.toUpperCase(),
-  iso3166_2: null,
-  oblastEntityId: `geo:bg-oblast-${oblastSlug}`,
 });
 
 const labels: Record<string, { labelBg: string; labelEn: string | null }> = {
@@ -65,13 +54,13 @@ describe('aggregateRegions', () => {
   });
 
   it('rolls municipalities up into their parent oblast, de-duplicated per dataset', () => {
-    // Crosswalk: oblast Sofia-grad with two municipalities; oblast Ruse with one.
-    const xwalk = [
-      muni('stolichna', 'sofia-grad'),
-      muni('bozhurishte', 'sofia-grad'),
-      muni('ruse-grad', 'ruse'),
-    ];
-    const oblastOf = new Map(xwalk.map((m) => [m.entityId, m.oblastEntityId as string]));
+    // The part_of hierarchy (mirrors what the route reads from the knowledge graph): two Sofia-grad
+    // municipalities and one Ruse municipality.
+    const oblastOf = new Map([
+      ['geo:bg-municipality-stolichna', 'geo:bg-oblast-sofia-grad'],
+      ['geo:bg-municipality-bozhurishte', 'geo:bg-oblast-sofia-grad'],
+      ['geo:bg-municipality-ruse-grad', 'geo:bg-oblast-ruse'],
+    ]);
     // Roll-up mirrors the route: oblast links → themselves; municipality links → parent oblast.
     const rollup = (id: string): string[] => {
       if (id.startsWith('geo:bg-oblast-')) return [id];

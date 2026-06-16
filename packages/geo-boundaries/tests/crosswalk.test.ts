@@ -12,7 +12,6 @@ const sample: GeoCrosswalk = {
       ekatte: null,
       lauId: null,
       iso3166_2: 'BG-18',
-      oblastEntityId: null,
     },
     {
       entityId: 'geo:bg-municipality-ruse',
@@ -21,7 +20,6 @@ const sample: GeoCrosswalk = {
       ekatte: '63427',
       lauId: null,
       iso3166_2: null,
-      oblastEntityId: 'geo:bg-oblast-ruse',
     },
   ],
   knownGaps: [{ entityId: 'geo:bg-municipality-troyan', reason: 'pending coverage' }],

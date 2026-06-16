@@ -19,10 +19,6 @@ export const crosswalkEntrySchema = z
     ekatte: z.string().regex(EKATTE_RE).nullable(),
     lauId: z.string().min(1).nullable(),
     iso3166_2: z.string().regex(ISO_RE).nullable(),
-    oblastEntityId: z
-      .string()
-      .regex(/^geo:bg-oblast-[a-z0-9-]+$/)
-      .nullable(),
   })
   .strict()
   .superRefine((e, ctx) => {
@@ -34,11 +30,6 @@ export const crosswalkEntrySchema = z
         });
       if (e.lauId !== null)
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'oblast entry must have null lauId' });
-      if (e.oblastEntityId !== null)
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'oblast entry must have null oblastEntityId',
-        });
       if (e.iso3166_2 === null)
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'oblast entry requires iso3166_2' });
     } else {
@@ -51,11 +42,6 @@ export const crosswalkEntrySchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'municipality entry requires an ekatte or lauId code',
-        });
-      if (e.oblastEntityId === null)
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'municipality entry requires oblastEntityId',
         });
     }
   });
