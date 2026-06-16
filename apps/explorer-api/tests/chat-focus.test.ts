@@ -41,6 +41,8 @@ describe('buildFocusContext', () => {
     expect(focus?.text).toContain('Спортен боен клуб Ихтиман');
     expect(focus?.text).toContain('176249101');
     expect(focus?.text).toContain('16 реда');
+    // Column keys are exposed so the model can target readResource filters precisely.
+    expect(focus?.text).toContain('Колони: ime, eik');
   });
 
   it('returns null when there is no focus', () => {

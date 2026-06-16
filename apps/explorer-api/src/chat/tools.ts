@@ -99,19 +99,26 @@ export function buildTools(bridge: ReadBridge, scope: ScopeDescriptor): BuildToo
 
     readResource: tool({
       description:
-        'Read paginated/sampled rows (or a document) of a resource within an in-scope dataset.',
+        'Read rows (or a document) of a resource within an in-scope dataset. To answer a question ' +
+        'about specific values (e.g. "kindergartens in район Панчарево"), pass `filters` — a map of ' +
+        'EXACT column name → case-insensitive substring, e.g. {"rayon":"Панчарево"}. Filtering scans ' +
+        'the whole resource (up to a cap) and returns ONLY matching rows, so prefer it over paging. ' +
+        'Column names are listed in the dataset context block and in mirrorInfo.',
       inputSchema: z.object({
         datasetId: z.string().min(1),
         resourceId: z.string().min(1),
         limit: z.number().int().min(1).max(1000).optional(),
         offset: z.number().int().min(0).optional(),
+        filters: z.record(z.string(), z.string()).optional(),
       }),
-      execute: async ({ datasetId, resourceId, limit, offset }) => {
+      execute: async ({ datasetId, resourceId, limit, offset, filters }) => {
         const view = resolveScoped(datasetId);
         if (!view) return { outOfScope: true, datasetId };
         citedDatasetIds.add(view.datasetId);
+        const grid =
+          filters && Object.keys(filters).length > 0 ? { sort: null, filters } : undefined;
         // Cap the payload so a large artifact can't overflow the model's context window.
-        return capResourceContent(bridge.rows(datasetId, resourceId, limit, offset));
+        return capResourceContent(bridge.rows(datasetId, resourceId, limit, offset, grid));
       },
     }),
   };
