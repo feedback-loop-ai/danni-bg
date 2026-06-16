@@ -80,13 +80,13 @@ When curate runs (full or `--entities-only`), the `part_of` graph is (re)built f
 
 - **FR-001**: The store MUST persist directed, typed relations between canonical entities as triples `(subject_id, predicate, object_id)` with a `confidence`, an `evidence_json` provenance record, and a `created_at` timestamp; the triple MUST be the primary key (a relation is unique on subject+predicate+object).
 - **FR-002**: Both `subject_id` and `object_id` MUST reference existing rows in `entities` (foreign keys); a relation MUST NOT exist between non-entities.
-- **FR-003**: The relation store MUST support forward traversal (edges by subject), reverse traversal (edges by object), and predicate-scoped lookups, each optionally filtered to a single predicate, and MUST expose a total `count`.
+- **FR-003**: The relation store MUST support forward traversal (edges by subject), reverse traversal (edges by object), and predicate-scoped lookups, each optionally filtered to a single predicate, and MUST expose a total `count`. Results MUST be returned in a deterministic order: `bySubject` ordered by `object_id` (by `predicate, object_id` when unfiltered), `byObject` ordered by `subject_id` (by `predicate, subject_id` when unfiltered), `byPredicate` ordered by `subject_id, object_id`.
 - **FR-004**: Predicates MUST be drawn from a single, closed, documented controlled vocabulary; the vocabulary MUST currently contain exactly `part_of` and MUST expose a type guard that rejects any string outside the set.
 - **FR-005**: Dataset→entity relationships MUST remain in `dataset_entities` (typed by the linked entity's `kind`); `entity_relations` MUST hold only entity↔entity edges, so the two layers do not duplicate each other.
-- **FR-006**: A materialiser MUST assert, for every municipality entity present in the corpus, the edge `municipality --part_of--> parent oblast` derived from the bundled administrative gazetteer, with `confidence = 1` and `evidence = { source: "gazetteer" }`.
+- **FR-006**: A materialiser MUST assert, for every municipality entity present in the corpus, the edge `municipality --part_of--> parent oblast` derived from the bundled administrative gazetteer. This is a materialiser policy: `registerEntityRelations` asserts every gazetteer-derived edge with `confidence = 1` and `evidence = { source: "gazetteer" }` (full certainty for an authoritative crosswalk). This is distinct from the store invariant, which only requires `confidence` ∈ `(0, 1]` (FR-001); the store does not mandate `1`.
 - **FR-007**: The materialiser MUST upsert the parent oblast as an entity node before asserting the edge, so the hierarchy is complete even when no dataset referenced the oblast directly; it MUST skip gazetteer municipalities not present in the corpus.
 - **FR-008**: The materialiser MUST run at the end of curate (both the full run and `--entities-only`) and MUST be global and idempotent — re-running over the same corpus leaves the relation count unchanged.
-- **FR-009**: `GET /api/entities/:id` MUST return the entity's graph node: its canonical labels and kind, its outgoing typed relations (`out`), its incoming typed relations (`in`) with the far-end entity resolved on each edge, and its direct dataset count (`datasetCount`).
+- **FR-009**: `GET /api/entities/:id` MUST return the entity's graph node: its canonical labels and kind, its outgoing typed relations (`out`), its incoming typed relations (`in`), and its direct dataset count (`datasetCount`). The far-end entity resolution on each edge is specified by FR-011.
 - **FR-010**: `GET /api/entities/:id` MUST return `404` with the `not_found` error envelope for an id that matches no entity.
 - **FR-011**: Each edge in the endpoint response MUST carry its `predicate` and `confidence` and the resolved far-end entity node; an unresolvable far endpoint MUST resolve to a placeholder node (`kind: "unknown"`) rather than being dropped.
 - **FR-012**: The curate result MUST report the number of relations asserted (`relationsCreated`) and the materialised count MUST be observable in the `curate.completed` log.
@@ -103,13 +103,14 @@ When curate runs (full or `--entities-only`), the `part_of` graph is (re)built f
 
 ### Measurable Outcomes
 
-- **SC-001**: On the live mirror, 249 `part_of` edges are materialised (one per municipality entity present in the corpus).
+- **SC-001**: On the live mirror, one `part_of` edge is materialised per municipality entity present in the corpus (249 `part_of` edges at materialisation time on the current corpus — a snapshot that grows as new datasets bring new municipalities into scope).
 - **SC-002**: An oblast resolves to its child municipalities via a single `GET /api/entities/:id` call (the children appear as `in` edges with `predicate = "part_of"`), and a municipality resolves to its parent oblast as an `out` edge — without reading the gazetteer JSON.
 - **SC-003**: Re-running the materialiser over the same corpus produces zero net new edges (idempotent): the relation count is identical before and after.
 - **SC-004**: A municipality not present in the corpus produces no edge; only municipalities that surfaced in ≥1 dataset are related.
 - **SC-005**: Every edge carries a defined predicate from the closed vocabulary and a provenance record; no edge has an undocumented predicate.
 - **SC-006**: `GET /api/entities/:id` returns 404 for an unknown id and a node with empty `out`/`in` for a known entity with no relations.
 - **SC-007**: Dataset→entity edges are not duplicated into `entity_relations`; that table contains only entity↔entity rows.
+- **SC-008**: The new pure modules — the predicate vocabulary, `EntityRelationsRepo`, and `registerEntityRelations` — meet the constitution's 100% line+branch coverage gate enforced by the suite, and the `GET /api/entities/:id` endpoint is exercised by an integration test.
 
 ## Assumptions
 

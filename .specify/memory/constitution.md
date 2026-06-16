@@ -32,7 +32,7 @@ Added principles (all new at 1.0.0):
 - XI. Respectful Crawling (NON-NEGOTIABLE)
 
 Added sections:
-- Technology Stack (locked: Bun + TypeScript + MCP SDK + Zod + Vitest + Biome,
+- Technology Stack (locked: Bun + TypeScript + MCP SDK + Zod + bun:test + Biome,
   plus single durable queryable local store with migrations — concrete choice
   deferred to plan-time)
 - Development Workflow (feature lifecycle, quality gates, branching)
@@ -346,9 +346,9 @@ hard constraint, not an optimization.
 | HTTP Client | Bun fetch / `undici`-class client | For portal crawling with conditional requests, retries, backoff |
 | Validation | Zod ^3.25.x | Runtime validation, TypeScript inference |
 | Local Store | Single durable, queryable store with migrations (concrete choice — e.g., SQLite, Postgres, or object store + index — deferred to plan-time) | Owned mirror of the portal corpus; MUST support transactions, schema migrations, and full-text or trigram search over Cyrillic content |
-| Testing | Vitest | Fast, TypeScript-native, Bun-compatible |
+| Testing | bun:test | Fast, TypeScript-native, built into Bun (no extra dependency) |
 | Linting/Formatting | Biome | 100x faster than ESLint+Prettier, zero config |
-| Coverage | @vitest/coverage-v8 | V8-native coverage, enforced at 100% line + branch |
+| Coverage | bun test --coverage | Built-in coverage, enforced at 100% line + branch |
 | API Reference | `specs/portal-api/` | Full data.egov.bg endpoint shape documentation |
 | Dataset Catalog | `specs/dataset-schemas/` | Per-dataset schema catalog (grown as datasets are crawled) |
 
@@ -388,7 +388,7 @@ hard constraint, not an optimization.
 |------|-------------|-------------|
 | Spec Approval | Product sign-off on WHAT | Branch protection |
 | Tests Pass | All unit/integration/contract tests green | CI mandatory |
-| Coverage | 100% line and branch coverage | CI mandatory (`vitest --coverage`) |
+| Coverage | 100% line and branch coverage | CI mandatory (`bun test --coverage`) |
 | Endpoint Parity | All consumed portal endpoints + cataloged datasets have contract tests | CI mandatory (parity-matrix check) |
 | Sync Integrity | Sync pipeline preserves data and freshness metadata for the fixture corpus end-to-end | CI mandatory (sync-integrity test stage) |
 | Type Check | Zero TypeScript errors | CI mandatory |
@@ -436,4 +436,10 @@ practices, tools, and decisions MUST comply.
 - Portal API reference: `specs/portal-api/`
 - Dataset schema catalog: `specs/dataset-schemas/`
 
-**Version**: 1.1.0 | **Ratified**: 2026-05-08 | **Last Amended**: 2026-06-05
+**Version**: 1.1.1 | **Ratified**: 2026-05-08 | **Last Amended**: 2026-06-16
+
+<!-- v1.1.1 (2026-06-16): factual correction — the locked testing/coverage tooling is
+     `bun:test` + `bun test --coverage` (Bun's built-in runner), not Vitest/@vitest/coverage-v8.
+     The codebase has always used `bun:test` (no vitest dependency exists); this aligns the
+     constitution with reality. No principle changed. -->
+

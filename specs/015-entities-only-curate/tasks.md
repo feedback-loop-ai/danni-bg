@@ -4,7 +4,7 @@ description: "Task list for 015-entities-only-curate"
 
 # Tasks: Entities-only curate mode (re-extract without re-parsing)
 
-> **Status (2026-06-16): Implemented.** Every task below is complete and exercised by the test suite (987 tests green; lint + typecheck clean). This was shipped via **PR #20** (`feat(curate): --entities-only mode (re-extract without re-parsing)`, merged 2026-06-16 from branch `feat/curate-entities-only`). It is a RETROSPECTIVE spec: the code shipped before these artifacts were written, then the spec/plan/tasks were reconciled against the merged diff and the green suite.
+> **Status (2026-06-16): Implemented.** Every task below is complete and exercised by the test suite (full suite green; lint + typecheck clean). This was shipped via **PR #20** (`feat(curate): --entities-only mode (re-extract without re-parsing)`, merged 2026-06-16 from branch `feat/curate-entities-only`). It is a RETROSPECTIVE spec: the code shipped before these artifacts were written, then the spec/plan/tasks were reconciled against the merged diff and the green suite.
 
 **Input**: Design documents from `/specs/015-entities-only-curate/`
 **Prerequisites**: plan.md, spec.md (incl. the `### Session 2026-06-16` clarification block), research.md (R1–R4), data-model.md, quickstart.md, contracts/cli.md
@@ -78,6 +78,7 @@ Single-project layout (inherited from 001, plan.md §Project Structure):
 
 - [X] T006 [US3] Correct the publisher-extractor ordering comments in `src/curate/run-curate.ts` (the extractor list) and `src/enrich/extractors/bg-admin-publisher.ts` to state the real data model: `dataset_entities`' PK includes the extractor, so a place matched both in-content and via publisher keeps **a row per extractor**, and the read layer takes the **max confidence** per `(dataset, entity)` — the stronger in-content 0.95/0.75 wins downstream over the publisher 0.7/0.6, NOT via an `INSERT OR REPLACE` "last writer wins" overwrite between extractors (FR-006, research.md R4). Documentation/correctness only; no behavior change.
 - [X] T007 [US3] Confirm (no code change) that the entity/link/relation writes inherit idempotency from their existing composite PKs — `dataset_entities (dataset_id, entity_id, extractor)`, `dataset_links (dataset_a_id, dataset_b_id, via_entity_id, heuristic)`, `entity_relations (subject_id, predicate, object_id)` (`migrations/002_curate_enrich.sql`, `migrations/007_entity_relations.sql`) — so the whole-catalog re-run is safe and adds no migration (FR-006, FR-008).
+- [X] T009 [US3] Pin the entities-only `RunCurateResult` counts in the T001 assertions (`tests/unit/curate/run-curate.test.ts`): `curated === 0`, `uncurated === 0`, `translationsWritten === 0`, `entitiesAttached > 0`, and the graph-derived `linksCreated`/`relationsCreated` re-asserted as non-negative (`>= 0`) — they reflect the linking/relation passes running over the entity graph, not zeroed-out parse counts. Documents/locks the entities-only-mode behavior of these fields (FR-009).
 
 **Checkpoint**: re-running entities-only over an unchanged store leaves the entity/link/relation row sets identical (SC-004); no schema change, no migration.
 
@@ -85,7 +86,7 @@ Single-project layout (inherited from 001, plan.md §Project Structure):
 
 ## Phase 4: Gates
 
-- [X] T008 Full suite green with the addition — 987 pass / 0 fail; Biome lint + typecheck clean. No parity-matrix entry (no new endpoint/contract); no migrate-smoke change (no migration). (SC-005)
+- [X] T008 Full suite green with the addition; Biome lint + typecheck clean. No parity-matrix entry (no new endpoint/contract); no migrate-smoke change (no migration). (SC-005)
 
 ---
 
@@ -118,4 +119,6 @@ Single-project layout (inherited from 001, plan.md §Project Structure):
 - Tests are MANDATORY and TDD (Constitution VII/VIII): the new branch (parse-loop `break`; translation guard) is covered by the new `--entities-only` test plus the existing full-run and no-translator tests. There is **no new portal endpoint and no new published read contract** — only the `--entities-only` CLI flag (`contracts/cli.md`) — so there is **no parity-matrix entry** to add.
 - No new migration: entities-only reuses the existing `dataset_entities` / `dataset_links` / `entity_relations` PK-guarded `INSERT OR REPLACE` upserts and the existing `RunCurateResult` shape (FR-007, FR-008).
 - The OOM cause was the per-resource parse loop (≈20 GB RSS on the live mirror); the fix is to not enter it (research.md R1/R2). Entities-only runs at ≈140 MB RSS.
-- Shipped via PR #20 from branch `feat/curate-entities-only`; commit corrected the stale publisher-extractor ordering comments alongside the option/flag.
+- Shipped via PR #20 from branch `feat/curate-entities-only` (this branch name deviates from the `###-name` convention; the spec dir `015-entities-only-curate/` carries the canonical numbering). The commit corrected the stale publisher-extractor ordering comments alongside the option/flag.
+- The OOM-diagnosis narrative (≈20 GB full curate vs ≈140 MB entities-only; why re-parse is waste) is canonical in **research.md R1/R2**; spec.md / plan.md / data-model.md restate it for context but defer to R1/R2 as the source of truth.
+- FR-004 (no translator built at the CLI) is exercised end-to-end by T005's wiring; the shipped suite does not include a dedicated CLI-parse test for `--entities-only`. A `parseFlags`-level test asserting `--entities-only` sets `flags.entitiesOnly` and that `run()` does not call `buildTranslator` could cover FR-004 at the CLI boundary cheaply — none ships today (do not assume one exists).

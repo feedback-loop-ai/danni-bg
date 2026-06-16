@@ -39,8 +39,8 @@ state updates (no network); no measurable budget beyond perceived-instant UI
 **Constraints**: Reset MUST NOT touch unrelated explorer state (filters,
 selected region, reader, provider settings); abort of an in-flight stream MUST
 NOT be reported as an error; all new strings in Bulgarian with exact Cyrillic
-**Scale/Scope**: One component changed (~45 net lines); 1 user-visible control +
-1 empty-state block + 1 helper function; 3 hard-coded example questions
+**Scale/Scope**: One component changed; 1 user-visible control + 1 empty-state
+block + 1 helper function; 3 hard-coded example questions
 
 ## Constitution Check
 
@@ -70,12 +70,17 @@ panel; the data-substrate principles are out of scope but none are violated.
 - **VII. Type Safety & Validation** — TypeScript strict; `send(text?: string)`
   is typed; no `any`. No external/boundary input is introduced (suggestions are
   literal in-app constants), so no new Zod boundary is required. PASS.
-- **VIII. 100% Test Coverage & Endpoint Parity** — This component is browser/UI
-  glue exercised behaviorally by Playwright E2E rather than unit coverage,
-  consistent with how the rest of the explorer SPA is validated under feature
-  008. No portal endpoint or dataset is consumed, so no parity-matrix entry is
-  required. No new logic-bearing module is left uncovered; the abort/reset and
-  empty-state paths are reachable via the chat E2E flows. PASS.
+- **VIII. 100% Test Coverage & Endpoint Parity** — **WAIVER (logged).** No
+  automated test added or extended by this feature exercises `newChat()` (the
+  reset / abort-guard / disabled-control branches) or the suggested-prompt
+  empty-state render; those branches live inline in `ChatPanel.tsx` and are not
+  segregated into a separately-covered module, so the browser/UI-glue exception's
+  preconditions are NOT met and cannot be claimed. The pre-existing Playwright
+  flows under feature 008 (chat send / scope / ask-about-dataset) do not target
+  this feature's behavior. These branches were therefore validated **manually**
+  (see `quickstart.md`), not by automated test. This is an accepted coverage
+  deviation recorded in Complexity Tracking below. No portal endpoint or dataset
+  is consumed, so no parity-matrix entry is required.
 - **IX. Data Freshness & Sync Integrity** — N/A; no read response, freshness
   block, or sync behaviour is touched. PASS.
 - **X. Bulgarian-Locale Awareness** — All new user-facing strings ("Нов
@@ -83,7 +88,8 @@ panel; the data-substrate principles are out of scope but none are violated.
   with Cyrillic preserved exactly; code/comments are English. PASS.
 - **XI. Respectful Crawling** — N/A; no crawler interaction. PASS.
 
-No violations. Complexity Tracking is empty.
+One accepted deviation: the Principle VIII coverage waiver above (see Complexity
+Tracking).
 
 ## Project Structure
 
@@ -124,8 +130,8 @@ streaming `send()` path. The only source file modified is
 
 ## Complexity Tracking
 
-> No constitution violations — section intentionally empty.
+> One accepted coverage deviation against Principle VIII (logged waiver).
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| (none)    | —          | —                                   |
+| Principle VIII: `newChat()` (reset / abort-guard / disabled-control) and the suggested-prompt empty-state render ship without automated test coverage; validated manually instead. | The branches are inline UI glue in `ChatPanel.tsx`; the shipped PR added no test exercising them, and the pre-existing feature-008 Playwright flows do not target this behavior. | Adding a dedicated component/E2E test (the honest fix) was not done in PR #15; segregating the logic into a separately-covered module was not warranted for this small UI change. The deviation is accepted and logged rather than masked by claiming E2E coverage that does not exist. |

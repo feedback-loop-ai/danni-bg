@@ -1,8 +1,8 @@
 # Feature Specification: Centre document reader + debounced search + server-side grid
 
-**Feature Branch**: `009-center-document-reader`  
+**Feature Branch**: `009-document-reader-grid` (renamed from `009-center-document-reader`)  
 **Created**: 2026-06-12  
-**Status**: Implemented (shipped in PR #13, merged 2026-06-12; backend 98 + read 16 unit/integration tests + 9 Playwright E2E green)  
+**Status**: Implemented (shipped in PR #13, merged 2026-06-12; full suite green — all backend/read suites pass with 100% coverage on the new pure modules, plus the Playwright E2E suite)  
 **Input**: User description: "UX pass on the explorer's data-reading and search experience (follow-up to 008): open a dataset resource full-size in a centre document reader that overlays the map instead of cramming it into the 340px left panel; promote free-text search to a prominent, debounced search bar; and give tabular resources spreadsheet-style sort + per-column filter applied server-side over the whole resource, not just the loaded page."
 
 ## Clarifications
@@ -46,7 +46,7 @@ A user reading a tabular resource clicks a column header to sort it (cycling uns
 
 1. **Given** a tabular resource spanning multiple pages, **When** the user sorts a numeric column descending, **Then** the rows returned start at the global maximum across the whole resource and `total` reflects the (unchanged) row count.
 2. **Given** a column header showing no sort, **When** the user clicks it repeatedly, **Then** the sort cycles unsorted → ascending → descending → unsorted, and the active direction is indicated (▲/▼) with `aria-sort` set on the header.
-3. **Given** a per-column filter input, **When** the user types a substring, **Then** after a short pause the server returns only rows where that column contains the substring (case-insensitive), the displayed count reads "N от M реда (филтрирани)", and multiple column filters are AND'd together.
+3. **Given** a per-column filter input, **When** the user types a substring, **Then** after the 300ms debounce the server returns only rows where that column contains the substring (case-insensitive), the displayed count reads "N от M реда (филтрирани)", and multiple column filters are AND'd together.
 4. **Given** active filters, **When** the user clicks "изчисти филтрите", **Then** all column filters clear and the full (unfiltered) row set is restored.
 5. **Given** a resource larger than `MAX_GRID_SCAN` (100,000) rows, **When** a sort or filter is applied, **Then** the response carries `gridTruncated: true` and the UI shows a "върху първите 100k" warning that the operation covered only the first 100k rows.
 
@@ -58,12 +58,12 @@ A user searches datasets via a dedicated search field at the top of the left pan
 
 **Why this priority**: Search is the primary way users find datasets, but in 008 it was visually indistinguishable from the tag input and committed on every keystroke — each character fired a relatively expensive hybrid keyword+vector lookup. A prominent, debounced bar is a clear discoverability and efficiency win. It is P2 because the existing search still functioned; this improves prominence and cost, not correctness.
 
-**Independent Test**: Type a multi-character query into the search bar and confirm the dataset list/regions refetch fires once (after the ~300ms pause), not once per character; confirm a spinner shows while loading and a clear (✕) button empties the field; confirm "Изчисти всички" (clear-all filters) resets the field text via the external→input sync.
+**Independent Test**: Type a multi-character query into the search bar and confirm the dataset list/regions refetch fires once (after the 300ms pause), not once per character; confirm a spinner shows while loading and a clear (✕) button empties the field; confirm "Изчисти всички" (clear-all filters) resets the field text via the external→input sync.
 
 **Acceptance Scenarios**:
 
 1. **Given** the left panel, **When** it renders, **Then** a dedicated search field with a search icon and the placeholder "Търси по дума, тема, издател…" appears above the refinement filters.
-2. **Given** the search field, **When** the user types several characters quickly, **Then** the committed query (which drives the fetch) updates only once ~300ms after the last keystroke, not on every character.
+2. **Given** the search field, **When** the user types several characters quickly, **Then** the committed query (which drives the fetch) updates only once 300ms after the last keystroke, not on every character.
 3. **Given** a search is in flight, **When** the list/regions are loading, **Then** a spinner shows in the field; **When** loading completes, the spinner is replaced by a clear (✕) button if text is present.
 4. **Given** text in the search field, **When** the user clicks the clear (✕) button, **Then** the field empties and (after debounce) the query clears.
 5. **Given** filters are cleared externally (e.g. "Изчисти всички"), **When** the shared `filters.query` resets, **Then** the search input reflects the empty query.
@@ -88,14 +88,14 @@ A user searches datasets via a dedicated search field at the top of the left pan
 - **FR-004**: The opened-resource target MUST be held in shared store state (`reader: ReaderTarget | null` with `openReader`/`closeReader`), and the dataset detail list MUST highlight the resource matching the active reader target.
 - **FR-005**: The resource preview MUST support a `variant` of `panel` (compact side-panel card) and `reader` (fills the centre reader, scrollable areas grow to fill rather than a fixed cap), reusing one component for both.
 - **FR-006**: Tabular resources MUST render a sortable header: clicking a column header cycles its sort unsorted → ascending → descending → unsorted (`cycleSort`), indicates the active direction (▲/▼), and sets `aria-sort` on the header.
-- **FR-007**: Tabular resources MUST render a per-column filter row of substring inputs; filter inputs MUST be debounced (~300ms) before being applied, and applying a sort or filter MUST reset pagination to offset 0.
+- **FR-007**: Tabular resources MUST render a per-column filter row of substring inputs; filter inputs MUST be debounced (300ms) before being applied, and applying a sort or filter MUST reset pagination to offset 0.
 - **FR-008**: Sort and per-column filters MUST be applied **server-side over the whole resource** before pagination — `GET …/rows` MUST accept `sort` (column), `dir` (`asc` default | `desc`), and `filters` (URL-encoded JSON `{ "<col>": "<substring>" }`), and `readResourceRows` MUST apply filter→sort to all rows (up to the scan cap) before slicing the requested page.
 - **FR-009**: Filtering MUST be case-insensitive substring matching, AND'd across columns, ignoring blank filter values; the response `total` MUST be the filtered row count and the UI MUST show "N от M реда (филтрирани)" with an "изчисти филтрите" clear action when any filter is active.
 - **FR-010**: Ordering MUST be numeric-aware: numeric columns order numerically, blank cells sort last, and all other values order by Bulgarian-locale collation (`localeCompare(…, 'bg')`); the server's `isNumeric`/`cellText` MUST mirror the client's `lib/chart.isNumeric` / `lib/table.cellText` so client and server agree.
 - **FR-011**: Whole-resource scanning MUST be bounded by `MAX_GRID_SCAN`=100,000 rows; when the resource exceeds the cap the response MUST set `gridTruncated: true` and the UI MUST show a warning that the sort/filter covered only the first 100k rows.
 - **FR-012**: A malformed `filters` query value MUST be ignored (not error the request); only string-valued keys of a plain (non-array) JSON object are accepted.
 - **FR-013**: Free-text dataset search MUST be promoted to a dedicated, prominent **search bar** (`SearchBar`) at the top of the left panel with a search icon, a clear (✕) button when text is present, and a loading spinner while the list/regions reload — and MUST be removed from the filter panel.
-- **FR-014**: The search bar MUST debounce input ~300ms before committing the shared `filters.query` (which drives the hybrid keyword+vector dataset search), so the search does not fire on every keystroke; the input MUST reflect external resets of `filters.query`.
+- **FR-014**: The search bar MUST debounce input 300ms before committing the shared `filters.query` (which drives the hybrid keyword+vector dataset search), so the search does not fire on every keystroke; the input MUST reflect external resets of `filters.query`.
 - **FR-015**: The sort/filter grid helpers (`cycleSort`, `hasActiveFilters` on the client; `compareCells`, `filterRows`, `sortRows`, `applyGrid`, `isGridActive` on the server) MUST be pure, logic-only modules unit-tested at full coverage.
 - **FR-016**: This feature MUST NOT add a database migration, a new portal endpoint, or a new persistent store; it extends the existing `GET …/rows` endpoint with optional query params and reuses the existing read substrate.
 
@@ -115,13 +115,13 @@ A user searches datasets via a dedicated search field at the top of the left pan
 - **SC-003**: A per-column filter narrows the result to exactly the rows whose column contains the substring (case-insensitive, AND'd across columns) over the whole resource, and the displayed `total` equals the filtered count (verified live on an age-group filter and by `resource-grid` unit tests).
 - **SC-004**: Resources larger than 100,000 rows that are sorted/filtered return `gridTruncated: true` and surface a visible "first 100k" warning, so a truncated result is never presented as complete.
 - **SC-005**: Typing an N-character dataset query issues exactly one search fetch (after the 300ms pause), not N fetches — one per keystroke is eliminated.
-- **SC-006**: The pure grid logic (`src/read/resource-grid.ts` and `apps/explorer-web/src/lib/grid.ts`) is covered by unit tests asserting numeric ordering, blanks-last, Bulgarian-locale collation, stable sort, case-insensitive AND'd substring filtering, and the header-click cycle; the full suite stays green (backend 98 + read 16 unit/integration; 9 Playwright E2E) with web typecheck + Biome clean.
+- **SC-006**: The pure grid logic (`src/read/resource-grid.ts` and `apps/explorer-web/src/lib/grid.ts`) is covered by unit tests asserting numeric ordering, blanks-last, Bulgarian-locale collation, stable sort, case-insensitive AND'd substring filtering, and the header-click cycle; the full suite stays green — all backend/read suites pass with 100% coverage on the new pure modules, plus the Playwright E2E suite — with web typecheck + Biome clean.
 
 ## Assumptions
 
 - This is a retrofit: the work is already shipped (PR #13) and verified, so the spec is written in the settled tense and marked Implemented.
 - Builds directly on feature 008 (the map data explorer, `apps/explorer-api` + `apps/explorer-web`) and reuses its read substrate (`src/read/resource-rows.ts`, `readResourceRows`) and HTTP API (`GET /api/datasets/:datasetId/resources/:resourceId/rows`).
 - No new database migration, no new portal endpoint, and no new persistent store — only an extension of the existing `/rows` endpoint with optional `sort`/`dir`/`filters` query params and a new pure read helper. The 008 `contracts/http-api.md` is updated in place rather than a new contract being introduced.
-- Both debounces use the same ~300ms window; the dataset-search debounce and the per-column-filter debounce are independent mechanisms operating on different state.
+- Both debounces use the same 300ms window; the dataset-search debounce and the per-column-filter debounce are independent mechanisms operating on different state.
 - The scan cap of 100,000 rows is a memory-bound for whole-resource sort/filter, consistent with 008's constraint never to bulk-load million-row resources; beyond it the grid honestly flags truncation.
 - WebGL/MapLibre render glue remains covered by 008's sanctioned render-glue exception (Constitution VIII v1.1.0) and behavioral Playwright E2E; this feature adds no new render glue, and all new logic (grid sort/filter, debounce, header-cycle helpers) is pure and covered at 100%.

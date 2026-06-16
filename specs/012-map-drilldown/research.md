@@ -89,9 +89,9 @@ This records the decisions behind replacing the WebGL/MapLibre map with an SVG c
 
 **Decision**: Update the two full-suite integration tests that asserted against the gazetteer/crosswalk by meaning (not as opaque tokens): Sofia's municipality is now `geo:bg-municipality-stolichna` (labelBg "Столична"), not the old `geo:bg-municipality-sofia`.
 
-**Rationale**: PR #16 merged with red CI (no branch protection, `--auto`). The enrichment-guarantees SC-011 query-by-municipality recovered nothing (old id gone) and reachability SC-009's `geo2` mapped to no crosswalk unit. Both now target the real `-stolichna` id; other `-sofia` references are opaque FTS/link tokens and intentionally unchanged.
+**Rationale**: PR #16 merged with red CI (no branch protection, `--auto`). The enrichment-guarantees test (feature-008 SC-011) query-by-municipality recovered nothing (old id gone) and the reachability test (feature-008 SC-009) `geo2` mapped to no crosswalk unit. Both now target the real `-stolichna` id; other `-sofia` references are opaque FTS/link tokens and intentionally unchanged. (SC-009/SC-011 are feature-008 success criteria, not 012's — repaired here as a side-effect of the gazetteer change.)
 
-**Evidence**: PR #17 body; full suite 981 pass / 0 fail after the fix.
+**Evidence**: PR #17 body; full suite green after the fix.
 
 ## Resolved unknowns
 

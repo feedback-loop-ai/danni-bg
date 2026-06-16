@@ -2,7 +2,7 @@
 
 **Branch**: `feat/curate-entities-only` | **Date**: 2026-06-16 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/015-entities-only-curate/spec.md`
-**Status**: Implemented (shipped via PR #20, merged 2026-06-16; verified by the test suite — 987 pass / 0 fail)
+**Status**: Implemented (shipped via PR #20, merged 2026-06-16; verified by the full test suite green)
 
 ## Summary
 
@@ -91,7 +91,7 @@ no external contract change beyond the documented `--entities-only` flag.
 | V | Simplicity & YAGNI | ✅ PASS | The minimal change that solves the OOM: one boolean option guarding the parse loop (`break`) and the translation block, plus one CLI flag that skips constructing the translator. No new module, no new config, no new table. Re-parsing was the cited waste; the fix removes exactly it. |
 | VI | Fast Feedback Loops (NON-NEGOTIABLE) | ✅ PASS | The new unit test runs offline against a temp SQLite store with an injected deterministic translator — no network, no LAN, no live model. `bun test` stays fast. |
 | VII | Type Safety & Validation (NON-NEGOTIABLE) | ✅ PASS | `entitiesOnly?: boolean` is a typed option on `RunCurateOptions`; the CLI flag is parsed into the typed `CurateFlags`. No `any`, no new JSON columns, no schema. The CLI's spread (`flags.entitiesOnly ? { entitiesOnly: true } : { translator }`) keeps the option mutually exclusive with translator construction at the type level. |
-| VIII | 100% Test Coverage & Endpoint Parity (NON-NEGOTIABLE) | ✅ PASS | The new branch (parse-loop `break`; translation guard) is covered by the new `--entities-only` test, which asserts no artifacts, no translations, and a populated entity (incl. the publisher-derived place); the existing full-run + no-translator tests cover the other arms. No new endpoint → parity matrix unaffected. Suite: 987 pass / 0 fail. |
+| VIII | 100% Test Coverage & Endpoint Parity (NON-NEGOTIABLE) | ✅ PASS | The new branch (parse-loop `break`; translation guard) is covered by the new `--entities-only` test, which asserts no artifacts, no translations, and a populated entity (incl. the publisher-derived place); the existing full-run + no-translator tests cover the other arms. No new endpoint → parity matrix unaffected. Suite: full suite green. |
 | IX | Data Freshness & Sync Integrity (NON-NEGOTIABLE) | ✅ PASS | Entities-only reads metadata rows already in the mirror and re-asserts derived edges; it neither alters `last_synced_at`/`source_etag_or_hash` nor touches captured raw content. It *restores* integrity by letting the recall finish cleanly instead of leaving an OOM-killed partial state. |
 | X | Bulgarian-Locale Awareness | ✅ PASS | The Cyrillic publisher name (`Столична община`) flows through the publisher extractor to `geo:bg-municipality-stolichna` byte-exact; the test asserts on it. No authoritative field is rewritten; translation (the only EN-deriving step) is *skipped*, leaving prior translations intact. |
 | XI | Respectful Crawling (NON-NEGOTIABLE) | ✅ PASS | Entities-only performs no network I/O at all — it neither crawls the portal nor calls the translation backend. It is strictly a local re-derivation over the existing mirror. |

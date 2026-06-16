@@ -3,8 +3,8 @@
 **Date**: 2026-06-16
 **Status**: Implemented. Records the decisions behind the shipped, verified work (PR #20).
 
-This feature is a **retrofit**: the entities-only mode was implemented and verified (987 pass /
-0 fail, lint + typecheck clean) *before* this artifact was written. The unknown was never "what
+This feature is a **retrofit**: the entities-only mode was implemented and verified (full suite
+green, lint + typecheck clean) *before* this artifact was written. The unknown was never "what
 should the behavior be" — the OOM during the #19 recall pinned it — but "what is the minimal,
 safe change that gives a low-memory entity refresh without re-parsing or re-translating." There
 is **no new migration** and **no schema change**; the only external-surface change is one CLI

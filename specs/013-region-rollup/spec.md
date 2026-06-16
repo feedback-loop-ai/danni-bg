@@ -27,6 +27,12 @@ crosswalk field. Municipality-level counts are unchanged (municipalities are lea
 hierarchy). This spec does not change geo extraction, recall, or the national bucket — only
 how already-extracted placements are *bucketed* into region counts and detail lists.
 
+**Magnitudes glossary** (so the numbers below don't appear to conflict): *total datasets* in the
+mirror is ~11k; of those, *geo-linked datasets* (carrying at least one region placement) are ~5k;
+those datasets carry ~5.1k *municipality placements* + ~1.9k *oblast placements* (a dataset can
+carry several placements, which is why placements exceed geo-linked datasets). This feature
+re-buckets those placements; it does not change how many exist.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - An oblast's count includes its municipalities (Priority: P1)
@@ -51,6 +57,7 @@ a count at least as large as the largest of them.
 1. **Given** a dataset linked only to the municipality `geo:bg-municipality-aksakovo`, **When** the oblast-level region summary is computed, **Then** that dataset is counted under its parent oblast `geo:bg-oblast-varna` (and not under any other oblast).
 2. **Given** the live mirror, **When** oblast counts are computed, **Then** every municipality's dataset count is less than or equal to the count of the oblast it is part of.
 3. **Given** an oblast with no direct links and no municipality links, **When** its summary is computed, **Then** its count is 0 and `hasData` is false (it is still emitted, so the map can render it as empty).
+4. **Given** one dataset whose only geo link is an unknown id in the `geo:` namespace (e.g. `geo:bg-municipality-doesnotexist`, with no `part_of` parent) and another dataset whose only geo link is a non-`geo:` id (e.g. `topic:health`), **When** oblast counts are computed, **Then** neither dataset rolls into any oblast — the unknown-but-`geo:` id has no resolvable parent and the non-geo id is in neither region namespace, so both are ignored identically (neither lands on a region it does not belong to).
 
 ---
 
@@ -129,7 +136,7 @@ longer carries an `oblastEntityId` field.
 
 - **Orphan municipality (no `part_of` parent)**: A municipality with no `part_of` edge contributes to no oblast in the roll-up (its datasets are not silently attributed to a wrong oblast). It still aggregates its own count at the municipality level.
 - **Dataset reaching one oblast via several municipalities**: A dataset linked to two municipalities of the same oblast counts once toward that oblast (de-dup is per dataset per target, not per link).
-- **Link to an unknown / non-geo entity id**: A geo link whose entity id is neither an oblast nor a municipality namespace rolls up to nothing and is ignored (it cannot land on a region it does not belong to).
+- **Link to an unknown-but-`geo:` id vs. a non-geo id**: An entity id in the `geo:` namespace that resolves to no known oblast and has no `part_of` parent rolls up to nothing; a link whose id is outside both region namespaces (`geo:bg-oblast-*` / `geo:bg-municipality-*`) — e.g. a `topic:` id — is also ignored. Both are dropped identically by the roll-up (neither can land on a region it does not belong to), but for different reasons: the first has no resolvable parent, the second is not a region link at all.
 - **Municipality level requested**: At municipality level the roll-up is identity for municipalities and drops oblast-only links — municipalities are leaves and never inherit oblast-direct datasets downward.
 - **Same dataset, differing confidences across links**: The region records the **maximum** confidence among the links that roll up to it, never an average or the first-seen value.
 - **Empty graph (un-materialised hierarchy)**: With no `part_of` edges, oblast roll-up falls back to direct links only (no municipality contributions) — counts are smaller but never wrong, and no crash.
@@ -145,11 +152,12 @@ longer carries an `oblastEntityId` field.
 - **FR-005**: The system MUST classify a geo link as oblast vs. municipality by its entity-id namespace (`geo:bg-oblast-*` vs. `geo:bg-municipality-*`) and ignore links in neither namespace for region roll-up.
 - **FR-006**: At the municipality level, the roll-up MUST be identity for municipality links and MUST exclude oblast-direct links (municipalities are leaves; data is never pushed down the hierarchy).
 - **FR-007**: The oblast detail endpoint MUST return a dataset list whose distinct-dataset count equals the oblast's choropleth count, with each rolling-up dataset present exactly once.
-- **FR-008**: Each region summary MUST carry the entity id of its parent oblast (`oblastEntityId`) when one exists, sourced from the `part_of` graph, to drive map drill-down; it MUST be null/absent when no parent exists.
+- **FR-008**: Each region summary MUST always carry the `oblastEntityId` field, sourced from the `part_of` graph, to drive map drill-down: it is the parent oblast entity id for a municipality with a `part_of` parent, and is explicitly `null` for oblast rows and for any region without a parent (e.g. orphan municipalities). The field is always present; the "no parent" case is represented as `null`, never as an absent key.
 - **FR-009**: The aggregation MUST remain a pure, store-free function over its inputs (crosswalk entries, label lookup, dataset geo-links, an injected `rollup` mapping, and an injected `parentOf` resolver) so the bucketing rules are unit-testable in isolation.
 - **FR-010**: The roll-up MUST default to flat per-entity behavior when no `rollup` mapping is supplied, so callers that do not opt into hierarchy are unaffected.
 - **FR-011**: An oblast with no direct and no municipality-rolled-up datasets MUST still be emitted with count 0 and `hasData` false, so the map renders every region.
 - **FR-012**: The gazetteer crosswalk schema MUST NOT carry a municipality→oblast hierarchy field; the crosswalk MUST be limited to entity↔boundary-feature↔administrative-code joins.
+- **FR-013**: The oblast detail endpoint MUST paginate its dataset list (`limit`, default 50, max 200; `offset`) while reporting `total` as the full distinct-dataset count that rolls up to the region, independent of the returned page slice. The list↔count parity asserted by FR-007 and SC-003 MUST hold against `total` (the full distinct count), not against the length of the returned page.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -163,13 +171,13 @@ longer carries an `oblastEntityId` field.
 
 ### Measurable Outcomes
 
-- **SC-001**: On the live mirror, every municipality's dataset count is less than or equal to its parent oblast's count — 243/243 municipalities satisfy the invariant, 0 violations (before the feature, the invariant was routinely violated).
+- **SC-001**: On the live mirror, every municipality's dataset count is less than or equal to its parent oblast's count — 243/243 municipalities-with-data (of 265 total) satisfy the invariant, 0 violations (before the feature, the invariant was routinely violated).
 - **SC-002**: A dataset linked to both an oblast and one of its municipalities contributes exactly 1 to the oblast's count (0% double-counting across the overlap set).
 - **SC-003**: For every oblast detail response, the returned distinct-dataset count equals the returned list length and equals the choropleth count for that oblast (100% list/count parity).
-- **SC-004**: After the feature, a representative oblast's count grows to include its municipalities — e.g. `Варна` oblast rises from 111 to 243 datasets on the live mirror — with no double-counting.
+- **SC-004**: An oblast's count is the de-duplicated union of its own and its municipalities' datasets, so it grows to include its municipalities — e.g. `Варна`: **111** (direct links only, no roll-up) → **243** right after the roll-up shipped (#18, before publisher-derived recall was materialised) → **516** on the current live mirror, once publisher-derived recall (spec 014) and the entities-only re-curate populated more of its municipalities — with no double-counting at any stage.
 - **SC-005**: The municipality→oblast parent used by the roll-up is sourced entirely from the `part_of` graph: a municipality dataset rolls into its oblast only after the `part_of` edge exists (verified by a test that fails against the prior crosswalk-sourced path).
 - **SC-006**: The gazetteer crosswalk schema carries 0 hierarchy fields; validation rejects nothing it accepted before except the removed `oblastEntityId` key, and all 293 crosswalk entries load clean without it.
-- **SC-007**: The full backend + shared-logic test suite passes (994 pass, 0 fail at the time of the final fold-in) with lint and typecheck clean, satisfying the 100% line+branch coverage gate on the changed logic.
+- **SC-007**: The full backend + shared-logic test suite is green with lint and typecheck clean, satisfying the 100% line+branch coverage gate on the changed logic.
 
 ## Assumptions
 

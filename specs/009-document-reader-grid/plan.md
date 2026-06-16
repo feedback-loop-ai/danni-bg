@@ -1,6 +1,6 @@
 # Implementation Plan: Centre document reader + debounced search + server-side grid
 
-**Branch**: `009-center-document-reader` | **Date**: 2026-06-12 | **Spec**: [spec.md](./spec.md)
+**Branch**: `009-document-reader-grid` (renamed from `009-center-document-reader`) | **Date**: 2026-06-12 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `specs/009-document-reader-grid/spec.md`
 
 **Note**: Retrospective plan documenting work shipped in PR #13 (merged 2026-06-12). Status: Implemented.
@@ -16,10 +16,10 @@ A UX-and-correctness pass on the 008 explorer's data-reading and search experien
 **Language/Version**: TypeScript 5.x (strict mode) on Bun 1.x (backend + tooling); same TS for the React frontend  
 **Primary Dependencies**: Backend — Hono (existing `apps/explorer-api`), reuse of in-repo `src/read/resource-rows.ts`; new pure helper `src/read/resource-grid.ts`. Frontend — React, Zustand (existing `explorerStore`), `lucide-react` icons (ArrowLeft/ArrowUp/ArrowDown/Search/X/Loader2); reuse of `lib/chart`, `lib/table`, `lib/cn`  
 **Storage**: Read-only reuse of the existing `bun:sqlite` mirror + on-disk curated artifacts via `readResourceRows`. No new persistent storage, no migration  
-**Testing**: `bun:test` / Vitest-style for pure logic at 100% (`tests/unit/read/resource-grid.test.ts`, `apps/explorer-web/src/lib/grid.test.ts`); Testing Library for components; Playwright for E2E (reader open/close, sort/filter behaviour) — mirror fixtures for the offline loop  
+**Testing**: `bun:test` for pure logic at 100% (`tests/unit/read/resource-grid.test.ts`, `apps/explorer-web/src/lib/grid.test.ts`); Testing Library for components; Playwright for E2E (reader open/close, sort/filter behaviour) — mirror fixtures for the offline loop  
 **Target Platform**: Self-hostable Linux service (Bun backend serving the static SPA), desktop-first modern browsers  
 **Project Type**: Web application (frontend SPA + backend API) — incremental change to the existing 008 `apps/explorer-api` + `apps/explorer-web` packages  
-**Performance Goals**: Search fires once per ~300ms pause (not per keystroke); grid sort/filter over the whole resource bounded to a 100k-row scan; closing the reader is instant (map never unmounted)  
+**Performance Goals**: Search fires once per 300ms pause (not per keystroke); grid sort/filter over the whole resource bounded to a 100k-row scan; closing the reader is instant (map never unmounted)  
 **Constraints**: Read-only and faithful to authoritative data (no fabrication); Cyrillic-safe ordering (`localeCompare(…, 'bg')`) and authoritative BG fields shown verbatim (Constitution X); never bulk-load million-row resources — scan cap + honest `gridTruncated` flag (Constitution IX honesty about partial results); all new logic pure and covered at 100% (Constitution VIII)  
 **Scale/Scope**: Individual resources up to ~1.25M rows (sort/filter capped at first 100k, flagged); 3 user stories (P1, P1, P2), 16 functional requirements; ~17 files changed (13 web/api source + 2 test + 1 contract doc update + 1 read helper)
 
@@ -36,7 +36,7 @@ A UX-and-correctness pass on the 008 explorer's data-reading and search experien
 | V. Simplicity & YAGNI | ✅ Pass | One component reused for panel + reader via a `variant` prop; pure helpers over the existing read path; no new store/schema/migration/endpoint; debounces are local timers |
 | VI. Fast Feedback Loops | ✅ Pass | Pure logic unit-tested in `bun:test` (sub-second); Vite HMR; offline mirror fixtures; E2E for the rendered behaviour |
 | VII. Type Safety & Validation | ✅ Pass | TS strict; `GridQuery`/`GridSort`/`ReaderTarget` typed; route validates `dir` to `asc|desc` and parses/guards `filters` to string-valued plain-object keys only |
-| VIII. 100% Coverage & Parity | ✅ Pass | All new logic is pure and 100% covered (`resource-grid`, `grid` helpers); reader/search-bar render behaviour validated by Playwright E2E under the existing 008 render-glue allowance; no new WebGL glue introduced |
+| VIII. 100% Coverage & Parity | ✅ Pass | All new logic is pure and 100% covered (`resource-grid`, `grid` helpers); the reader and search bar are ordinary, testable React components (no GPU/WebGL/MapLibre glue) whose behaviour is validated by Playwright E2E — they need no render-glue exception and add no parity-matrix entry; this feature introduces no new render glue and does not invoke 008's render-glue allowance |
 | IX. Data Freshness & Sync Integrity | ✅ Pass | Reuses the existing freshness block on the rows response; the new `gridTruncated` flag is an honesty signal — a sort/filter over a >100k-row resource is never presented as complete |
 | X. Bulgarian-Locale Awareness | ✅ Pass | Text ordering uses `localeCompare(value, 'bg')`; filtering is case-insensitive substring over Cyrillic; authoritative fields shown verbatim; UI strings in Bulgarian, code/comments in English |
 | XI. Respectful Crawling | ➖ N/A | No portal crawling; reads the local mirror only |

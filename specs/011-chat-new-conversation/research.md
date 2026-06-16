@@ -125,8 +125,12 @@ keeps the action discoverable next to other chat-level controls.
 
 ## Validation approach
 
-The reset and empty-state paths are reachable through the existing Playwright
-chat flows (`apps/explorer-web/e2e/us3-chat.e2e.ts` and the ask-about-dataset
-flow), consistent with how the explorer SPA is validated behaviorally under
-feature 008. PR #15 reports web typecheck + Biome clean and 8 Playwright E2E
-green, with the existing chat send / scope / ask-about-dataset flows unaffected.
+No automated test added by this feature exercises `newChat()` or the
+suggested-prompt empty state; those inline branches in `ChatPanel.tsx` were
+validated **manually** (see `quickstart.md` and the Principle VIII waiver in
+`plan.md`). The pre-existing feature-008 Playwright chat flows
+(`apps/explorer-web/e2e/us3-chat.e2e.ts` and the ask-about-dataset flow) do
+**not** target this feature's behavior — they serve only as a regression guard
+that the shared chat pipeline still works. PR #15 reports web typecheck + Biome
+clean and the existing suite remaining green, with the chat send / scope /
+ask-about-dataset flows unaffected.

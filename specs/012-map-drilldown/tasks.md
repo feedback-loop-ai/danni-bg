@@ -57,7 +57,7 @@ description: "Task list for 012-map-drilldown (retrospective — shipped)"
 
 - [X] T013 [US1] Emit `oblastEntityId` per municipality in `apps/explorer-api/src/regions-aggregate.ts` (via `parentOf` over the `part_of` graph) and add it to `RegionSummary` in `apps/explorer-api/src/schemas.ts` (FR-013)
 - [X] T014 [US1] Roll municipality links up into their parent oblast in `aggregateRegions` so an oblast's count is the de-duplicated union of direct + municipality datasets, counted once (FR-016)
-- [X] T015 [US1] Replace the WebGL/MapLibre map with the SVG choropleth in `apps/explorer-web/src/map/MapView.tsx`: one shared projection across oblast + municipality layers; legend, labels, hover tooltips, distinct selected/hover/chat-highlight outlines, keyboard-operable regions (FR-001, FR-002, FR-003)
+- [X] T015 [US1] Replace the WebGL/MapLibre map with the SVG choropleth in `apps/explorer-web/src/map/MapView.tsx`: one shared projection across oblast + municipality layers; legend, labels, hover tooltips, distinct selected/hover/chat-highlight outlines, keyboard-operable regions (FR-001, FR-002, FR-003, FR-017; keyboard operability is manually/visually verified, not in the E2E)
 - [X] T016 [US1] Implement drill-down in `MapView.tsx`: clicking an oblast sets focus + applies `fitTransform` to zoom in and render that oblast's municipalities (filtered by `oblastEntityId === focus`); a "← Назад към областите" control clears focus; clicking a municipality toggle-selects it (FR-010, FR-011, FR-012)
 - [X] T017 [US1] Wire `MapView` into `apps/explorer-web/src/App.tsx` (oblast + municipality layers, selected/highlight ids, `selectRegion`) and update `apps/explorer-web/src/types.ts` (`oblastEntityId` on the client `RegionSummary`)
 - [X] T018 [US1] Remove `maplibre-gl` and the generic pan/zoom; drop the dependency from `package.json` / `bun.lock`
@@ -86,9 +86,9 @@ description: "Task list for 012-map-drilldown (retrospective — shipped)"
 
 **Purpose**: PR #16 merged with red CI (no branch protection). Two integration tests asserted against the gazetteer/crosswalk by meaning and broke when ids became LAU-derived.
 
-- [X] T024 Update enrichment-guarantees SC-011 (query-by-municipality) to target `geo:bg-municipality-stolichna` (labelBg "Столична"), replacing the removed `geo:bg-municipality-sofia`
-- [X] T025 Update reachability SC-009 to attach the real `-stolichna` id so `geo2` resolves to a crosswalk unit
-- [X] T026 Confirm the full suite is green: `bun run coverage` (981 pass / 0 fail), `bun run lint`, `bun run typecheck` clean
+- [X] T024 Update enrichment-guarantees SC-011 (query-by-municipality) to target `geo:bg-municipality-stolichna` (labelBg "Столична"), replacing the removed `geo:bg-municipality-sofia` (repairs feature-008 integration test SC-011; not a 012 success criterion)
+- [X] T025 Update reachability SC-009 to attach the real `-stolichna` id so `geo2` resolves to a crosswalk unit (repairs feature-008 integration test SC-009; not a 012 success criterion)
+- [X] T026 Confirm the full suite is green: `bun run coverage` (full suite green), `bun run lint`, `bun run typecheck` clean
 
 **Checkpoint**: `main` green; all consumed shapes and the parity matrix consistent with the real gazetteer.
 

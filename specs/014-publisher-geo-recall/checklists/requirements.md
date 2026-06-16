@@ -8,7 +8,7 @@
 
 - [X] CHK001 Every functional requirement (FR-001…FR-009) names a single, testable behavior.
 - [X] CHK002 The recall behavior (derive place from publisher name) is captured (FR-001, FR-002).
-- [X] CHK003 The confidence-ordering guarantee (publisher < in-content) is captured (FR-003) with concrete values.
+- [X] CHK003 The confidence-ordering guarantee (publisher < in-content) is captured (FR-003) as an invariant, with the concrete values recorded in data-model.md §1.
 - [X] CHK004 The precedence guarantee (in-content placement governs) is captured (FR-004).
 - [X] CHK005 The fail-closed behavior (no/unknown publisher, no place named → nothing) is captured (FR-005).
 - [X] CHK006 Composition with the oblast roll-up is captured (FR-006).

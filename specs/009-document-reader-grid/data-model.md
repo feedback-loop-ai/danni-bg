@@ -99,6 +99,8 @@ export interface ResourceContent {
 
 ### readResourceRows behaviour
 
+The normative grid wire semantics (sort/filter/ordering rules, the `MAX_GRID_SCAN`=100,000 cap, and the `gridTruncated` flag) are defined once in [`contracts/rows-grid.md`](./contracts/rows-grid.md) (which restates the authoritative 008 `http-api.md`); the steps below describe only how `readResourceRows` realises them.
+
 For `kind === 'tabular'` when `isGridActive(grid)`:
 
 1. Take the first `MAX_GRID_SCAN` lines, parse each JSON row.

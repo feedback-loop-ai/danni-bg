@@ -15,7 +15,7 @@
 
 - [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous (FR-001…FR-012 each map to an observable behavior)
-- [x] Success criteria are measurable (SC-001 243/243 munis ≤ parent, SC-002 0% double-counting, SC-004 Varna 111→243, SC-006 0 hierarchy fields)
+- [x] Success criteria are measurable (SC-001 243/243 munis-with-data ≤ parent, SC-002 0% double-counting, SC-004 Varna 111 direct-only → 243 at #18 → 516 current, SC-006 0 hierarchy fields)
 - [x] Success criteria are technology-agnostic (counts, invariants, parity — no module names)
 - [x] All acceptance scenarios are defined (Given/When/Then for US1–US4)
 - [x] Edge cases are identified (orphan municipality, one oblast via several municipalities, non-geo link, municipality level, differing confidences, empty graph)

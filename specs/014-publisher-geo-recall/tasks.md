@@ -55,7 +55,7 @@ is no blocking foundational work.
 ### Tests for User Story 1
 
 - [X] T003 [P] [US1] Unit test: a municipal publisher whose title names a place yields the place candidate with `evidence.source = 'publisher'` and `evidence.publisherId` set — `tests/unit/enrich/extractors/bg-admin-publisher.test.ts`.
-- [X] T004 [US1] Integration test: extend the Sofia cohort to include datasets that name no place but are published by org-sofia (d07/d08/d11), asserting cohort 3→6 and shared-municipality clique 3→15 links — `tests/integration/enrichment-guarantees.test.ts` (SC-011).
+- [X] T004 [US1] Integration test: extend the Sofia cohort to include datasets that name no place but are published by org-sofia (d07/d08/d11), asserting cohort 3→6 and shared-municipality clique 3→15 links — `tests/integration/enrichment-guarantees.test.ts` (SC-011). Note: "SC-011" here is feature 008's global enrichment-guarantees integration test id (the Sofia cohort assertion), **not** a success criterion of this feature (whose SCs are SC-001…SC-006).
 
 ### Implementation for User Story 1
 
@@ -108,7 +108,7 @@ is no blocking foundational work.
 ## Phase 6: Polish & Validation
 
 - [X] T014 [P] Lint + typecheck clean (Biome + tsc); strict TypeScript, no `any` in source.
-- [X] T015 Full suite green: 986 pass, 0 fail.
+- [X] T015 Full suite green.
 - [X] T016 Document the materialization path (`danni curate --entities-only`) for the live mirror — `specs/014-publisher-geo-recall/quickstart.md`.
 
 ---

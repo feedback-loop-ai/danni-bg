@@ -26,7 +26,7 @@ BG→EN `translations` — those require a full `danni curate` (it parses and tr
 ## 0. Green gate (run this first and last)
 
 ```bash
-bun test          # expect: 987 pass, 0 fail
+bun test          # expect: full suite green
 bun run lint      # biome check . — expect: clean
 bun run typecheck # tsc --noEmit — expect: clean
 ```
@@ -45,8 +45,13 @@ bun run src/cli/danni.ts curate --entities-only
 - `translationsWritten === 0` — no translation was attempted; **no translator was constructed**,
   so the run needs no LAN access to the translation backend.
 - `entitiesAttached > 0` — dataset→entity edges (incl. publisher-derived places) were re-asserted.
-- Resident memory stays bounded (≈140 MB RSS) and the run completes the full catalog instead of
-  being OOM-killed partway (the failure mode of a full `danni curate` on the live mirror).
+- Resident memory stays bounded and the run completes the full catalog instead of being
+  OOM-killed partway (the failure mode of a full `danni curate` on the live mirror). Measure peak
+  RSS with `/usr/bin/time -v bun run src/cli/danni.ts curate --entities-only` (read "Maximum
+  resident set size") or by sampling `/proc/<pid>/status` VmHWM during the run. **Criterion**:
+  under ~1 GB peak RSS. **Observed once on the current ~16k-resource mirror**: ~140 MB for
+  entities-only vs ~20 GB for the full re-curate (which was OOM-killed). This is OPERATIONALLY
+  (manually) verified here — there is no unit test for the whole-catalog footprint (SC-001).
 
 Combine with the existing scoping flags as usual:
 
@@ -94,14 +99,19 @@ extractor** (the PK includes the extractor); the read layer takes the **max conf
 `(dataset, entity)`, so the stronger in-content match wins downstream. Re-running re-asserts the
 same rows — no duplicates, no growth.
 
+This idempotency (SC-004) is OPERATIONALLY (manually) verified via the two runs above — there is
+no shipped unit test that runs entities-only twice and diffs the row sets (one could cheaply do so;
+none exists today).
+
 ## Success-criteria checklist (from spec §Success Criteria)
 
 - **SC-001**: step 1 — entities-only completes the full live-mirror catalog (~16k resources)
-  without OOM, at ≈140 MB RSS (vs ≈20 GB for the full re-curate).
+  without OOM, under ~1 GB peak RSS (criterion); observed once on the current mirror at ~140 MB
+  vs ~20 GB for the full re-curate. Operationally verified (no unit test for the catalog footprint).
 - **SC-002**: steps 1 + 2 — `curated === 0`, `uncurated === 0`, `translationsWritten === 0`,
   `entitiesAttached > 0`, zero new `curated_artifacts` rows.
 - **SC-003**: steps 1 + 2 — a supplied translator writes zero translations (ignored), and
   `danni curate --entities-only` succeeds with no translation backend reachable.
 - **SC-004**: step 3 — re-running over an unchanged store leaves `dataset_entities` /
   `dataset_links` / `entity_relations` row sets identical.
-- **SC-005**: step 0 — full suite green (987 pass / 0 fail), lint + typecheck clean.
+- **SC-005**: step 0 — full suite green, lint + typecheck clean.

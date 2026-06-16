@@ -38,6 +38,13 @@ The `evidence.source = 'publisher'` marker makes a publisher-derived placement
 auditable and lets the read layer / UI explain *why* a dataset was placed in a
 region.
 
+> **FR-003 invariant, concretely.** The confidence values above are the HOW
+> that realizes spec FR-003's invariant ("a publisher-derived placement's
+> confidence is strictly below any in-content placement's confidence"): the
+> publisher *alias* ceiling (`0.60`) sits strictly below the in-content *alias*
+> floor (`0.75`), so no publisher match can outrank any in-content match for the
+> same place.
+
 ## 2. Inputs
 
 - **DatasetRow.publisher_id** (`string | null`): the publishing organisation id.

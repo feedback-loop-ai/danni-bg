@@ -2,7 +2,7 @@
 
 **Branch**: `013-region-rollup` | **Date**: 2026-06-16 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/013-region-rollup/spec.md`
-**Status**: Implemented (shipped via PRs #18, #24, #25; verified by the backend + shared-logic test suite — 994 pass / 0 fail, lint + typecheck clean at the final fold-in)
+**Status**: Implemented (shipped via PRs #18, #24, #25; verified by the backend + shared-logic test suite — full suite green, lint + typecheck clean at the final fold-in)
 
 ## Summary
 
@@ -47,7 +47,7 @@ existing `entity_relations` table (owned by spec 016) and the existing geo cross
 **Language/Version**: TypeScript 5.x (strict mode) on Bun 1.x  
 **Primary Dependencies**: Hono (explorer-api routes), Zod (crosswalk schema validation); reads `bun:sqlite` `entity_relations` via `EntityRelationsRepo`  
 **Storage**: Existing SQLite local mirror (`entity_relations` table for `part_of` edges); bundled `packages/geo-boundaries/data/crosswalk.json` for entity↔boundary/code joins. No new table, no migration.  
-**Testing**: Vitest (`apps/explorer-api/tests/*`, `packages/geo-boundaries/tests/*`, `tests/unit/store/repos/*`), 100% line+branch on changed logic  
+**Testing**: `bun:test` (`apps/explorer-api/tests/*`, `packages/geo-boundaries/tests/*`, `tests/unit/store/repos/*`), 100% line+branch on changed logic  
 **Target Platform**: Linux server (explorer-api backend behind the SPA)  
 **Project Type**: Web — multi-package monorepo (`apps/explorer-api` backend + `apps/explorer-web` SPA + `packages/geo-boundaries`)  
 **Performance Goals**: Whole-catalog endpoint (`/api/regions`) computed over the full ~11k-dataset mirror from a bulk lite projection (no per-dataset fan-out); roll-up is O(links) per dataset  
@@ -61,13 +61,13 @@ existing `entity_relations` table (owned by spec 016) and the existing geo cross
 Evaluated against `.specify/memory/constitution.md` v1.1.0:
 
 - **I. AI-Native Development (NON-NEGOTIABLE)** — PASS. The roll-up only re-buckets authoritative, already-extracted geo placements; it invents no data and alters no upstream field. Region summaries remain deterministic projections over the synced store.
-- **II. Spec-Driven Development** — PASS (retrospective). WHAT in this `spec.md`, HOW here + `data-model.md` + `contracts/`, VALIDATION in the cited Vitest suites and `tasks.md` checkpoints.
+- **II. Spec-Driven Development** — PASS (retrospective). WHAT in this `spec.md`, HOW here + `data-model.md` + `contracts/`, VALIDATION in the cited `bun:test` suites and `tasks.md` checkpoints.
 - **III. Contract-First API Design** — PASS. No new portal endpoint or MCP tool. The affected explorer-API endpoints (`/api/regions`, `/api/regions/:id`) and the `RegionSummary` shape are documented in `contracts/regions-api.md`; the crosswalk schema change is captured in `data-model.md`.
 - **IV. Operational Excellence** — PASS. Graceful degradation preserved: an un-materialised `part_of` graph yields direct-link-only counts (smaller but never wrong), no crash. No new failure modes on the read path.
 - **V. Simplicity & YAGNI** — PASS. One optional `rollup` param + one optional `parentOf` resolver on an existing pure function; the namespace-based level classification avoids a new lookup. PR #25 *deletes* the now-redundant `oblastEntityId` crosswalk field (dead code is negative value).
 - **VI. Fast Feedback Loops (NON-NEGOTIABLE)** — PASS. The aggregation is unit-tested DB-free; municipality/oblast roll-up cases run in milliseconds against in-memory fixtures.
 - **VII. Type Safety & Validation (NON-NEGOTIABLE)** — PASS. Strict TS throughout; the crosswalk is Zod-validated at load (`packages/geo-boundaries/src/schema.ts`), and removing `oblastEntityId` removed its two `superRefine` invariants cleanly.
-- **VIII. 100% Test Coverage & Endpoint Parity (NON-NEGOTIABLE)** — PASS. All changed logic (`aggregateRegions`, `rollupTargets`, `partOfParents`, `byPredicate`, schema) is covered by the cited tests; the suite is green (994 pass / 0 fail). No render-glue exception is invoked (this is pure backend logic).
+- **VIII. 100% Test Coverage & Endpoint Parity (NON-NEGOTIABLE)** — PASS. All changed logic (`aggregateRegions`, `rollupTargets`, `partOfParents`, `byPredicate`, schema) is covered by the cited tests; the full suite is green. No render-glue exception is invoked (this is pure backend logic).
 - **IX. Data Freshness & Sync Integrity (NON-NEGOTIABLE)** — PASS. No change to freshness metadata or sync; the feature reads the existing synced corpus and does not bypass the freshness path.
 - **X. Bulgarian-Locale Awareness** — PASS. Authoritative Bulgarian region labels are passed through `labelOf` untouched; no transliteration or rewrite. Entity ids are ASCII slugs assigned by the gazetteer.
 - **XI. Respectful Crawling (NON-NEGOTIABLE)** — N/A. No crawler/network behavior is touched.

@@ -15,7 +15,7 @@
 
 - [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
-- [x] Success criteria are measurable (one search fetch per debounce vs. per-keystroke; global-max-first sort; filtered total; `gridTruncated` over 100k; suite counts)
+- [x] Success criteria are measurable (one search fetch per debounce vs. per-keystroke; global-max-first sort; filtered total; `gridTruncated` over 100k; full suite green with 100% coverage on the new pure modules)
 - [x] Success criteria reference observable outcomes, not internal mechanics, where possible
 - [x] All acceptance scenarios are defined (Given/When/Then for US1–US3)
 - [x] Edge cases are identified (malformed `filters` JSON, >100k scan cap, blank filters, non-tabular resource, equal-value stability, resource switch, close-vs-reselect)

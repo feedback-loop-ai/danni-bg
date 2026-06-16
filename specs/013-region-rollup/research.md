@@ -4,7 +4,7 @@
 **Status**: Implemented. Records the decisions behind the shipped, verified work (PRs #18, #24, #25).
 
 This feature is a **retrofit**: the hierarchical roll-up was implemented and verified
-(994 pass / 0 fail, lint + typecheck clean) *before* this artifact was written, across three
+(full suite green, lint + typecheck clean) *before* this artifact was written, across three
 PRs that build on each other (#18 the roll-up + dedup, #24 the crosswalk→graph migration of the
 hierarchy source, #25 the crosswalk field cleanup). There were no clarification rounds — the
 problem was pinned by the live mirror ("municipalities exceed their parent oblast"), and the
@@ -125,8 +125,8 @@ graph's own degradation (direct-links-only when un-materialised) is the honest f
 
 **Decision**: `RegionSummary` carries an optional `oblastEntityId` (`apps/explorer-api/src/schemas.ts`),
 populated by `aggregateRegions` via the injected `parentOf(entityId)` resolver (graph-backed). It is
-the parent oblast id for a municipality and null/absent when there is no parent (e.g. for oblasts
-themselves, or orphan municipalities) (FR-008).
+always present on the summary: the parent oblast id for a municipality, and explicitly `null` when
+there is no parent (e.g. for oblasts themselves, or orphan municipalities) (FR-008).
 
 **Rationale**: The web map needs to know which oblast a municipality belongs to in order to drive
 zoom/drill-down without a second request. Sourcing it from the same `parentOf` map that feeds the

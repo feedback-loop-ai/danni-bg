@@ -114,6 +114,9 @@ click one and confirm it is sent as the user's message and an answer streams in.
 3. **Given** at least one message exists in the transcript, **When** the panel
    renders, **Then** the empty state (prompt + suggestions) is not shown and the
    transcript is shown instead.
+4. **Given** an answer is currently streaming, **When** the user clicks an
+   example question, **Then** the click is ignored (no message is sent), matching
+   the FR-010 streaming guard on a typed send.
 
 ---
 
@@ -159,7 +162,7 @@ click one and confirm it is sent as the user's message and an answer streams in.
   nothing to reset — i.e. the transcript is empty AND no answer is streaming AND
   no dataset focus is active AND no error is shown.
 - **FR-009**: When the transcript is empty, the chat panel MUST show a
-  suggested-prompt empty state consisting of a grounding prompt and a set of
+  suggested-prompt empty state consisting of a grounding prompt and exactly three
   clickable example questions, in place of the transcript.
 - **FR-010**: Clicking an example question in the empty state MUST send that
   exact question as the user's message (subject to the same guards as a typed
@@ -196,7 +199,7 @@ click one and confirm it is sent as the user's message and an answer streams in.
 - **SC-003**: After starting a new conversation, all explorer state other than
   the chat (active filters, selected region, document reader, provider/model
   selection) is unchanged.
-- **SC-004**: A first-time visitor who has sent no messages sees at least three
+- **SC-004**: A first-time visitor who has sent no messages sees exactly three
   concrete example questions and can obtain a grounded answer by a single click,
   with no typing required.
 - **SC-005**: The new-conversation control is non-actionable (disabled) whenever

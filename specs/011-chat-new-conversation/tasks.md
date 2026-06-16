@@ -7,9 +7,12 @@ description: "Task list for 011-chat-new-conversation (retrospective; shipped in
 **Input**: Design documents from `/specs/011-chat-new-conversation/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md
 
-**Tests**: This frontend-only feature is validated behaviorally through the
-existing Playwright chat E2E flows (feature 008); no new unit tests were added.
-Test-related tasks below reflect that regression surface.
+**Tests**: This frontend-only feature added no automated tests for its own
+branches (`newChat()`, the empty state). The pre-existing feature-008 Playwright
+chat flows are kept green only as a regression guard for the shared chat
+pipeline; the feature's own reset/empty-state behavior was validated manually
+(see the Principle VIII waiver in `plan.md` and `quickstart.md`). Test-related
+tasks below reflect that regression surface, not new coverage.
 
 **Organization**: Tasks are grouped by user story. Status reflects merged work
 in PR #15 (`feat(chat): start a new conversation + suggested-prompt empty
@@ -118,10 +121,12 @@ streams.
 - [X] T011 [P] Pass TypeScript typecheck for the explorer web app (`bun run
   typecheck`) — Principle VII.
 - [X] T012 [P] Pass Biome lint/format clean — Principle VI quality gate.
-- [X] T013 Confirm the existing Playwright chat E2E flows (chat send / scope /
-  ask-about-dataset in `apps/explorer-web/e2e/`) remain green — the reset and
-  empty-state paths are reachable through these flows (Principle VIII,
-  behavioral validation).
+- [X] T013 Confirm the existing suite remains green — the pre-existing
+  feature-008 Playwright chat flows (chat send / scope / ask-about-dataset in
+  `apps/explorer-web/e2e/`) are a regression guard only; none of them target this
+  feature's `newChat()` reset or empty-state branches. Those branches were
+  validated manually (see the Principle VIII waiver in `plan.md` and
+  `quickstart.md`), not by automated test.
 
 ---
 

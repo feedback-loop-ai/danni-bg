@@ -37,7 +37,7 @@ bun test apps/explorer-api/tests/regions-aggregate.test.ts
 bun test packages/geo-boundaries/tests/crosswalk.test.ts packages/geo-boundaries/tests/schema.test.ts
 bun test tests/unit/enrich/extractors/bg-admin-gazetteer.test.ts
 
-# Full suite + coverage (matches CI). After #17, expect all green (981 pass / 0 fail at merge).
+# Full suite + coverage (matches CI). After #17, expect the full suite green.
 bun run coverage
 bun run lint
 bun run typecheck
