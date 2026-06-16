@@ -66,11 +66,13 @@ const resolver =
     }
   };
 
-// Sampling bounds for the focused-dataset context block.
-const FOCUS_ROWS = 50;
-const FOCUS_MAX_RESOURCES = 4;
+// Focused-dataset context block: fetch generously (so value-filter questions like "the rows for
+// район Панчарево" see the relevant rows, not just the first page), bounded by a TOTAL character
+// budget across all focused datasets/resources so the system prompt can't overflow the context.
+const FOCUS_ROWS = 1000;
+const GROUNDING_TOTAL_CHARS = 90_000;
 const FOCUS_HEADER =
-  'ДАННИ (ground truth) — потребителят е фокусиран върху следните набори; отговаряй само от тези редове:';
+  'ДАННИ (ground truth) — потребителят разглежда следните набори; отговаряй само от тези редове:';
 
 /**
  * Build a grounded context block for the datasets the user has focused ("ask about this dataset").
@@ -85,28 +87,37 @@ export function buildFocusContext(
 ): { text: string; ids: string[] } | null {
   const blocks: string[] = [];
   const ids: string[] = [];
+  let budget = GROUNDING_TOTAL_CHARS;
   for (const id of datasetIds) {
+    if (budget <= 0) break;
     const view = resolve(id);
     if (!view) continue;
     ids.push(view.datasetId);
     const parts = [`Набор от данни „${view.title.bg}“ (id: ${view.datasetId}).`];
-    for (const r of view.resources.slice(0, FOCUS_MAX_RESOURCES)) {
+    for (const r of view.resources) {
+      if (budget <= 0) break;
       try {
-        const c = capResourceContent(bridge.rows(view.datasetId, r.resourceId, FOCUS_ROWS, 0));
+        // Cap each resource to the remaining budget, so the whole block stays bounded.
+        const c = capResourceContent(
+          bridge.rows(view.datasetId, r.resourceId, FOCUS_ROWS, 0),
+          budget,
+        );
         const note = c.truncated ? ' (частична извадка)' : '';
+        let body = '';
         if (c.rows.length > 0) {
+          body = JSON.stringify(c.rows);
           parts.push(
             `Ресурс „${r.name ?? r.resourceId}“ — ${c.total} реда общо, показани ${c.rows.length}${note}:`,
-            JSON.stringify(c.rows),
+            body,
           );
         } else if (c.document !== undefined) {
-          parts.push(
-            `Ресурс „${r.name ?? r.resourceId}“ (документ)${note}:`,
-            JSON.stringify(c.document),
-          );
+          body = JSON.stringify(c.document);
+          parts.push(`Ресурс „${r.name ?? r.resourceId}“ (документ)${note}:`, body);
         } else if (c.text !== undefined) {
-          parts.push(`Ресурс „${r.name ?? r.resourceId}“ (текст)${note}:`, c.text);
+          body = c.text;
+          parts.push(`Ресурс „${r.name ?? r.resourceId}“ (текст)${note}:`, body);
         }
+        budget -= body.length;
       } catch {
         // Unreadable resource (no successful capture) — skip; the model can still readResource.
       }

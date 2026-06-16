@@ -211,6 +211,21 @@ describe('POST /api/chat', () => {
     ).toEqual(['d1']);
   });
 
+  it('groundingDatasetIds grounds + cites a dataset without a hard scope focus', async () => {
+    // The reader-open case: ground in d1's rows (cite it) even with no scope.datasetIds and no tool call.
+    const res = await post(appWith(mockModel([textStep('Ето данните за този набор.')])), {
+      message: 'какво има тук?',
+      groundingDatasetIds: ['d1'],
+      provider: { kind: 'openai-compatible', model: 'm', apiKey: 'x' },
+    });
+    const events = parseSSE(await res.text());
+    expect(
+      (
+        events.find((e) => e.event === 'citations')?.data as { citations: { datasetId: string }[] }
+      ).citations.map((cite) => cite.datasetId),
+    ).toEqual(['d1']);
+  });
+
   it('replies "no relevant public data" when the model produces no text', async () => {
     const model = mockModel([emptyStep()]);
     const res = await post(appWith(model), {

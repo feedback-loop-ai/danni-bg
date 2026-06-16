@@ -32,6 +32,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const setHighlight = useExplorer((s) => s.setHighlight);
   const chatFocus = useExplorer((s) => s.chatFocus);
   const setChatFocus = useExplorer((s) => s.setChatFocus);
+  const reader = useExplorer((s) => s.reader);
 
   const [provider, setProvider] = useState<ProviderConfig>(() => loadProvider(localStorage));
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -92,8 +93,11 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
         ...filterStateToScope(filters),
         ...(chatFocus ? { datasetIds: [chatFocus.datasetId] } : {}),
       };
+      // Auto-focus the dataset open in the reader: ground the answer in its rows without narrowing
+      // scope. A deliberate chatFocus (scope.datasetIds) takes precedence on the backend.
+      const groundingDatasetIds = reader ? [reader.datasetId] : undefined;
       await sendChat(
-        { sessionId, message: question, scope, provider },
+        { sessionId, message: question, scope, groundingDatasetIds, provider },
         {
           onSession: setSessionId,
           onToken: (delta) => {

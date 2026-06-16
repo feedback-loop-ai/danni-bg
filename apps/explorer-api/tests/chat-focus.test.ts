@@ -47,6 +47,23 @@ describe('buildFocusContext', () => {
     const bridge = { view: () => null } as unknown as ReadBridge;
     expect(buildFocusContext(bridge, [], () => null)).toBeNull();
   });
+
+  it('bounds the injected context to a char budget for a large dataset', () => {
+    const big = Array.from({ length: 2000 }, (_, i) => ({ id: i, name: 'x'.repeat(80) }));
+    const fakeBridge = {
+      view: (id: string) => ({
+        datasetId: id,
+        title: { bg: 'Голям набор' },
+        resources: [{ resourceId: 'r1', name: 'R' }],
+      }),
+      rows: (): ResourceContent => ({ rows: big, total: 2000 }) as unknown as ResourceContent,
+    } as unknown as ReadBridge;
+    const focus = buildFocusContext(fakeBridge, ['ds'], (id) => fakeBridge.view(id) as never);
+    expect(focus).not.toBeNull();
+    // Raw would be ~180k chars; the budget caps it well under that and flags the partial sample.
+    expect(focus?.text.length ?? 0).toBeLessThan(100_000);
+    expect(focus?.text).toContain('частична извадка');
+  });
 });
 
 describe('runChatTurn focused-dataset grounding', () => {

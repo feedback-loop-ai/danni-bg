@@ -18,6 +18,8 @@ export interface ChatRequestBody {
   sessionId: string | null;
   message: string;
   scope: ScopeDescriptor;
+  /** Datasets to ground the answer in (rows injected) without narrowing scope — e.g. the open reader. */
+  groundingDatasetIds?: string[];
   provider: ProviderConfig;
 }
 
