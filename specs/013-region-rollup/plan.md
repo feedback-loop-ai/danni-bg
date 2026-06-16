@@ -58,7 +58,7 @@ existing `entity_relations` table (owned by spec 016) and the existing geo cross
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Evaluated against `.specify/memory/constitution.md` v1.1.0:
+Evaluated against `.specify/memory/constitution.md` v1.1.1:
 
 - **I. AI-Native Development (NON-NEGOTIABLE)** — PASS. The roll-up only re-buckets authoritative, already-extracted geo placements; it invents no data and alters no upstream field. Region summaries remain deterministic projections over the synced store.
 - **II. Spec-Driven Development** — PASS (retrospective). WHAT in this `spec.md`, HOW here + `data-model.md` + `contracts/`, VALIDATION in the cited `bun:test` suites and `tasks.md` checkpoints.

@@ -46,7 +46,7 @@ block + 1 helper function; 3 hard-coded example questions
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Constitution v1.1.0. This is a frontend-only UI enhancement to an existing
+Constitution v1.1.1. This is a frontend-only UI enhancement to an existing
 panel; the data-substrate principles are out of scope but none are violated.
 
 - **I. AI-Native Development** — N/A to a UI control. The read path is

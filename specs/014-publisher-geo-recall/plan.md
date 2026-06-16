@@ -25,7 +25,7 @@ Add a second geographic extractor, `BgAdminPublisherExtractor`, to the curation 
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Evaluated against `.specify/memory/constitution.md` v1.1.0:
+Evaluated against `.specify/memory/constitution.md` v1.1.1:
 
 - **I. AI-Native Development**: PASS. Placement remains a deterministic read over the mirror. The extractor derives a geographic entity from authoritative portal metadata (the organisation name); it does not invent, summarize, or rewrite portal data on the read path. Evidence (`source`, `publisherId`, `matchType`) is structured and machine-parseable.
 - **II. Spec-Driven Development**: PASS (retrospective). WHAT in spec.md, HOW here and in data-model.md, VALIDATION in tasks.md + the test suite.
