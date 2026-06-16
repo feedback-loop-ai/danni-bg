@@ -5,6 +5,11 @@ dist/
 *.tsbuildinfo
 .tsbuildinfo
 
+# Local env (secrets / per-host config); template is .env.example
+.env
+.env.local
+.env.*.local
+
 # Runtime store (per data-model.md §4); keep .gitkeep markers under store/
 store/*
 !store/.gitkeep
