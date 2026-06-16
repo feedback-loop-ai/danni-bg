@@ -162,6 +162,17 @@ export function createApp(ctx: AppContext): Hono {
     }
   });
 
+  // Entity knowledge-graph node: the entity plus its typed entity<->entity relations (e.g. a
+  // municipality's parent oblast, an oblast's child municipalities) and its direct dataset count.
+  app.get('/api/entities/:entityId', (c) => {
+    const graph = ctx.bridge.entityGraph(c.req.param('entityId'));
+    if (!graph) {
+      const e = err('not_found', 'unknown entity', 404);
+      return c.json(e.body, e.status);
+    }
+    return c.json(graph);
+  });
+
   app.get('/api/datasets/:datasetId/resources/:resourceId/rows', (c) => {
     const q = new URL(c.req.url).searchParams;
     const limit = clampInt(q.get('limit'), 100, 1000);

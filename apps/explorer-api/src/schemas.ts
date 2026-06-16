@@ -86,6 +86,32 @@ export interface RegionSummary {
   flagged?: 'unlinked';
 }
 
+/** A node in the entity knowledge graph (canonical entity). */
+export interface EntityNode {
+  entityId: string;
+  kind: string;
+  labelBg: string;
+  labelEn: string | null;
+}
+
+/** A typed entity<->entity edge, with the entity at the far end resolved. */
+export interface EntityRelationEdge {
+  predicate: string;
+  confidence: number;
+  entity: EntityNode;
+}
+
+/** One entity's neighbourhood in the knowledge graph (returned by GET /api/entities/:id). */
+export interface EntityGraphView {
+  entity: EntityNode;
+  /** Outgoing edges (this entity is the subject), e.g. municipality --part_of--> oblast. */
+  out: EntityRelationEdge[];
+  /** Incoming edges (this entity is the object), e.g. an oblast's child municipalities. */
+  in: EntityRelationEdge[];
+  /** Datasets linked directly to this entity. */
+  datasetCount: number;
+}
+
 export interface DatasetResourceView {
   resourceId: string;
   name: string | null;

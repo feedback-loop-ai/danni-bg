@@ -11,6 +11,7 @@ import { ColumnNameHeuristicsExtractor } from '../enrich/extractors/column-name-
 import { Iso8601DatesExtractor } from '../enrich/extractors/iso8601-dates.ts';
 import { linkAllSharedEntities } from '../enrich/link-datasets.ts';
 import { registerEntities } from '../enrich/register-entities.ts';
+import { registerEntityRelations } from '../enrich/relations/register-relations.ts';
 import { translateSubjects } from '../enrich/translate.ts';
 import type { Translator } from '../enrich/translator.ts';
 import { withContext } from '../logging/logger.ts';
@@ -18,6 +19,7 @@ import { CuratedArtifactsRepo } from '../store/repos/curated-artifacts.ts';
 import { DatasetLinksRepo } from '../store/repos/dataset-links.ts';
 import { DatasetsRepo } from '../store/repos/datasets.ts';
 import { EntitiesRepo } from '../store/repos/entities.ts';
+import { EntityRelationsRepo } from '../store/repos/entity-relations.ts';
 import { OrganizationsRepo } from '../store/repos/organizations.ts';
 import { ResourcesRepo } from '../store/repos/resources.ts';
 import { TranslationsRepo } from '../store/repos/translations.ts';
@@ -45,6 +47,8 @@ export interface RunCurateResult {
   entitiesAttached: number;
   linksCreated: number;
   translationsWritten: number;
+  /** Entity<->entity relations (e.g. municipality part_of oblast) asserted into the graph. */
+  relationsCreated: number;
 }
 
 export async function runCurate(opts: RunCurateOptions): Promise<RunCurateResult> {
@@ -54,6 +58,7 @@ export async function runCurate(opts: RunCurateOptions): Promise<RunCurateResult
   const orgsRepo = new OrganizationsRepo(opts.db);
   const artifactsRepo = new CuratedArtifactsRepo(opts.db);
   const entitiesRepo = new EntitiesRepo(opts.db);
+  const relationsRepo = new EntityRelationsRepo(opts.db);
   const linksRepo = new DatasetLinksRepo(opts.db);
   const translationsRepo = new TranslationsRepo(opts.db);
   const registry = new CuratorRegistry();
@@ -170,12 +175,17 @@ export async function runCurate(opts: RunCurateOptions): Promise<RunCurateResult
     Array.from(touchedEntityIds),
   );
 
+  // Materialise the entity<->entity relation graph (part_of hierarchy) from the gazetteer over the
+  // entities now present. Global + idempotent, so it reconciles regardless of which datasets ran.
+  const relationResult = registerEntityRelations({ entitiesRepo, relationsRepo });
+
   log.info('curate.completed', {
     curated,
     uncurated,
     entitiesAttached,
     linksCreated: linkResult.created,
     linksSkippedHubs: linkResult.skippedHubs,
+    relationsCreated: relationResult.created,
     translationsWritten,
   });
 
@@ -185,5 +195,6 @@ export async function runCurate(opts: RunCurateOptions): Promise<RunCurateResult
     entitiesAttached,
     linksCreated: linkResult.created,
     translationsWritten,
+    relationsCreated: relationResult.created,
   };
 }
