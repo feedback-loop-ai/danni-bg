@@ -74,6 +74,15 @@ export class EntityRelationsRepo {
       .all(objectId);
   }
 
+  /** All edges with a given predicate (e.g. the whole `part_of` hierarchy). */
+  byPredicate(predicate: EntityPredicate): EntityRelationRow[] {
+    return this.db
+      .query<EntityRelationRow, [string]>(
+        'SELECT * FROM entity_relations WHERE predicate = ? ORDER BY subject_id, object_id',
+      )
+      .all(predicate);
+  }
+
   count(): number {
     return this.db.query<{ n: number }, []>('SELECT COUNT(*) AS n FROM entity_relations').get()?.n ?? 0;
   }

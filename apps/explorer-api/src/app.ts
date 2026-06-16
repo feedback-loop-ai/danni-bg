@@ -114,16 +114,22 @@ export function createApp(ctx: AppContext): Hono {
     ctx.bridge.listLite().filter((l) => matchesFiltersLite(l, f));
 
   // Maps a dataset's geo-link entity id to the region ids (at `level`) it should count toward.
-  // Municipalities roll up into their parent oblast so an oblast aggregates its own direct links
-  // plus all of its municipalities' (de-duplicated per dataset in the aggregator / belongs check).
+  // Municipalities roll up into their parent oblast via the `part_of` knowledge-graph edges
+  // (`parentOf`), so an oblast aggregates its own direct links plus all of its municipalities'
+  // (de-duplicated per dataset in the aggregator / belongs check). Level is read from the entity-id
+  // namespace; the parent comes from the graph, not the gazetteer crosswalk.
   const rollupTargets =
-    (level: 'oblast' | 'municipality') =>
+    (level: 'oblast' | 'municipality', parentOf: Map<string, string>) =>
     (linkEntityId: string): string[] => {
-      const e = ctx.crosswalk.entry(linkEntityId);
-      if (!e) return [];
-      if (level === 'municipality') return e.level === 'municipality' ? [e.entityId] : [];
-      if (e.level === 'oblast') return [e.entityId];
-      return e.oblastEntityId ? [e.oblastEntityId] : [];
+      const isOblast = linkEntityId.startsWith('geo:bg-oblast-');
+      const isMunicipality = linkEntityId.startsWith('geo:bg-municipality-');
+      if (level === 'municipality') return isMunicipality ? [linkEntityId] : [];
+      if (isOblast) return [linkEntityId];
+      if (isMunicipality) {
+        const parent = parentOf.get(linkEntityId);
+        return parent ? [parent] : [];
+      }
+      return [];
     };
 
   app.get('/api/datasets', async (c) => {
@@ -211,11 +217,13 @@ export function createApp(ctx: AppContext): Hono {
       datasetId: l.datasetId,
       geoLinks: l.geoLinks,
     }));
+    const parentOf = ctx.bridge.partOfParents();
     const regions: RegionSummary[] = aggregateRegions({
       entries: ctx.crosswalk.entriesForLevel(level),
       labelOf: (id) => LABELS.get(id),
       datasets,
-      rollup: rollupTargets(level),
+      rollup: rollupTargets(level, parentOf),
+      parentOf: (id) => parentOf.get(id),
     });
     return c.json({ regions });
   });
@@ -235,7 +243,7 @@ export function createApp(ctx: AppContext): Hono {
     // municipalities. `belongsConfidence` returns the strongest confidence among the links that
     // roll up to this region, or -1 when none — so the list + count match the aggregate exactly,
     // and each dataset is included at most once.
-    const targetsFor = rollupTargets(entry.level);
+    const targetsFor = rollupTargets(entry.level, ctx.bridge.partOfParents());
     const belongsConfidence = (l: DatasetLite): number => {
       let best = -1;
       for (const g of l.geoLinks)
