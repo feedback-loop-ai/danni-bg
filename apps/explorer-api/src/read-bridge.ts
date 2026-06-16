@@ -3,6 +3,7 @@
 // all the reshaping logic and are unit-tested without a DB; ReadBridge binds them to a live store.
 
 import type { Database } from 'bun:sqlite';
+import { ENTITY_PREDICATES } from '../../../src/enrich/relations/vocabulary.ts';
 import type { Embedder } from '../../../src/index/embedder.ts';
 import type { IndexEntry, Lang } from '../../../src/index/query.ts';
 import { search, searchByEntity } from '../../../src/index/query.ts';
@@ -148,6 +149,19 @@ export class ReadBridge {
       })),
       datasetCount: entities.datasetsForEntity(entityId).length,
     };
+  }
+
+  /**
+   * The administrative hierarchy as a `municipality entity id -> parent oblast entity id` map,
+   * read from the `part_of` edges of the knowledge graph. Source of truth for the region roll-up
+   * (replaces the gazetteer-crosswalk special-case). Empty until a curate pass materialises it.
+   */
+  partOfParents(): Map<string, string> {
+    return new Map(
+      new EntityRelationsRepo(this.deps.db)
+        .byPredicate(ENTITY_PREDICATES.PART_OF)
+        .map((r) => [r.subject_id, r.object_id]),
+    );
   }
 
   rows(

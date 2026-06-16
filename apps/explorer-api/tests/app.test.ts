@@ -202,6 +202,57 @@ describe('explorer API routes', () => {
     expect(miss.status).toBe(404);
   });
 
+  it('GET /api/regions rolls municipalities into their oblast via the part_of graph', async () => {
+    // A dataset tagged to a municipality only (no direct oblast link).
+    new DatasetsRepo(db).upsert({
+      id: 'd3',
+      slug: 'd3',
+      titleBg: 'Общински',
+      tags: [],
+      groups: [],
+      sourceUrl: 'https://x/d3',
+    });
+    const ents = new EntitiesRepo(db);
+    ents.upsert({
+      id: 'geo:bg-municipality-stolichna',
+      kind: 'geographic_unit',
+      canonicalLabelBg: 'Столична',
+    });
+    ents.attach({
+      datasetId: 'd3',
+      entityId: 'geo:bg-municipality-stolichna',
+      extractor: 'g',
+      confidence: 0.8,
+    });
+
+    const oblastCount = async () => {
+      const body = (await (await app.request('/api/regions?level=oblast')).json()) as {
+        regions: { entityId: string | null; datasetCount: number }[];
+      };
+      return body.regions.find((r) => r.entityId === 'geo:bg-oblast-sofia-grad')?.datasetCount;
+    };
+
+    // No part_of edge yet → the municipality does NOT roll into the oblast (only d1, d2 directly).
+    expect(await oblastCount()).toBe(2);
+
+    // Assert the graph edge → d3 now rolls up into Sofia-grad.
+    new EntityRelationsRepo(db).upsert({
+      subjectId: 'geo:bg-municipality-stolichna',
+      predicate: 'part_of',
+      objectId: 'geo:bg-oblast-sofia-grad',
+      confidence: 1,
+    });
+    expect(await oblastCount()).toBe(3);
+
+    // The municipality region carries the graph-sourced parent (drives map drill-down).
+    const muni = (await (await app.request('/api/regions?level=municipality')).json()) as {
+      regions: { entityId: string | null; oblastEntityId?: string | null; datasetCount: number }[];
+    };
+    const st = muni.regions.find((r) => r.entityId === 'geo:bg-municipality-stolichna');
+    expect(st?.datasetCount).toBe(1);
+    expect(st?.oblastEntityId).toBe('geo:bg-oblast-sofia-grad');
+  });
+
   it('GET /api/facets returns in-scope tag/publisher/freshness counts', async () => {
     const res = await app.request('/api/facets');
     const body = (await res.json()) as {
