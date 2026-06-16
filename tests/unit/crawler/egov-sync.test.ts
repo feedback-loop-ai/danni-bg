@@ -305,6 +305,32 @@ describe('crawler.egov-sync', () => {
     db.close();
   });
 
+  it('captures the egov source timestamps (created_at/updated_at → metadata_created/modified)', async () => {
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const det = JSON.parse(JSON.stringify(fix('getDatasetDetails')));
+    det.data.created_at = '2026-06-03T16:47:30Z';
+    det.data.updated_at = '2026-06-05T17:08:29Z';
+    await capture(storeRoot, db, { getDatasetDetails: () => det });
+    const ds = new DatasetsRepo(db).get(DATASET_URI);
+    expect(ds?.metadata_created).toBe('2026-06-03T16:47:30Z');
+    expect(ds?.metadata_modified).toBe('2026-06-05T17:08:29Z');
+    db.close();
+  });
+
+  it('leaves metadata_modified null when the egov package omits updated_at', async () => {
+    const storeRoot = globalThis.__TEST_TMP_DIR__;
+    const db = freshDb(storeRoot);
+    const det = JSON.parse(JSON.stringify(fix('getDatasetDetails')));
+    delete det.data.created_at;
+    delete det.data.updated_at;
+    await capture(storeRoot, db, { getDatasetDetails: () => det });
+    const ds = new DatasetsRepo(db).get(DATASET_URI);
+    expect(ds?.metadata_created).toBeNull();
+    expect(ds?.metadata_modified).toBeNull();
+    db.close();
+  });
+
   it('does not re-curate a resource whose latest outcome flipped to failure (stale guard)', async () => {
     const storeRoot = globalThis.__TEST_TMP_DIR__;
     const db = freshDb(storeRoot);

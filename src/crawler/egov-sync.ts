@@ -262,6 +262,11 @@ export async function runEgovSync(opts: EgovSyncOptions): Promise<EgovSyncResult
       tags: (d.tags ?? []).map((t) => t.name),
       groups: [],
       sourceUrl: `https://data.egov.bg/data/view/${d.uri}`,
+      // Source timestamps from the egov package (the portal's "Създаден на" / "Последна промяна").
+      // Without these, freshness can only fall back to crawl time (last_synced_at), making every
+      // dataset read "stale" once a crawl ages — even when the source is current.
+      metadataCreated: d.created_at ?? null,
+      metadataModified: d.updated_at ?? null,
       sourceEtagOrHash: validator,
     });
     datasets += 1;
