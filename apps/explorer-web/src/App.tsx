@@ -17,7 +17,7 @@ import { type Theme, applyResolvedTheme, loadTheme, resolveTheme, saveTheme } fr
 import { MapErrorBoundary } from './map/MapErrorBoundary.tsx';
 import { MapView } from './map/MapView.tsx';
 import { useExplorer } from './store/explorerStore.ts';
-import type { DatasetPointer, RegionSummary } from './types.ts';
+import type { DatasetPointer, FilterState, RegionSummary } from './types.ts';
 
 function usePrefersDark(): boolean {
   const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -68,19 +68,39 @@ export function App() {
   const PAGE = 50;
   const loader = showNational ? fetchNational : fetchDatasets;
 
+  // The choropleth aggregates ignore the map's own region selection (geoUnitIds): selecting or
+  // drilling into a region must NOT re-scope the map itself (that re-scoping made the municipality
+  // layer go stale/empty for a click). Selection scopes only the dataset list + chat. Memoized on
+  // the non-geo filter fields — whose array refs selectRegion preserves — so selecting a region
+  // leaves regionFilters identity unchanged and the layers are not refetched.
+  const { tags, publisherIds, freshness, query, includeWithdrawn } = filters;
+  const regionFilters = useMemo<FilterState>(
+    () => ({ tags, publisherIds, freshness, query, includeWithdrawn, geoUnitIds: [] }),
+    [tags, publisherIds, freshness, query, includeWithdrawn],
+  );
+
+  // Region choropleth layers (oblast + municipality drill-down), selection-independent.
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    fetchRegions(filters, 'oblast')
+    fetchRegions(regionFilters, 'oblast')
       .then((r) => {
         if (!cancelled) setRegions(r.regions);
       })
       .catch(() => undefined);
-    fetchRegions(filters, 'municipality')
+    fetchRegions(regionFilters, 'municipality')
       .then((r) => {
         if (!cancelled) setMuniRegions(r.regions);
       })
       .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [regionFilters]);
+
+  // Dataset list — honors the full filters, including the region selection.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
     loader(filters, PAGE, 0)
       .then((r) => {
         if (!cancelled) {
