@@ -33,8 +33,8 @@ Implemented in `grounding.ts` + `run.ts`, contract-tested against fixtures:
 
 1. **System prompt** (`SYSTEM_PROMPT`) instructs: answer ONLY from tool results and the provided "ДАННИ"/"DATA" context block; **never invent or guess** datasets, row values, names, codes (ЕИК/EIK), numbers, publishers, or URLs; state a specific value ONLY if it appears verbatim in a tool result or the context, else say it cannot be seen; **do not fabricate to agree with the user**; when a question spans datasets call `readResource` on each; reply "no relevant public data found" when nothing is relevant; surface freshness; flag coded/translated values; never rewrite authoritative Bulgarian fields (FR-016, FR-035).
 2. **Citation extraction**: the grounded dataset ids (whose rows were injected) are **unioned** with the dataset ids the model relied on via tools, then passed to `buildCitations`.
-3. **Existence validation**: every candidate id MUST resolve via `datasetView`; unresolved/hallucinated ids are dropped (SC-005).
-4. **Scope validation**: cited datasets MUST be ⊆ `scope` (SC-008).
+3. **Existence validation**: every candidate id MUST resolve via `datasetView`; unresolved/hallucinated ids are dropped (SC-001 — no invented/unresolvable citations).
+4. **Scope validation**: cited datasets MUST be ⊆ `scope` (SC-007 — correct grounded/cited set per precedence).
 5. **Always-cite-grounded**: a grounded dataset that resolves and is in scope is cited even when the model calls no tools (FR-034).
 6. **Anchors**: from cited datasets' geo entities, emit a `MapAnchor` (FR-026/FR-027).
 

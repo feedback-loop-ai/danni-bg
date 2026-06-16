@@ -2,7 +2,7 @@
 
 **Branch**: `017-grounded-chat` | **Date**: 2026-06-16 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/017-grounded-chat/spec.md`
-**Status**: Implemented (shipped in PRs #22, #26, #27, #28, #29 on `main`; verified by the test suite — 1004 pass at #29 — plus live runs against the LAN vLLM)
+**Status**: Implemented (shipped in PRs #22, #26, #27, #28, #29 on `main`; verified by the full suite green at #29 plus live runs against the LAN vLLM)
 
 ## Summary
 
@@ -43,7 +43,7 @@ Plus **setup (PR #22):** the chat default provider is configured via `EXPLORER_D
 - **III. Contract-First API Design** — PASS. The `/api/chat` request gains `groundingDatasetIds` and `readResource` gains `filters`; both are captured in `contracts/http-api.md` and `contracts/chat-tools.md` here, extending feature 008's contracts. Inputs Zod-validated; no invented portal abstractions (tools remain 1:1 wrappers over the read API).
 - **V. Simplicity & YAGNI** — PASS. Grounding reuses the existing `readResourceRows`/grid query and `capResourceContent`; `filters` forwards to the existing grid filter; no new store, table, or abstraction. Each decision cites a concrete failure (fabrication, район recall gap, context overflow).
 - **VII. Type Safety & Validation (NON-NEGOTIABLE)** — PASS. `groundingDatasetIds` and `filters` are Zod-validated at the boundary; strict mode throughout.
-- **VIII. 100% Test Coverage & Endpoint Parity (NON-NEGOTIABLE)** — PASS. `buildFocusContext`, `windowMessages`, `SessionStore.setContext`, the `groundingDatasetIds` route field, `readResource` filter forwarding, and the column-exposure are unit/route tested. Full suite green (1004 at #29); lint + typecheck clean. The `/api/chat` endpoint and the four tool wrappers retain their parity-matrix rows from 008; the value-filter is an additive arg on the existing `readResource` wrapper.
+- **VIII. 100% Test Coverage & Endpoint Parity (NON-NEGOTIABLE)** — PASS. `buildFocusContext`, `windowMessages`, `SessionStore.setContext`, the `groundingDatasetIds` route field, `readResource` filter forwarding, and the column-exposure are unit/route tested. Full suite green at #29; lint + typecheck clean. The `/api/chat` endpoint and the four tool wrappers retain their parity-matrix rows from 008; the value-filter is an additive arg on the existing `readResource` wrapper.
 - **IX. Data Freshness & Sync Integrity (NON-NEGOTIABLE)** — PASS. Citations carry the freshness block; the system prompt surfaces freshness and flags coded/translated values. No new sync path.
 - **X. Bulgarian-Locale Awareness** — PASS. Cyrillic row values (names, ЕИК, район labels), column names, and the "ДАННИ (ground truth)" header are handled and injected verbatim; value-filter substring match is case-insensitive over Cyrillic. No authoritative field is rewritten or translated.
 

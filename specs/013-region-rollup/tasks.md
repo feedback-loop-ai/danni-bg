@@ -33,7 +33,7 @@ reused unchanged.
 ## Phase 1: Setup (Shared Infrastructure)
 
 No new setup — this feature extends the existing explorer-API backend and store repos established
-by spec 008 and the knowledge-graph layer of spec 016. Toolchain (Bun + Vitest + Biome) and the
+by spec 008 and the knowledge-graph layer of spec 016. Toolchain (Bun + `bun:test` + Biome) and the
 `apps/explorer-api` / `packages/geo-boundaries` packages already exist.
 
 ---
@@ -58,11 +58,11 @@ by spec 008 and the knowledge-graph layer of spec 016. Toolchain (Bun + Vitest +
 its municipalities' datasets.
 
 **Independent Test**: For every municipality on the live mirror, `count(muni) <= count(parent oblast)`
-(243/243, 0 violations).
+(243/243 municipalities-with-data of 265 total, 0 violations).
 
 - [X] T004 [US1] Add the optional `rollup(linkEntityId) => regionIds[]` parameter to `aggregateRegions` (default identity → flat behavior preserved) and bucket targets accordingly, in `apps/explorer-api/src/regions-aggregate.ts`. *(PR #18)*
 - [X] T005 [US1] Implement `rollupTargets(level, parentOf)` in `apps/explorer-api/src/app.ts`: oblast→self, municipality→parent oblast (from the graph map), classified by entity-id namespace; municipality level is identity for municipalities and drops oblast-direct links. *(PR #18, rewired to the graph map in #24)*
-- [X] T006 [US1] Wire `GET /api/regions` to pass `rollup: rollupTargets(level, partOfParents())` in `apps/explorer-api/src/app.ts`. *(PR #18 / #24)*
+- [X] T006 [US1] Wire `GET /api/regions` to pass `rollup: rollupTargets(level, partOfParents())` in `apps/explorer-api/src/app.ts` (the route-wiring half of T005's `rollupTargets`). *(PR #18 / #24)*
 - [X] T007 [US1] Unit cases: municipalities roll up into the parent oblast at oblast level; municipality level unchanged; non-geo links ignored — in `apps/explorer-api/tests/regions-aggregate.test.ts`. *(PR #18)*
 
 **Checkpoint**: Oblast counts include their municipalities; the parts-≤-whole invariant holds.
@@ -94,6 +94,7 @@ municipality dataset once; a municipality summary carries `oblastEntityId`.
 - [X] T010 [US3] Make `GET /api/regions/:entityId` membership roll-up-aware via `belongsConfidence` (strongest confidence among links whose `rollupTargets` include this region, else −1), so list + count match the aggregate, in `apps/explorer-api/src/app.ts`. *(PR #18)*
 - [X] T011 [US3] Add the optional `parentOf(entityId)` resolver to `aggregateRegions` so the emitted `RegionSummary.oblastEntityId` (drill-down) is graph-sourced; pass `parentOf: (id) => partOfParents().get(id)` from `/api/regions`. Document the field in `apps/explorer-api/src/schemas.ts`. *(PR #24)*
 - [X] T012 [US3] App test: a municipality dataset appears under its parent oblast's detail list **only after** the `part_of` edge exists (pins the graph as the source; fails against the pre-#24 crosswalk path), in `apps/explorer-api/tests/app.test.ts`. *(PR #24)*
+- [X] T019 [US3] Paginate `GET /api/regions/:entityId` (`limit` default 50 / max 200, `offset`) while reporting `total` as the full distinct rolling-up count independent of the page slice, and assert list↔count parity (FR-007/FR-013, SC-003) against `total` (not the page length), in `apps/explorer-api/src/app.ts` and `apps/explorer-api/tests/app.test.ts`. *(PR #18)*
 
 **Checkpoint**: Counts are auditable via the list; drill-down ids are graph-sourced.
 
@@ -118,8 +119,8 @@ no longer has an `oblastEntityId` field and all 293 entries load clean.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [X] T017 Run the full backend + shared-logic suite (994 pass / 0 fail) with lint + typecheck clean (Constitution VIII gate). *(PRs #18, #24, #25)*
-- [X] T018 Verify the live-mirror invariant: 243/243 municipalities satisfy `count(muni) <= count(parent oblast)`, 0 violations; `Варна` oblast 111 → 243 (per `quickstart.md`). *(PR #18)*
+- [X] T017 Run the full backend + shared-logic suite (full suite green) with lint + typecheck clean (Constitution VIII gate). *(PRs #18, #24, #25)*
+- [X] T018 Verify the live-mirror invariant: 243/243 municipalities-with-data (of 265 total) satisfy `count(muni) <= count(parent oblast)`, 0 violations; `Варна` oblast 111 (direct-only) → 243 right after #18 → 516 on the current mirror once publisher-derived recall populated more of its municipalities (per `quickstart.md`). *(PR #18)*
 
 ---
 
@@ -147,3 +148,7 @@ green.
 - The `part_of` graph and `ENTITY_PREDICATES.PART_OF` are owned by spec 016 — depended on, not
   re-specified here.
 - No new migration or persisted table; the feature re-buckets already-extracted placements.
+- T006 is the route-wiring half of T005 (T005 defines `rollupTargets`; T006 passes it into `/api/regions`).
+- The empty-graph degraded path (un-materialised `part_of` → oblast roll-up falls back to direct
+  links only, no crash) is exercised by the default-identity unit case in T004: with no `rollup`
+  supplied the aggregator is identity, which is the same flat behavior the empty-graph fallback yields.

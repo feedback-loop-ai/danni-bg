@@ -20,7 +20,7 @@ Two stacked UX improvements to the map data explorer (feature 008), both deliver
 **Language/Version**: TypeScript 5.x (strict mode) on Bun 1.x (backend + tooling); same TS for the React frontend
 **Primary Dependencies**: Backend — Hono (HTTP), Zod (`filterStateSchema` boundary validation), reuse of in-repo `src/read` (`resource-rows.ts`, new `resource-grid.ts`). Frontend — React + Vite, Zustand (shared filter store `explorerStore`), lucide-react icons (Filter/ArrowUp/ArrowDown/ChevronDown), Tailwind UI primitives
 **Storage**: Read-only reuse of the existing `bun:sqlite` mirror store via `src/read`. No new persistent storage. Grid/facet UI state is in-memory, session-scoped
-**Testing**: Vitest (+ @vitest/coverage-v8) at 100% line+branch for the pure grid logic (`tests/unit/read/resource-grid.test.ts`) and the client grid helpers (`apps/explorer-web/src/lib/grid.test.ts`); Playwright E2E for the filter/grid journeys (`us2-filters`, `us5-linked`, `us6-drilldown`; `us8-line-chart` retired with the chart view)
+**Testing**: `bun:test` (`bun test --coverage`) at 100% line+branch for the pure grid logic (`tests/unit/read/resource-grid.test.ts`), the client grid helpers (`apps/explorer-web/src/lib/grid.test.ts`), and the chip helpers (`apps/explorer-web/src/lib/filters.test.ts` — `toChips`/`removeChip`/`toggleValue`/`setFreshness`/`clearAll`); Playwright E2E for the filter/grid journeys (`us2-filters`, `us5-linked`, `us6-drilldown`; `us8-line-chart` retired with the chart view). `us5-linked` is touched because it exercises the tag filter while navigating between the map and dataset views — the exact-tag input it drove was replaced by the tag facet, so the journey's filter step was repointed at the facet (same change as `us2-filters`, T014)
 **Target Platform**: Self-hostable Linux service (Bun backend serving the static SPA), desktop-first modern browsers
 **Project Type**: Web application (React SPA `apps/explorer-web` + Hono API `apps/explorer-api`) layered on the existing MCP-mirror monorepo
 **Performance Goals**: Facet/filter updates reflected ≤2s for typical combinations (SC-004); server-side grid sort/filter bounded by a 100,000-row scan cap so even ~1.25M-row resources stay responsive (with a truncation indicator)
@@ -85,12 +85,14 @@ apps/explorer-web/src/
 │                                 #       chart view removed; content kind by shape not row count
 ├── filters/FilterPanel.tsx       # REWRITE: faceted sidebar (tags/publishers/freshness, chips)
 ├── lib/grid.ts                   # NEW: cycleSort, hasActiveFilters, GridSort (client helpers)
+├── lib/filters.ts                # NEW: toChips/removeChip/toggleValue/setFreshness/clearAll (chip helpers)
 ├── lib/api.ts                    # EDIT: fetchFacets, fetchResourceRows GridQuery params
 ├── lib/chart.ts                  # DELETED with the chart view
 └── types.ts                      # EDIT: Facets/FacetItem, ResourceContent.gridTruncated
 
 tests/unit/read/resource-grid.test.ts          # NEW: pure grid logic coverage
 apps/explorer-web/src/lib/grid.test.ts          # NEW: client sort-cycle / filter-active helpers
+apps/explorer-web/src/lib/filters.test.ts       # NEW: chip helpers (toChips/removeChip/toggleValue/setFreshness/clearAll)
 apps/explorer-web/e2e/{us2-filters,us5-linked}.e2e.ts  # EDIT: tag facet
 apps/explorer-web/e2e/us8-line-chart.e2e.ts     # DELETED with the chart view
 ```

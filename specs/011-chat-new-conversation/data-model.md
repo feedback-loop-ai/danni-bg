@@ -54,11 +54,27 @@ State intentionally **not** touched by the reset: `filters`, `selectedRegionId`,
 |------|------|---------|
 | `SUGGESTIONS` | `string[]` (length 3) | Fixed, curated Bulgarian example questions rendered as clickable buttons in the empty state (FR-009/FR-010). Sent verbatim via `send(s)`. |
 
-Shipped values:
+### Pinned user-facing strings (FR-012 — Cyrillic exactness)
+
+These are the exact Bulgarian strings shipped in `ChatPanel.tsx`; they are
+user-facing and MUST be preserved verbatim (no transliteration, no whitespace or
+punctuation drift).
+
+**`SUGGESTIONS` (the three example questions, in order):**
 
 1. `Какви данни има за качеството на въздуха?`
 2. `Сравни ПТП с фатален край по години`
 3. `Кои набори са за бюджета на общините?`
+
+**Grounding prompt** (the centred empty-state paragraph; rendered as a single
+string — it is wrapped across two source lines in the JSX but contains no line
+break):
+
+> `Задайте въпрос за публичните данни — отговорите се базират на наличните набори и посочват източници.`
+
+**New-conversation control** (`aria-label` and `title`):
+
+> `Нов разговор`
 
 ## State transitions
 

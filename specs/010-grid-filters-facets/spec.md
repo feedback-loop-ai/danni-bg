@@ -51,6 +51,7 @@ A journalist wants environment datasets from a specific publisher but does not k
 4. **Given** one or more filters are active, **When** the user views the sidebar, **Then** each active filter is shown as a removable chip with a localized, human-readable label (publisher names resolved, freshness localized).
 5. **Given** several filters are active, **When** the user clicks "Изчисти всички", **Then** all filters are removed and the view returns to the full scope.
 6. **Given** the freshness control, **When** the user selects "Актуални" or "Остарели", **Then** the control shows the count for each bucket and the result set is constrained to that freshness state.
+7. **Given** withdrawn datasets are excluded by default, **When** the user enables the "include withdrawn" toggle, **Then** withdrawn datasets are added to the in-scope set, the toggle state appears as a removable active-filter chip, and disabling it (or removing the chip) returns to the default excluded state.
 
 ---
 
@@ -67,6 +68,7 @@ A user applies a column filter that happens to match no rows. Instead of a confu
 1. **Given** a tabular resource is open, **When** a column filter matches zero rows, **Then** the column headers remain and a localized "no matches" message is shown in place of any rows.
 2. **Given** a filter matched zero rows, **When** the user clears the column filters, **Then** the rows reappear.
 3. **Given** a filter matches zero rows, **When** the empty state is shown, **Then** no raw JSON (`[]`) fallback is rendered.
+4. **Given** one or more column filters are active (whether or not they match rows), **When** the user clicks the single grid-level "изчисти филтрите" (clear all column filters) control, **Then** every active column filter is cleared at once and the full row set is restored.
 
 ---
 
@@ -100,12 +102,12 @@ A user applies a column filter that happens to match no rows. Instead of a confu
 - **FR-010**: The grid MUST provide a one-action way to clear all active column filters and restore the rows.
 
 **Faceted filter panel**
-- **FR-011**: The filter sidebar MUST present tag and publisher facets as multi-select controls, each value showing a result count, ordered by frequency, capped to a top-N with a "show more" affordance.
+- **FR-011**: The filter sidebar MUST present tag and publisher facets as multi-select controls, each value showing a result count, ordered by frequency, capped to a top-N (concretely top-8, as shipped — see tasks T017) with a "show more" affordance.
 - **FR-012**: The tag facet MUST provide a search-within box to filter the visible tag values when the vocabulary exceeds the top-N cap.
 - **FR-013**: The freshness control MUST be a localized segmented control (Всички / Актуални / Остарели) showing per-bucket counts, plus a toggle to include withdrawn datasets.
 - **FR-014**: Facet values and their counts MUST be computed over the currently in-scope (already-filtered) dataset set so counts narrow as filters are added (conjunctive faceting).
-- **FR-015**: Active filters MUST be shown as individually removable chips with localized, human-readable labels (publisher ids resolved to titles, freshness localized, geo ids resolved to region labels), and a single "Изчисти всички" action MUST clear all filters.
-- **FR-016**: Facet sections MUST be individually collapsible so a long sidebar stays scannable.
+- **FR-015**: Active filters MUST be shown as individually removable chips with localized, human-readable labels (publisher ids resolved to titles, freshness localized, geo ids resolved to region labels), and a single "Изчисти всички" action MUST clear all filters. (Scope note: geo/region filters are not defined or selected by this feature — they are inherited from feature 008's map drill-down; this feature only renders their active-filter *chip*, resolving the geo id to a region label.)
+- **FR-016**: Facet sections MUST be individually collapsible so a long sidebar stays scannable. (Presentation-only ergonomics; intentionally has no dedicated Success Criterion — its value is covered indirectly by the scannability goal behind the top-N cap in SC-005.)
 
 **Facets endpoint**
 - **FR-017**: The system MUST expose a `/api/facets` endpoint that accepts the shared filter query parameters and returns tag facets, publisher facets, and freshness buckets with in-scope counts.
@@ -129,8 +131,9 @@ A user applies a column filter that happens to match no rows. Instead of a confu
 - **SC-003**: No chart/view-selection affordance remains anywhere in the resource grid (the "Графика" view is fully removed and its line-chart E2E coverage retired).
 - **SC-004**: Opening the filter sidebar shows tag and publisher facets with accurate in-scope counts; ticking a value updates the other facets' counts to the new in-scope set within 2 seconds for typical filter combinations.
 - **SC-005**: A user can find and apply a tag without typing its exact string — every tag with at least one in-scope dataset is reachable via the top-N list, "show more", or the search-within box.
-- **SC-006**: Every active filter is shown as a removable chip with a localized label, and "Изчисти всички" returns the view to full scope in a single action — verified for tag, publisher, freshness, and geo filters.
+- **SC-006**: Every active filter is shown as a removable chip with a localized label, and "Изчисти всички" returns the view to full scope in a single action — verified for tag, publisher, freshness, and geo filters. (The geo chip's underlying filter originates in feature 008; here it is verified only as a rendered, removable chip.)
 - **SC-007**: `/api/facets` counts match the dataset/region/national endpoints for the same filter state (consistent in-scope set) in 100% of contract-tested cases.
+- **SC-008**: Toggling "include withdrawn" adds withdrawn datasets to the in-scope set and surfaces a removable chip; the default (toggle off) excludes them — verified in both states.
 
 ## Assumptions
 

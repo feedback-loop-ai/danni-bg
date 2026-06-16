@@ -42,7 +42,7 @@ The chosen set's rows are pre-read (up to 1000 rows/resource, bounded at 90,000 
 | `session` | `{ "sessionId": "..." }` (first event) |
 | `token` | `{ "delta": "..." }` streamed answer text |
 | `tool` | `{ "name": "mirrorSearch\|mirrorEntitySearch\|mirrorInfo\|readResource", "status": "start\|done" }` (observability; no raw secrets) |
-| `citations` | `{ "citations": Citation[] }` — each validated to exist in the mirror (SC-005) and within scope |
+| `citations` | `{ "citations": Citation[] }` — each validated to exist in the mirror (SC-001) and within scope (SC-007) |
 | `anchors` | `{ "geoEntityIds": [], "datasetIds": [] }` — map highlight/focus (FR-026/FR-027) |
 | `done` | `{}` |
 | `error` | `{ "code": "...", "message": "..." }` (e.g. `provider_unconfigured`, `provider_error`) |

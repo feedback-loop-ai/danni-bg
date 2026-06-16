@@ -24,7 +24,7 @@ Decisions taken during implementation, recorded retrospectively. Each cites the 
 
 ## R3 — Filter-then-sort, numeric-aware comparison, Bulgarian collation
 
-**Decision**: `applyGrid` filters first, then sorts. Filtering is case-insensitive substring match on the cell's text form. Sorting compares numerically when both cells look numeric, else by `localeCompare(as, bs, 'bg')`, with blank cells ordered last. The numeric/text helpers mirror the client's `lib/chart.isNumeric` and `lib/table.cellText` so client and server agree.
+**Decision**: `applyGrid` filters first, then sorts. Filtering is case-insensitive substring match on the cell's text form. Sorting compares numerically when both cells look numeric, else by `localeCompare(as, bs, 'bg')`, with blank cells ordered last. The text helper mirrors the surviving client `lib/table.cellText` (the old `lib/chart.ts` home was deleted with the chart view — see R4); the numeric predicate (`isNumeric`) now lives inline in `src/read/resource-grid.ts` as the single source of truth, so client (`cellText`) and server agree on the text/numeric forms.
 
 **Why**: Filter-before-sort is cheaper (sort the smaller set) and matches user mental model (sort the filtered view). Numeric-aware ordering avoids "10 < 2" string surprises; Bulgarian collation is required for Cyrillic text (Constitution X). Blanks-last keeps empty cells from dominating the top of an ascending sort (FR-007).
 

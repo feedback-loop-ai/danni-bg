@@ -9,7 +9,7 @@ description: "Task list for entity knowledge graph (typed entity↔entity relati
 
 **Status**: Implemented (PR #23). All tasks below are complete (`[X]`) and reference the real shipped paths.
 
-**Tests**: Included — the feature shipped with repo, materialiser, and endpoint tests (full suite 993 pass, 0 fail).
+**Tests**: Included — the feature shipped with repo, materialiser, and endpoint tests (full suite green).
 
 **Organization**: Grouped by user story (US1–US3 from spec.md) so each slice is independently verifiable.
 
@@ -87,8 +87,9 @@ description: "Task list for entity knowledge graph (typed entity↔entity relati
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [X] T014 [P] Confirm the layer-separation rationale is documented inline (migration header + vocabulary module) — dataset→entity edges stay in `dataset_entities`; `entity_relations` is entity↔entity only.
-- [X] T015 Run lint + typecheck + full test suite (993 pass, 0 fail; lint + typecheck clean).
+- [X] T015 Run lint + typecheck + full test suite (full suite green; lint + typecheck clean).
 - [X] T016 Materialise on the live mirror via `danni curate --entities-only` and verify the edge count (249 `part_of` edges).
+- [X] T017 [SC-008] Verify the constitution's 100% line+branch coverage gate for the new pure modules (vocabulary, `EntityRelationsRepo`, `registerEntityRelations`) and confirm the `GET /api/entities/:id` endpoint is covered by the integration test.
 
 ---
 

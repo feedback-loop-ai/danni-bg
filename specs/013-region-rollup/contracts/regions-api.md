@@ -29,9 +29,9 @@ Roll-up behavior:
 - **`level=municipality`**: unchanged from flat behavior — municipalities are leaves; a
   municipality's count is the distinct datasets linked directly to it. Oblast-direct datasets are
   **not** pushed down to municipalities.
-- `oblastEntityId` is the parent oblast entity id for a municipality summary (drives map
-  drill-down), sourced from `part_of`; null/absent for oblast summaries and for orphan
-  municipalities (no `part_of` edge).
+- `oblastEntityId` is always present on every `RegionSummary`: the parent oblast entity id for a
+  municipality summary (drives map drill-down), sourced from `part_of`; explicitly `null` for
+  oblast summaries and for orphan municipalities (no `part_of` edge) — never an absent key.
 - Every crosswalk entry is emitted even when it has no datasets (`datasetCount: 0`,
   `hasData: false`).
 

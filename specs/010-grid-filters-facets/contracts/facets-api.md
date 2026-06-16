@@ -2,7 +2,7 @@
 
 **Feature**: 010-grid-filters-facets · **Service**: `apps/explorer-api` (Bun + Hono)
 
-Contract-first per Constitution III. Each endpoint/param here has Vitest contract coverage over mirror fixtures, registered in `tests/parity-matrix.json` (Constitution VIII). Inputs are validated with Zod `filterStateSchema` (`.strict()`, Constitution VII). Responses are UTF-8 JSON. Authoritative Bulgarian tag/publisher labels are returned verbatim (Constitution X).
+Contract-first per Constitution III. Each endpoint/param here has `bun:test` contract coverage over mirror fixtures, registered in `tests/parity-matrix.json` (Constitution VIII). Inputs are validated with Zod `filterStateSchema` (`.strict()`, Constitution VII). Responses are UTF-8 JSON. Authoritative Bulgarian tag/publisher labels are returned verbatim (Constitution X).
 
 Shared error envelope (unchanged from feature 008):
 ```json

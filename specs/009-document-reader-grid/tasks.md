@@ -23,7 +23,7 @@ description: "Task list for 009-document-reader-grid (retrospective; shipped in 
 **Purpose**: Store target and the one-component-two-variants plumbing every story builds on.
 
 - [X] T001 Add `ReaderTarget` interface + `reader` state and `openReader`/`closeReader` actions to the explorer store in `apps/explorer-web/src/store/explorerStore.ts`.
-- [X] T002 Add the `variant: 'panel' | 'reader'` prop to `apps/explorer-web/src/datasets/ResourcePreview.tsx` (fill-vs-fixed layout: `min-h-0 flex-1` in reader, `max-h-80` in panel; flex-column container in reader).
+- [X] T002 Add the `variant: 'panel' | 'reader'` prop to `apps/explorer-web/src/datasets/ResourcePreview.tsx` (fill-vs-fixed layout: `min-h-0 flex-1` in reader, `max-h-80` in panel; flex-column container in reader). This covers the FR-005 non-tabular case too: in `reader` the document/text view (JSON/text `<pre>`) grows to fill the reader rather than being capped, so charts, tables, and documents all fill the centre.
 
 **Checkpoint**: Shared reader state + reusable preview variant ready.
 
@@ -76,7 +76,7 @@ description: "Task list for 009-document-reader-grid (retrospective; shipped in 
 
 **Goal**: A dedicated, debounced search bar at the top of the left panel; remove the buried free-text input.
 
-**Independent Test**: Typing fires one search after a ~300ms pause (not per keystroke); spinner while loading; ✕ clears; external "Изчисти всички" resets the input.
+**Independent Test**: Typing fires one search after a 300ms pause (not per keystroke); spinner while loading; ✕ clears; external "Изчисти всички" resets the input.
 
 - [X] T016 [US3] Create `apps/explorer-web/src/filters/SearchBar.tsx`: search-icon input with placeholder "Търси по дума, тема, издател…", instant local `text` state, 300ms-debounced commit to shared `filters.query` via `updateFilters`, re-sync from external `filters.query`, loading spinner (`loading` prop) and a clear (✕) button when text present.
 - [X] T017 [US3] Remove the free-text search `Input` from `apps/explorer-web/src/filters/FilterPanel.tsx` (tags/freshness/withdrawn remain as refinement filters).
@@ -89,7 +89,7 @@ description: "Task list for 009-document-reader-grid (retrospective; shipped in 
 ## Phase 5: Docs & cross-cutting
 
 - [X] T019 Document the new `/rows` grid query params (`sort`/`dir`/`filters`) and the `gridTruncated` response field in `specs/008-map-data-explorer/contracts/http-api.md`.
-- [X] T020 Validate the full suite for PR #13: backend 98 + read 16 unit/integration green; web typecheck + Biome clean; 9 Playwright E2E green; live verification (sort `zaginali_obshto` desc + an age-group filter over the full resource).
+- [X] T020 Validate the full suite for PR #13: all backend/read suites pass with 100% coverage on the new pure modules; web typecheck + Biome clean; the Playwright E2E suite green; live verification (sort `zaginali_obshto` desc + an age-group filter over the full resource).
 
 ---
 

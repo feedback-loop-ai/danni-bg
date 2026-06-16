@@ -44,7 +44,7 @@ A researcher trusts that when a dataset *itself* names a place, that explicit si
 **Acceptance Scenarios**:
 
 1. **Given** a dataset that names a place in its own title, **When** both the publisher extractor and the in-content gazetteer extractor run, **Then** the in-content match is recorded at confidence 0.95 (canonical) / 0.75 (alias) and the publisher match at the lower 0.7 / 0.6.
-2. **Given** both extractors attach the same (dataset, entity) pair, **When** the map reads region membership, **Then** the pair is counted once at the higher (in-content) confidence — the weaker publisher row never supersedes the stronger one.
+2. **Given** both extractors attach the same (dataset, entity) pair, **When** the map reads region membership, **Then** the pair is counted once at the higher (in-content) confidence — the weaker publisher row never supersedes the stronger one. (This max-confidence dedup is covered transitively by the integration assertion that the Sofia cohort and shared-municipality clique aggregate without double-counting.)
 
 ---
 
@@ -78,13 +78,13 @@ A journalist relies on the national grouping continuing to mean "data that is ge
 
 - **FR-001**: The curation pipeline MUST attempt to derive a geographic administrative unit from the publishing organisation's name for every dataset, using the same Bulgarian administrative gazetteer used for in-content extraction.
 - **FR-002**: A publisher-derived geographic match MUST be attached to the dataset as a geographic-unit entity, with evidence that records the source as the publisher and identifies the publisher organisation.
-- **FR-003**: A publisher-derived match MUST be recorded at a lower confidence than an in-content match of the same match type — canonical publisher matches at 0.7 and alias publisher matches at 0.6, versus in-content 0.95 (canonical) / 0.75 (alias).
-- **FR-004**: When a dataset matches the same administrative unit both in its own content and via its publisher, the in-content (higher) confidence MUST govern the placement the map reads; the publisher row MUST NOT supersede it.
+- **FR-003**: A publisher-derived placement's confidence MUST be strictly below that of any in-content placement, so that when both signals match the same administrative unit the in-content signal always wins on read. (The concrete confidence values realizing this invariant are recorded in data-model.md §1.)
+- **FR-004**: When a dataset matches the same administrative unit both in its own content and via its publisher, the in-content (higher) confidence MUST govern the placement the map reads; the publisher row MUST NOT supersede it. (Read-side view of the same mechanism as FR-007: the `(dataset_id, entity_id, extractor)` key keeps both rows and the read layer takes the maximum confidence per `(dataset, entity)`.)
 - **FR-005**: The system MUST attach nothing when the dataset has no publisher, when the publisher organisation cannot be resolved, or when the publisher's name names no administrative place.
 - **FR-006**: A publisher-derived municipality MUST compose with the oblast roll-up so that it also contributes to its parent oblast, identically to an in-content municipality.
-- **FR-007**: Publisher-derived and in-content geographic attachments MUST be able to coexist for the same dataset and entity without one destroying the other (both provenance rows are retained, keyed by their extractor).
+- **FR-007**: Publisher-derived and in-content geographic attachments MUST be able to coexist for the same dataset and entity without one destroying the other (both provenance rows are retained, keyed by their extractor). (Write-side view of the same mechanism as FR-004: coexisting rows under the 3-column key are what allow the max-confidence-on-read to pick the in-content placement.)
 - **FR-008**: The change MUST preserve published Bulgarian organisation names exactly as stored; it reads `title_bg` and matches against the gazetteer without rewriting any authoritative field.
-- **FR-009**: Materializing the recall on an existing mirror MUST be possible by re-running only entity extraction (without re-parsing captured resource files), so a gazetteer/extractor change can be applied cheaply to the whole corpus.
+- **FR-009**: Materializing the recall on an existing mirror MUST be possible by re-running only entity extraction (without re-parsing captured resource files), so a gazetteer/extractor change can be applied cheaply to the whole corpus. (The entities-only curate capability this depends on is provided and validated by feature 015's tests; it is not exercised by this feature's own test suite.)
 
 ### Key Entities *(include if feature involves data)*
 
@@ -97,8 +97,10 @@ A journalist relies on the national grouping continuing to mean "data that is ge
 
 ### Measurable Outcomes
 
+> The figures in SC-001 through SC-003 are the realized values observed on the current mirror after re-curating with publisher-derived recall (per the research.md measurement), not forward-looking thresholds.
+
 - **SC-001**: The non-georeferenced national grouping shrinks from 56.7% of the mirror (6,721 of 11,854 datasets) to 15.0% (1,776 datasets) after re-curating with publisher-derived recall.
-- **SC-002**: Publisher-derived placement recovers 9,899 dataset placements that previously had no geographic entity (georeferenced datasets grow from 5,133 to 10,078, ~85% of the mirror).
+- **SC-002**: Publisher-derived placement recovers 9,899 dataset placements that previously had no geographic entity (georeferenced datasets grow from 5,133 to 10,078, ~85% of the mirror). Note: the 9,899 figure (publisher-derived placements, including oblast roll-up rows) is not the same quantity as SC-001's ~4,945 (the net reduction of the national bucket, i.e. distinct datasets that left it); the larger placement count includes the parent-oblast roll-up rows a single municipality placement generates.
 - **SC-003**: At least 73% of datasets that previously fell into the national bucket because their own content named no place are recovered to a region (measured: 73.6%, 4,945 of 6,721, are published by an org whose name names a place).
 - **SC-004**: A dataset that names a place in its own content retains its in-content placement confidence unchanged; no in-content placement is downgraded by the addition of publisher-derived placement.
 - **SC-005**: A dataset published by an organisation whose name names no administrative place receives zero publisher-derived geographic attachments, so the residual national bucket continues to represent genuinely national data.

@@ -2,7 +2,7 @@
 
 **Branch**: `012-map-drilldown` | **Date**: 2026-06-16 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `specs/012-map-drilldown/spec.md`
-**Status**: Implemented — merged via PR #16 (`feat(map): SVG choropleth + real 265-municipality geometry + oblast→municipality drill-down`), PR #17 (`fix(tests): repair 2 integration tests broken by 013 map overhaul`), PR #21 (`fix(map): don't re-scope the choropleth by its own region selection`).
+**Status**: Implemented — merged via PR #16 (`feat(map): SVG choropleth + real 265-municipality geometry + oblast→municipality drill-down`), PR #17 (`fix(tests): repair 2 integration tests broken by 013 map overhaul`; despite the PR title, this is feature **012** — the repaired tests belong to feature-008), PR #21 (`fix(map): don't re-scope the choropleth by its own region selection`).
 
 ## Summary
 
@@ -15,12 +15,12 @@ Replace the unverifiable WebGL/MapLibre map (six placeholder municipality square
 **Language/Version**: TypeScript 5.x (strict mode) on Bun 1.x (generation scripts + API + tooling); same TS for the React SPA
 **Primary Dependencies**: `d3-geo` (projection, path, centroid, contains, distance) — new; `lucide-react` (back-arrow icon). **Removed**: `maplibre-gl`. Reuses `packages/geo-boundaries` (Zod boundary/crosswalk schemas), `apps/explorer-api` region aggregation, and the existing curate/gazetteer pipeline
 **Storage**: No new persistent store. Bundled static data: `packages/geo-boundaries/data/source/lau-bg.geojson` (source), `packages/geo-boundaries/data/municipalities.geojson` (keyed boundaries), `packages/geo-boundaries/data/crosswalk.json`, `src/enrich/gazetteer/municipalities-bg.json` (gazetteer source of truth). Choropleth counts read from the existing mirror store via the region endpoints
-**Testing**: Vitest (+ @vitest/coverage-v8) at 100% line+branch for the pure modules — `projection.ts`, `map-scale.ts`, `regions-aggregate.ts`, geo-boundaries crosswalk/schema, and the updated gazetteer extractor; Playwright E2E (`us1-map.e2e.ts`) for the headless map render and drill-down behaviour. Two pre-existing integration tests updated to the LAU-derived ids (#17)
+**Testing**: `bun:test` (`bun test --coverage`) at 100% line+branch for the pure modules — `projection.ts`, `map-scale.ts`, `regions-aggregate.ts`, geo-boundaries crosswalk/schema, and the updated gazetteer extractor; Playwright E2E (`us1-map.e2e.ts`) for the headless map render and drill-down behaviour. Two pre-existing integration tests updated to the LAU-derived ids (#17)
 **Target Platform**: Self-hostable Linux service serving the static SPA; desktop-first modern browsers + headless Chromium for E2E
 **Project Type**: Web application (React SPA + Bun/Hono API) plus a bundled geo-boundaries package and generation tooling, layered on the existing MCP-mirror monorepo
 **Performance Goals**: Map renders and screenshot-tests headlessly (the original WebGL map could not); drill-down zoom is an instant SVG transform; colour scale and projection are pure and computed once per layer
 **Constraints**: No GPU dependency (SVG, headless-renderable — FR-001); Cyrillic municipality names preserved verbatim (Constitution X); join by official LAU id, never by name (Constitution X); pure logic at 100% coverage with the SVG render glue validated by E2E (Constitution VIII); choropleth must not silently re-scope on selection (FR-014/#21)
-**Scale/Scope**: 28 oblasts + **265** municipalities; 2 user stories (P1 drill-down, P2 selection-independence); 16 functional requirements
+**Scale/Scope**: 28 oblasts + **265** municipalities; 2 user stories (P1 drill-down, P2 selection-independence); 17 functional requirements
 
 ## Constitution Check
 
@@ -101,8 +101,9 @@ apps/explorer-web/e2e/
 └── us1-map.e2e.ts                         # headless render + drill-down (zoom in / Назад) E2E
 
 # Test fixtures repaired by #17 (assert against the LAU-derived ids):
-tests/.../enrichment-guarantees (SC-011)   # query-by-municipality now targets geo:bg-municipality-stolichna
-tests/.../reachability (SC-009)            # attaches the real -stolichna id
+# (these are feature-008 integration tests SC-009/SC-011, not 012 success criteria — repaired here as a side-effect)
+tests/.../enrichment-guarantees (feature-008 SC-011)   # query-by-municipality now targets geo:bg-municipality-stolichna
+tests/.../reachability (feature-008 SC-009)            # attaches the real -stolichna id
 ```
 
 **Structure Decision**: The rework stays within the web-application shape established by 008-map-data-explorer. The map's pure logic lives in `apps/explorer-web/src/lib/` (100% covered), the SVG render glue in `apps/explorer-web/src/map/`, the boundary/gazetteer data + generation in `packages/geo-boundaries`, and the gazetteer source of truth in `src/enrich/gazetteer/`. No new package or store is introduced; `maplibre-gl` is removed.

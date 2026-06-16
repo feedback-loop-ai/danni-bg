@@ -2,7 +2,7 @@
 
 **Feature Branch**: `feat/curate-entities-only`  
 **Created**: 2026-06-16  
-**Status**: Implemented (shipped via PR #20, merged 2026-06-16; verified by the test suite — 987 pass / 0 fail)  
+**Status**: Implemented (shipped via PR #20, merged 2026-06-16; verified by the full test suite green)  
 **Input**: User description: "A full `danni curate` re-parses every captured resource into memory and was OOM-killed on the ~16k-resource live mirror (>20 GB RSS). But entity extraction reads dataset/resource metadata rows, not parsed artifacts — so re-parsing is pure waste when only an extractor/gazetteer changed. Add an entities-only mode that re-runs the extractors + cross-dataset linking + entity-relation materialization only, skipping resource parsing and translation."
 
 ## Clarifications
@@ -25,7 +25,7 @@ After changing an extractor or the gazetteer (e.g. the publisher-region recall i
 
 **Acceptance Scenarios**:
 
-1. **Given** a dataset whose resource has a successful capture on disk that a full curate would parse, **When** curate runs in entities-only mode, **Then** `entitiesAttached > 0` (the dataset's entities are re-asserted, including the publisher-derived place) and `curated === 0`, `uncurated === 0`, and `translationsWritten === 0`.
+1. **Given** a dataset whose resource has a successful capture on disk that a full curate would parse, **When** curate runs in entities-only mode, **Then** `entitiesAttached > 0` (the dataset's entities are re-asserted, including the publisher-derived place) and `curated === 0`, `uncurated === 0`, and `translationsWritten === 0`, while `linksCreated` and `relationsCreated` are re-asserted as non-negative (≥0) — the linking/relation passes run over the entity graph and are not zeroed like the parse/translation counts.
 2. **Given** the same store, **When** entities-only curate completes, **Then** the `curated_artifacts` table has no new rows for that dataset (the resource was not parsed).
 3. **Given** the whole-catalog scale of the live mirror (~16k resources), **When** entities-only curate runs, **Then** it completes the full catalog without being OOM-killed, at resident memory far below the full re-curate's footprint.
 
@@ -64,7 +64,7 @@ An operator can re-run entities-only curate repeatedly over the entire catalog w
 ### Edge Cases
 
 - A dataset whose resources have no successful capture on disk — entities-only never touches resource files at all, so it behaves identically whether the raw files are present, stale, or absent (it reads only metadata rows).
-- A dataset that matches a place both in-content (gazetteer) and via its publisher organization — `dataset_entities` keeps one row per extractor (the PK includes the extractor), so both rows persist; the read layer takes the max confidence per `(dataset, entity)`, so the stronger in-content match (0.95/0.75) wins downstream over the publisher signal (0.7/0.6). Entities-only re-asserts both rows.
+- A dataset that matches a place both in-content (gazetteer) and via its publisher organization — `dataset_entities` keeps one row per extractor (the PK includes the extractor), so both rows persist; the read layer takes the max confidence per `(dataset, entity)`, so the stronger in-content match wins downstream over the publisher signal. (The specific confidence values are owned by the extractors — `BgAdminGazetteerExtractor` and `BgAdminPublisherExtractor` in `src/enrich/extractors/` — and belong to feature 014; this feature only relies on in-content > publisher, not on the literal numbers.) Entities-only re-asserts both rows.
 - A translator is supplied to `runCurate` in entities-only mode — it is ignored (no translation is attempted), so passing one is harmless.
 - Cross-dataset linking and entity-relation materialization run in entities-only mode exactly as in a full run: both operate over the entity graph (not parsed artifacts) and are global + idempotent, so they reconcile regardless of which datasets ran.
 
@@ -80,6 +80,7 @@ An operator can re-run entities-only curate repeatedly over the entire catalog w
 - **FR-006**: The entity, link, and relation writes performed in entities-only mode MUST be idempotent: re-running over the same store with no source changes MUST NOT create duplicate or accumulating rows (PK-guarded `INSERT OR REPLACE`).
 - **FR-007**: Entities-only mode MUST return the same `RunCurateResult` shape as a full run (with the parse/translation-derived counts at 0), so callers and stdout JSON are unchanged.
 - **FR-008**: Entities-only mode MUST NOT change any database schema or any external contract beyond adding the one CLI flag; it MUST add no migration.
+- **FR-009**: In entities-only mode the `RunCurateResult` parse/translation-derived counts MUST be 0 (`curated === 0`, `uncurated === 0`, `translationsWritten === 0`) while `entitiesAttached` MUST re-run (>0 for a dataset that matches), and the graph-derived counts `linksCreated` and `relationsCreated` MUST be re-asserted as non-negative (≥0) — they reflect the linking/relation passes running over the entity graph, not zeroed-out parse counts.
 
 ### Key Entities
 
@@ -93,15 +94,16 @@ An operator can re-run entities-only curate repeatedly over the entire catalog w
 
 ### Measurable Outcomes
 
-- **SC-001**: Entities-only curate completes the full live-mirror catalog (~16k resources) without being OOM-killed, at a resident memory footprint roughly two orders of magnitude below the full re-curate (≈140 MB RSS vs ≈20 GB RSS).
+- **SC-001**: Entities-only curate completes the full live-mirror catalog (~16k resources) without being OOM-killed, at a resident memory footprint roughly two orders of magnitude below the full re-curate. **Measurement**: peak RSS observed during the run on the live ~16k-resource mirror (e.g. via `/usr/bin/time -v` peak resident set, or sampling `ps`/`/proc/<pid>/status` VmHWM during the run). **Observed once on the current mirror**: ~140 MB RSS for entities-only vs ~20 GB RSS for full curate (the latter OOM-killed, swap exhausted). **Repeatable criterion**: entities-only completes the full catalog under ~1 GB peak RSS. The two absolute figures are observed-once on the current mirror; the under-~1 GB ceiling is the criterion that should hold across mirror sizes. *Verification*: OPERATIONALLY (manually) verified via quickstart §1, not unit-tested (the unit test T001 covers only a single dataset).
 - **SC-002**: For a store with a captured, parse-able resource, an entities-only run reports `curated === 0`, `uncurated === 0`, `translationsWritten === 0`, and `entitiesAttached > 0`, and adds zero `curated_artifacts` rows for the dataset.
 - **SC-003**: An entities-only run with a translator supplied writes zero translations (the translator is ignored), and `danni curate --entities-only` succeeds with no translation backend reachable.
-- **SC-004**: Re-running entities-only curate over an unchanged store leaves the `dataset_entities`, `dataset_links`, and `entity_relations` row sets identical (no duplicates, no growth).
-- **SC-005**: The full test suite stays green with the addition: 987 pass / 0 fail, lint + typecheck clean.
+- **SC-004**: Re-running entities-only curate over an unchanged store leaves the `dataset_entities`, `dataset_links`, and `entity_relations` row sets identical (no duplicates, no growth). *Verification*: OPERATIONALLY (manually) verified via quickstart §3, not unit-tested (the shipped suite asserts the per-extractor PK behavior but does not run entities-only twice and diff the row sets). An idempotency unit test — run entities-only twice over a temp store and assert the three row sets are unchanged — could cheaply cover this; none ships today.
+- **SC-005**: The full test suite stays green with the addition (full suite green), lint + typecheck clean.
 
 ## Assumptions
 
 - This is a retrofit: the work is already shipped (PR #20) and verified, so the spec is written in the settled tense and marked Implemented.
+- Branch naming: the work shipped on `feat/curate-entities-only`, which deviates from the `###-name` (spec-numbered) branch convention used elsewhere; the spec directory `015-entities-only-curate/` carries the canonical numbering.
 - No new database migration and no schema change: entities-only reuses the existing `dataset_entities` / `dataset_links` / `entity_relations` upserts and the existing `RunCurateResult` shape.
 - The CLI contract gains exactly one flag (`--entities-only`); no other command, flag, or exit code changes.
 - The entity/link/relation upserts were already idempotent (PK-guarded `INSERT OR REPLACE`) before this feature; entities-only inherits that idempotency rather than introducing it.

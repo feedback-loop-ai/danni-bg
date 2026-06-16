@@ -20,7 +20,7 @@ This feature introduces **no new persisted runtime store**. It adds bundled stat
 
 **Rules**: exactly 265 entries; every entry has a non-empty `oblastId` (zero unmatched — FR-007/SC-002); every `id` is unique (FR-009/SC-006).
 
-**Example**:
+**Example** (the single worked example used throughout this doc — `lauId` `SML10` threads to the boundary key `lau-SML10` and the crosswalk row below):
 ```json
 {
   "id": "geo:bg-municipality-dospat",
@@ -31,6 +31,8 @@ This feature introduces **no new persisted runtime store**. It adds bundled stat
   "lauId": "SML10"
 }
 ```
+
+**Keying convention**: a municipality's official `lauId` (e.g. `SML10`) determines its boundary `boundaryFeatureId` as `lau-<LAU_ID>` (e.g. `lau-SML10`), and the crosswalk row joins the gazetteer `entityId` to that same `boundaryFeatureId` by `lauId`. (For Sofia's municipality the chain is `lauId: SOF46` → `lau-SOF46` → `geo:bg-municipality-stolichna`.)
 
 ## Boundary feature (bundled GeoJSON)
 

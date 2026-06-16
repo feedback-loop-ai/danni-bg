@@ -65,6 +65,7 @@ Web-app monorepo: server read substrate under `src/read/`; backend under `apps/e
 - [X] T010 [P] [US1] Add client grid helpers in `apps/explorer-web/src/lib/grid.ts` (`GridSort`, `cycleSort`, `hasActiveFilters`).
 - [X] T011 [US1] Extend `fetchResourceRows` in `apps/explorer-web/src/lib/api.ts` to send the `GridQuery` (sort/dir/filters) params.
 - [X] T012 [US1] Add header-click sort (▲/▼, cycle) and per-column funnel popover with debounced filter input to `apps/explorer-web/src/datasets/ResourcePreview.tsx`; reset paging on sort/filter change; preserve order on "load more"; render the "· върху първите 100k" notice when `gridTruncated`.
+- [X] T022 [US1] Add the grid-level "clear all column filters" control to the table footer in `apps/explorer-web/src/datasets/ResourcePreview.tsx` (the "изчисти филтрите" button shown next to the row count when any column filter is active, resetting `colFilters` to `{}` in one action — FR-010).
 
 **Checkpoint**: Grid sorts/filters server-side and is independently usable.
 
@@ -80,6 +81,7 @@ Web-app monorepo: server read substrate under `src/read/`; backend under `apps/e
 
 - [X] T013 [P] [US2] Contract-test `GET /api/facets` (response shape, in-scope counts consistent with `/api/datasets`, publisher id-fallback label, fresh/stale buckets) over mirror fixtures in `apps/explorer-api`; register in `tests/parity-matrix.json`.
 - [X] T014 [P] [US2] Update Playwright journeys `apps/explorer-web/e2e/us2-filters.e2e.ts` and `us5-linked.e2e.ts` to drive the tag facet (replacing the exact-tag input).
+- [X] T023 [P] [US2] Unit-test the chip helpers (`toChips`, `removeChip`, `toggleValue`, `setFreshness`, `clearAll`) in `apps/explorer-web/src/lib/filters.test.ts` — one chip per active filter kind (incl. withdrawn), per-kind removal, and the empty state.
 
 ### Implementation for User Story 2
 
@@ -111,14 +113,14 @@ Web-app monorepo: server read substrate under `src/read/`; backend under `apps/e
 
 - [X] T019 [P] Delete the chart view and its data layer: `apps/explorer-web/src/lib/chart.ts` and `apps/explorer-web/src/lib/chart.test.ts`; remove the chart/view-selection UI from `ResourcePreview.tsx`.
 - [X] T020 [P] Delete the retired E2E `apps/explorer-web/e2e/us8-line-chart.e2e.ts`; touch `us6-drilldown.e2e.ts` as needed for the no-chart drilldown.
-- [X] T021 Verify gates: web typecheck + Biome clean; Vitest 100% line+branch on the new pure logic; parity matrix includes `/api/facets` + the grid params; Playwright E2E green; verified live against the real mirror.
+- [X] T021 Verify gates: web typecheck + Biome clean; `bun test --coverage` 100% line+branch on the new pure logic; parity matrix includes `/api/facets` + the grid params; Playwright E2E green; verified live against the real mirror.
 
 ---
 
 ## Dependencies & Execution Order
 
 - **Setup (T001)** → **Foundational (T002–T003)** block both stories.
-- **US1 (T004–T012)** and **US2 (T013–T017)** are independent after Foundational and were developed as two stacked commits.
+- **US1 (T004–T012, T022)** and **US2 (T013–T017)** are independent after Foundational and were developed as two stacked commits. (T022 — the grid-level clear-all-column-filters control — is part of US1 but listed after the original sequence to keep ids contiguous.)
 - **US3 (T018)** rides on US1's grid (same file).
 - **Polish (T019–T021)** depends on US1/US3 (chart removal touches the same grid component).
 

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `017-grounded-chat`  
 **Created**: 2026-06-16  
-**Status**: Implemented (shipped in PRs #22, #26, #27, #28, #29 on `main`; verified by the test suite — 1004 pass — and by live runs against the LAN vLLM)  
+**Status**: Implemented (shipped in PRs #22, #26, #27, #28, #29 on `main`; verified by the full suite green and by live runs against the LAN vLLM)  
 **Input**: Retrospective spec for already-merged work hardening the explorer chat so it answers strictly from real mirror data and never fabricates dataset contents.
 
 ## Clarifications
@@ -96,7 +96,7 @@ The chat (`/api/chat`) returns "no server default provider is configured" unless
 - **Unreadable resource in a focused dataset**: skip it (the model can still `readResource`); do not fail the turn.
 - **Focused dataset larger than the budget**: injection is capped at the total character budget and the per-resource fetch bound (1000 rows), and the sample is flagged "частична извадка"; the model is nudged to use `readResource` + `filters` to get exact rows.
 - **Empty rows in a resource**: surfaced honestly (e.g. "rows 11–16 are empty"), not padded with invented data.
-- **No grounding and no relevant tool result**: reply exactly that no relevant public data was found — never a fabrication.
+- **No grounding and no relevant tool result**: reply exactly that no relevant public data was found — never a fabrication (FR-018, from 008).
 - **Sub-municipal район / row-value-only terms**: not in the search index; reachable only via grounding (row injection) or value-filter, not blind search.
 - **Tool-shy / weak model**: grounding is robust by construction, but a tool-shy model may enumerate an injected sample incompletely and may not call the value-filter; exhaustive/exact answers depend on a more faithful model (see Assumptions).
 - **Provider without tool-calling**: falls back to the retrieval (RAG) path, which still injects focused rows.
@@ -107,16 +107,16 @@ The chat (`/api/chat`) returns "no server default provider is configured" unless
 
 (Continues the explorer chat FR series from feature 008; FR-016/FR-019/FR-023/FR-024/FR-025 are referenced from 008 and tightened here.)
 
-- **FR-033**: The system MUST pre-read a bounded sample of each grounded dataset's resources and inject those rows (or document/text) into the model's context as a clearly labelled "ДАННИ (ground truth)" block, on BOTH the tool-loop path and the retrieval (RAG) fallback path.
+- **FR-033**: The system MUST pre-read a bounded per-resource sample of each grounded dataset's resources and inject those rows (or document/text) into the model's context as a clearly labelled "ДАННИ (ground truth)" block, on BOTH the tool-loop path and the retrieval (RAG) fallback path. The bounded per-resource sample includes skip-on-error: a resource that cannot be read is skipped (the model can still `readResource` it) and MUST NOT fail the turn — see `buildFocusContext`.
 - **FR-034**: The system MUST always cite a grounded (focused/reader/sticky) dataset whose rows were injected, even when the model invokes no tools.
 - **FR-035**: The system prompt MUST forbid stating any specific value (name, code/ЕИК, number, publisher, URL) unless it appears verbatim in a tool result or the provided context, and MUST forbid fabricating data to agree with the user (reinforces FR-016).
 - **FR-036**: The system MUST distinguish *tool scope* from *grounding*: `scope.datasetIds` is a hard focus that both injects rows and narrows tool scope; `groundingDatasetIds` injects rows WITHOUT narrowing tool scope.
 - **FR-037**: The chat request MUST accept an optional `groundingDatasetIds: string[]` field (the dataset(s) open in the reader), and the web client MUST send the id of the dataset currently open in the reader.
 - **FR-038**: Grounding precedence for a turn MUST be: explicit hard focus (`scope.datasetIds`) > reader focus (`groundingDatasetIds`) > sticky session context — and the same precedence MUST decide what is carried forward as the next turn's sticky context.
-- **FR-039**: The session MUST remember what the conversation is "about" (`contextDatasetIds`): the explicit/reader focus if given, else the datasets the last answer cited; deduped and capped at a small bound (2). Their rows MUST be re-injected each turn so follow-ups stay grounded. This context is session-only and MUST NOT be persisted server-side (consistent with FR-019).
+- **FR-039**: The session MUST remember what the conversation is "about" (`contextDatasetIds`): the explicit/reader focus if given, else the datasets the last answer cited; deduped and capped at a small bound (2). Their rows MUST be re-injected each turn so follow-ups stay grounded. This context is session-only and MUST NOT be persisted server-side (consistent with FR-019). Note: only the sticky `contextDatasetIds` is count-bounded (cap 2); the per-turn `groundingDatasetIds` (reader focus) is NOT bounded by count — its determinism rests solely on the 90,000-char grounding budget (FR-041), which truncates injection regardless of how many ids are supplied.
 - **FR-040**: The system MUST replay only a bounded recent window of the transcript to the model, within a message-count budget and a character budget, always retaining at least the last message; grounding rows live in the system prompt and are unaffected by trimming.
 - **FR-041**: The injected grounding block MUST be bounded by a total character budget across all grounded datasets/resources, and each resource fetch MUST be bounded (up to 1000 rows); partial samples MUST be flagged.
-- **FR-042**: `readResource` MUST accept an optional `filters` argument (a map of EXACT column name → case-insensitive substring) forwarded to the resource grid query, returning ONLY matching rows scanned across the whole resource (up to the grid cap), independent of the injection budget.
+- **FR-042**: `readResource` MUST accept an optional `filters` argument (a map of EXACT column name → case-insensitive substring) forwarded to the resource grid query, returning ONLY matching rows scanned across the whole resource (up to the grid cap `MAX_GRID_SCAN` = 100,000 rows), independent of the injection budget.
 - **FR-043**: The grounding context block MUST expose, per grounded resource, the resource's exact column names and `resourceId` so the model can target a value-filter precisely.
 - **FR-044**: The chat MUST resolve a default LLM provider from server configuration (`EXPLORER_DEFAULT_*` env, Bun-loaded `.env`); a committed `.env.example` MUST document it and `.env` MUST be gitignored. The configured endpoint MUST support tool/function calling. User-supplied credentials MUST NOT be persisted or logged server-side (consistent with FR-024).
 
@@ -135,11 +135,11 @@ The chat (`/api/chat`) returns "no server default provider is configured" unless
 - **SC-001**: For a focused dataset, every specific value in the answer appears verbatim in the injected rows or a tool result; 0% of answers contain invented names/codes/numbers. (Was: 16 fabricated identical rows; now: the 10 real clubs with their real ЕИКs, empty rows flagged.)
 - **SC-002**: A follow-up turn with no explicit focus and no tool call still cites the dataset the previous answer was grounded in (sticky context holds across turns).
 - **SC-003**: A sub-municipal район-level question against the open/focused dataset returns real matching rows, not "no data".
-- **SC-004**: The injected grounding block stays under the total character budget even for a dataset whose raw rows would exceed it (e.g. ~180k chars capped to <100k), and is flagged as a partial sample.
+- **SC-004**: The injected grounding block stays under the total character budget even for a dataset whose raw rows would exceed it (e.g. ~180k chars capped to <90,000 characters — a 95k block must NOT pass), and is flagged as a partial sample.
 - **SC-005**: A value-filter (`readResource` with `filters`) returns ONLY rows whose named column contains the substring (case-insensitive), scanning the whole resource up to the grid cap — exact and complete, independent of the injection budget.
 - **SC-006**: With no server default provider configured the chat returns a clear, actionable error; with `EXPLORER_DEFAULT_*` set it streams a grounded answer and can invoke the mirror tools. No credential appears in logs.
 - **SC-007**: A grounded turn carries forward the correct sticky context per the precedence rule (explicit > reader > cited) for the next follow-up.
-- **SC-008**: The full test suite passes (1004 tests at #29); lint and typecheck are clean.
+- **SC-008**: The full test suite passes (full suite green at #29); lint and typecheck are clean.
 
 ## Assumptions
 

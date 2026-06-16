@@ -44,6 +44,12 @@ This separation is documented in both the migration header and the vocabulary mo
 - *Free-text predicate column*: no guarantee of meaning, no type safety, invites drift and typo-variants of the same relation. Rejected.
 - *An enum in the database (CHECK on predicate values)*: would duplicate the vocabulary in SQL and force a migration for every new predicate; the TypeScript closed union + guard is the single source of truth and is enforced before the write. (The DB still enforces the structural invariants that matter there: confidence range and FK existence.)
 
+## Decision 3a — Parity matrix reused as the internal contract-test registry
+
+**Decision**: Register `GET /api/entities/:id`'s contract test in `tests/parity-matrix.json` (Constitution VIII), the same registry the explorer API uses for its other endpoints.
+
+**Clarification**: Constitution VIII's endpoint-parity concern is framed around portal endpoints (mirror ↔ portal). `GET /api/entities/:id` is **not** a portal endpoint — it has no upstream portal counterpart to be at parity with. Here the parity matrix is reused as the project's registry of **internal explorer-API contract tests**: it guarantees every explorer-API route has a registered contract test, distinct from portal-endpoint parity. The graph endpoint's entry asserts the `EntityGraphView` response contract, not equivalence to any portal response.
+
 ## Decision 4 — Materialise the parent oblast node even with no direct dataset link
 
 **Decision**: For every municipality entity present in the corpus, `registerEntityRelations` upserts the parent oblast as an entity node *before* asserting the `part_of` edge.

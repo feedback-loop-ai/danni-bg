@@ -74,12 +74,15 @@ bun run typecheck
 # Lint/format (Biome — Principle VI quality gate)
 bun run lint
 
-# Behavioral E2E (the chat flows that exercise send/scope/citations and
-# the ask-about-dataset path remain green; the reset and empty-state paths
-# are reachable through these flows)
+# Regression E2E (the pre-existing feature-008 chat flows — send / scope /
+# citations / ask-about-dataset — remain green; none of them target this
+# feature's reset or empty-state branches, which are verified by the manual
+# steps above)
 bun run e2e
 ```
 
-Expected (per PR #15): web typecheck and Biome clean; the Playwright chat
-suite green with the existing send / scope / ask-about-dataset flows
-unaffected.
+Expected (per PR #15): web typecheck and Biome clean; the existing Playwright
+suite remains green with the send / scope / ask-about-dataset flows unaffected.
+This feature's `newChat()` reset and suggested-prompt empty state are validated
+by the manual "Try it" steps above, not by automated test (see the Principle
+VIII waiver in `plan.md`).

@@ -7,7 +7,7 @@ description: "Task list for 017-grounded-chat (retrospective — all shipped)"
 **Input**: Design documents from `/specs/017-grounded-chat/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
-**Status**: Implemented — every task below is `[X]` (shipped in PRs #22/#26/#27/#28/#29 on `main`). Paths are real.
+**Status**: Implemented — every task below is `[X]` (shipped in PRs #22/#26/#27/#28/#29 on `main`; full suite green). Paths are real.
 
 **Tests**: Tests were shipped with this feature (per the project's 100%-coverage constitution gate) and are listed inline.
 
@@ -55,7 +55,7 @@ description: "Task list for 017-grounded-chat (retrospective — all shipped)"
 - [X] T104 [US1] Harden `SYSTEM_PROMPT` — never state a value not present verbatim in a tool result/context; never fabricate to agree with the user — `apps/explorer-api/src/chat/grounding.ts`
 - [X] T105 [US1] Tests: `buildFocusContext` surfaces real row values; a focused dataset is cited with no tool call — `apps/explorer-api/tests/chat-focus.test.ts`
 
-**Checkpoint**: Live re-run lists the 10 real clubs + real ЕИКs (matching the grid), notes empty rows; no fabrication. Suite 997 pass.
+**Checkpoint**: Live re-run lists the 10 real clubs + real ЕИКs (matching the grid), notes empty rows; no fabrication. Full suite green.
 
 ---
 
@@ -72,7 +72,7 @@ description: "Task list for 017-grounded-chat (retrospective — all shipped)"
 - [X] T205 [US2] Tests: `windowMessages` (count + char budget), `SessionStore.setContext` (dedup/cap) — `apps/explorer-api/tests/chat-session.test.ts`
 - [X] T206 [US2] Test: route-level sticky grounding — follow-up with no scope/no tool call still cites the previous dataset — `apps/explorer-api/tests/chat-route.test.ts`
 
-**Checkpoint**: "…клубове в Ихтиман" → "какви спортове има?" answers from the real clubs, not a clarification request. Suite 1001 pass.
+**Checkpoint**: "…клубове в Ихтиман" → "какви спортове има?" answers from the real clubs, not a clarification request. Full suite green.
 
 ---
 
@@ -89,7 +89,7 @@ description: "Task list for 017-grounded-chat (retrospective — all shipped)"
 - [X] T305 [P] [US3] Web: add `groundingDatasetIds?` to `ChatRequestBody` and the request payload — `apps/explorer-web/src/chat/sendChat.ts`
 - [X] T306 [US3] Tests: `groundingDatasetIds` grounds + cites without a hard scope; `buildFocusContext` honours the total char budget (flags partial) — `apps/explorer-api/tests/chat-route.test.ts`, `chat-focus.test.ts`
 
-**Checkpoint**: With the София-град schools dataset focused, район Панчарево kindergartens are listed instead of "no data". Suite 1003 pass; web rebuilt.
+**Checkpoint**: With the София-град schools dataset focused, район Панчарево kindergartens are listed instead of "no data". Full suite green; web rebuilt.
 
 ---
 
@@ -104,7 +104,7 @@ description: "Task list for 017-grounded-chat (retrospective — all shipped)"
 - [X] T403 [US4] Expose each grounded resource's exact column keys (`Колони: …`) + `resourceId` in the focus block; nudge to use `readResource` + `filters` when the sample is partial — `apps/explorer-api/src/chat/run.ts`
 - [X] T404 [US4] Tests: `readResource` forwards filters to the grid; the focus block lists columns — `apps/explorer-api/tests/chat-tools.test.ts`, `chat-focus.test.ts`
 
-**Checkpoint**: `readResource` with `{ "rayon": "Панчарево" }` returns only matching rows, exact + complete, independent of the inject budget. Suite 1004 pass.
+**Checkpoint**: `readResource` with `{ "rayon": "Панчарево" }` returns only matching rows, exact + complete, independent of the inject budget. Full suite green.
 
 ---
 
@@ -125,4 +125,4 @@ description: "Task list for 017-grounded-chat (retrospective — all shipped)"
 ## Notes
 
 - Honest caveat (carried in spec Assumptions / SC): grounding is robust by construction, but `gemma-4-26b-uncensored` is tool-shy and may enumerate injected samples incompletely / not call the value-filter — exact/exhaustive answers depend on a more faithful model. The data is fully available either way and answers are never fabricated.
-- All counts ("997/1001/1003/1004 pass") are the full-suite figures recorded in the respective PRs; lint + typecheck clean at each.
+- The full suite was green at each PR (figures recorded in the respective PRs); lint + typecheck clean at each.

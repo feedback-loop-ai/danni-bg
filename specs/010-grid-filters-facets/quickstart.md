@@ -70,13 +70,13 @@ curl 'http://localhost:3000/api/datasets/<dsId>/resources/<rid>/rows?filters=not
 
 ```bash
 # Pure server-side grid logic (filter/sort/compare, scan cap) — 100% line+branch
-bun run vitest run tests/unit/read/resource-grid.test.ts
+bun test tests/unit/read/resource-grid.test.ts
 
 # Client grid helpers (sort cycle, hasActiveFilters)
-bun run vitest run apps/explorer-web/src/lib/grid.test.ts
+bun test apps/explorer-web/src/lib/grid.test.ts
 
 # Contract test for /api/facets + grid query params (mirror fixtures), per parity matrix
-bun run vitest run apps/explorer-api
+bun test apps/explorer-api
 
 # E2E journeys (faceted filter + linked map); the line-chart E2E (us8) was removed with the chart
 bun run --cwd apps/explorer-web e2e

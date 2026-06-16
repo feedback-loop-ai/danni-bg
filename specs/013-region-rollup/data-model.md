@@ -70,7 +70,7 @@ The per-region projection returned to the map and the region detail view.
 | `datasetCount` | number | **de-duplicated** count: distinct datasets that roll up to this region |
 | `hasData` | boolean | `datasetCount > 0` (emitted even when 0 so the map renders the region) |
 | `maxConfidence` | number | the strongest placement confidence among contributing links |
-| `oblastEntityId?` | string \| null | parent oblast id (drives map drill-down); graph-sourced via `parentOf`, null when no parent |
+| `oblastEntityId` | string \| null | parent oblast id (drives map drill-down); graph-sourced via `parentOf`. **Always present**: the parent oblast id for a municipality with a `part_of` parent, and explicitly `null` for oblast rows and for parentless/orphan regions — never an absent key |
 | `flagged?` | `'unlinked'` | optional flag for an entity with no crosswalk join |
 
 ---
@@ -112,8 +112,8 @@ keeps lites with `belongsConfidence >= 0` (once each), so the list length, the r
 ## Invariants
 
 - **Parts ≤ whole**: for every municipality `m` with parent oblast `o`,
-  `count(m) <= count(o)` — every dataset counted at `m` rolls up into `o` (verified 243/243 on the
-  live mirror, 0 violations: SC-001).
+  `count(m) <= count(o)` — every dataset counted at `m` rolls up into `o` (verified 243/243
+  municipalities-with-data (of 265 total) on the live mirror, 0 violations: SC-001).
 - **Counted once**: a dataset rolling up to a region via N links contributes exactly 1 to that
   region's count (the `Set<datasetId>` guarantees it; SC-002).
 - **Strongest evidence**: a region's `maxConfidence` is the max over contributing links, never an

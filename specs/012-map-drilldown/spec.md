@@ -69,7 +69,7 @@ A user clicks an oblast to drill in. The municipalities of that oblast keep thei
 - **Municipality centroid not inside any oblast polygon**: Coastline/border simplification can leave a centroid just outside every oblast polygon; the spatial parent assignment falls back to the nearest oblast centroid so no municipality is left without a parent (zero unmatched).
 - **Slug collision across municipalities**: Two municipalities can share a name (e.g. duplicate *obshtina* names); gazetteer slugs are de-duplicated so every municipality id is unique.
 - **Selecting a region while drilled in**: Selecting a region writes the entity into the filter's `geoUnitIds` for the dataset list/chat, but the choropleth layers are fetched with that field stripped, so the map does not collapse (see User Story 2 / #21).
-- **Degenerate colour scale at low maxima**: When the maximum count is ≤ 1, the bucket breakpoints collapse to a valid non-degenerate scale rather than producing NaN breakpoints.
+- **Degenerate colour scale at low maxima** (FR-004): When the maximum count is ≤ 1, the bucket breakpoints collapse to a valid non-degenerate scale rather than producing NaN breakpoints.
 
 ## Requirements *(mandatory)*
 
@@ -78,7 +78,7 @@ A user clicks an oblast to drill in. The municipalities of that oblast keep thei
 **Headless-renderable SVG map**
 - **FR-001**: The map MUST be rendered as declarative SVG using a D3-geo projection, with no dependency on WebGL/GPU, so it renders fully in a headless browser.
 - **FR-002**: A single projection MUST be fitted to the country once and shared across the oblast and municipality layers so the two layers align exactly.
-- **FR-003**: The map MUST display a colour legend, region labels, hover tooltips, and visually distinct outlines for selected, hovered, and chat-highlighted regions, and its regions MUST be keyboard-operable.
+- **FR-003**: The map MUST display a colour legend, region labels, hover tooltips, and visually distinct outlines for selected, hovered, and chat-highlighted regions.
 - **FR-004**: The choropleth colour scale MUST be data-driven and skew-aware (buckets by fractions of the maximum count, emphasising the low end), with a dedicated bucket reserved for regions that have no datasets.
 
 **Real 265-municipality geometry & gazetteer**
@@ -101,6 +101,9 @@ A user clicks an oblast to drill in. The municipalities of that oblast keep thei
 **Aggregation correctness**
 - **FR-016**: An oblast's dataset count MUST be the de-duplicated union of datasets linked directly to it and datasets linked to any of its municipalities (a dataset linked to both is counted once).
 
+**Accessibility**
+- **FR-017**: The map's regions MUST be keyboard-operable. *(Verification: manually / visually verified for accessibility; not covered by an automated acceptance scenario or the headless E2E.)*
+
 ### Key Entities *(include if feature involves data)*
 
 - **Municipality gazetteer entry**: One of the 265 Bulgarian municipalities — `id` (`geo:bg-municipality-<slug>`), authoritative `labelBg` (Cyrillic, verbatim), derived `labelEn`, parent `oblastId`, `aliases` (e.g. "Община <name>"), and official `lauId`. The source of truth the curate pipeline and crosswalk consume.
@@ -116,13 +119,13 @@ A user clicks an oblast to drill in. The municipalities of that oblast keep thei
 - **SC-002**: Every one of the 265 municipalities has a gazetteer entry with a parent oblast assigned — zero municipalities are unmatched.
 - **SC-003**: The map renders and is verifiable in a headless browser: the SVG map and its oblast regions are present in a Playwright run with no GPU available.
 - **SC-004**: Clicking an oblast in a headless browser drills into it (offers the "Назад към областите" control) and clicking that control returns to the country view — covered by an automated E2E test.
-- **SC-005**: When the user drills into an oblast, its municipalities display their dataset counts on the first click (no second interaction needed) — i.e. selecting a region does not empty or re-scope the choropleth.
+- **SC-005**: When the user drills into an oblast, the municipalities that have dataset counts show them on the FIRST click (no second interaction / re-scope needed) — i.e. selecting a region does not empty or re-scope the choropleth. (Municipalities with no datasets render in the reserved "no data" bucket; see Assumptions for the 243/265 with-data caveat.)
 - **SC-006**: Every municipality gazetteer entry has a unique id (no slug collisions) and is joined to its boundary feature by official LAU id; the crosswalk validates with no orphan rows.
 - **SC-007**: An oblast's choropleth count equals the de-duplicated union of datasets linked to it directly and to any of its municipalities (a dataset reaching the oblast by multiple links counts once).
 
 ## Assumptions
 
-- **Data source**: The choropleth aggregates read from the existing curated `data.egov.bg` mirror via the explorer API's region endpoints; mirror sync/curation is out of scope. Dataset→municipality links require a curate/index pass over the new gazetteer to populate counts.
+- **Data source**: The choropleth aggregates read from the existing curated `data.egov.bg` mirror via the explorer API's region endpoints; mirror sync/curation is out of scope. Dataset→municipality links require a curate/index pass over the new gazetteer to populate counts. After that pass (PR #16), 243 of the 265 municipalities carry dataset counts; the remaining 22 have no linked datasets and render in the reserved "no data" bucket (geometry coverage is 265/265 regardless).
 - **Boundary provenance**: Municipality geometry is bundled from Eurostat GISCO LAU 2021 (1:1M, EPSG:4326), filtered to Bulgaria; oblast geometry was already bundled by 008-map-data-explorer and is reused unchanged.
 - **Spatial parent derivation**: A centroid-in-polygon test (with nearest-centroid fallback) against the bundled oblast polygons is sufficient to assign each municipality's parent oblast; no external LAU↔NUTS3 table is needed.
 - **Locale**: Municipality names are preserved exactly as published in the source (Cyrillic); English labels are clearly derived (transliterated) helpers and do not replace the authoritative Bulgarian name.

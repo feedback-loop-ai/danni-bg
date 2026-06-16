@@ -25,13 +25,13 @@ Open the SPA, ensure the map has data (the map fills only after `index`).
 ### 2. Debounced dataset search
 
 1. Type a query into the prominent search bar at the top of the left panel.
-2. Watch the network panel: the dataset/regions fetch fires **once** ~300ms after you stop typing, not per keystroke. A spinner shows while loading; a ✕ clears the field.
+2. Watch the network panel: the dataset/regions fetch fires **once** 300ms after you stop typing, not per keystroke. A spinner shows while loading; a ✕ clears the field.
 
 ### 3. Server-side grid sort + filter
 
 1. Open a tabular resource in the reader.
 2. Click a numeric column header to cycle sort: unsorted → ▲ asc → ▼ desc → unsorted. The first row is the global max/min across the **whole** resource, not just the loaded page.
-3. Type a substring into a column's filter input. After a short pause the count reads "N от M реда (филтрирани)" and "изчисти филтрите" appears. Filters across columns are AND'd.
+3. Type a substring into a column's filter input. After the 300ms debounce the count reads "N от M реда (филтрирани)" and "изчисти филтрите" appears. Filters across columns are AND'd.
 4. On a resource larger than 100k rows, a "· върху първите 100k" warning shows when sorting/filtering.
 
 ### Verify the endpoint directly
@@ -54,10 +54,10 @@ bun test tests/unit/read/resource-grid.test.ts
 bun test apps/explorer-web/src/lib/grid.test.ts
 
 # Full read + backend suites and web checks (as run for PR #13):
-bun test                                  # backend 98 + read 16 green
+bun test                                  # all backend/read suites pass (100% coverage on the new pure modules)
 bun run --cwd apps/explorer-web typecheck # clean
 bunx biome check apps/explorer-web        # clean
-# Playwright E2E (9 green): reader open/close, sort/filter behaviour
+# Playwright E2E (full suite green): reader open/close, sort/filter behaviour
 bun run --cwd apps/explorer-web e2e
 ```
 
