@@ -1,0 +1,11 @@
+# No external contracts for this feature.
+#
+# Publisher-derived geographic recall adds no MCP tool and consumes no new
+# data.egov.bg portal endpoint. It is an internal curation-side enrichment that
+# implements the EXISTING `Extractor` interface (src/enrich/extractor.ts) and
+# writes to the EXISTING `dataset_entities` table — no contract surface changes.
+#
+# Per Constitution III (Contract-First API Design), contract tests are required
+# only for MCP tools and consumed portal endpoints; neither is introduced here,
+# so there is no parity-matrix entry to add. This directory is intentionally
+# empty (kept under version control via this .gitkeep).

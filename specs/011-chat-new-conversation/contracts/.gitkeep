@@ -1,0 +1,11 @@
+# No API contracts for this feature.
+#
+# 011-chat-new-conversation is a frontend-only enhancement to the explorer's
+# chat panel (apps/explorer-web/src/chat/ChatPanel.tsx). It adds a
+# "new conversation" control and a suggested-prompt empty state. It introduces
+# no MCP tool, no backend endpoint, and consumes no new data.egov.bg portal
+# endpoint or dataset — so there is no request/response contract to define here
+# (Constitution Principle III is not applicable).
+#
+# This file exists only to keep the contracts/ directory under version control,
+# consistent with the Spec Kit feature layout.

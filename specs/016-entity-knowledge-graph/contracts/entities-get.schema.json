@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://danni.bg/contracts/016/entity-graph-view.schema.json",
+  "title": "EntityGraphView",
+  "description": "Response of GET /api/entities/:id — one entity's node in the knowledge graph: its labels, its incoming/outgoing typed entity<->entity relations, and its direct dataset count.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entity", "out", "in", "datasetCount"],
+  "properties": {
+    "entity": { "$ref": "#/$defs/entityNode" },
+    "out": {
+      "type": "array",
+      "description": "Edges where this entity is the subject (e.g. municipality --part_of--> oblast).",
+      "items": { "$ref": "#/$defs/entityRelationEdge" }
+    },
+    "in": {
+      "type": "array",
+      "description": "Edges where this entity is the object (e.g. an oblast's child municipalities).",
+      "items": { "$ref": "#/$defs/entityRelationEdge" }
+    },
+    "datasetCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of datasets linked directly to this entity (from dataset_entities)."
+    }
+  },
+  "$defs": {
+    "entityNode": {
+      "title": "EntityNode",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entityId", "kind", "labelBg", "labelEn"],
+      "properties": {
+        "entityId": { "type": "string", "examples": ["geo:bg-municipality-stolichna", "geo:bg-oblast-sofia-grad"] },
+        "kind": { "type": "string", "description": "Entity kind, e.g. geographic_unit; 'unknown' for an unresolvable far endpoint.", "examples": ["geographic_unit", "unknown"] },
+        "labelBg": { "type": "string", "description": "Authoritative Bulgarian label (verbatim); equals the id for an unresolved placeholder." },
+        "labelEn": { "type": ["string", "null"], "description": "Derived English label; null if unknown." }
+      }
+    },
+    "entityRelationEdge": {
+      "title": "EntityRelationEdge",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["predicate", "confidence", "entity"],
+      "properties": {
+        "predicate": { "type": "string", "description": "Relation type from the closed vocabulary.", "enum": ["part_of"] },
+        "confidence": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "entity": { "$ref": "#/$defs/entityNode" }
+      }
+    }
+  }
+}
