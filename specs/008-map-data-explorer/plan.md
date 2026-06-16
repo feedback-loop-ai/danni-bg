@@ -14,7 +14,7 @@ Build a self-hostable web application that turns the curated `data.egov.bg` mirr
 **Language/Version**: TypeScript 5.x (strict mode) on Bun 1.x (backend + tooling); same TS for the React frontend
 **Primary Dependencies**: Backend — Hono (HTTP/SSE), Zod (boundary validation), Vercel AI SDK `ai` + `@ai-sdk/openai` + `@ai-sdk/anthropic` (configurable provider); reuse of in-repo `src/read` + `src/index/query.ts`. Frontend — React, Vite, MapLibre GL JS, Zustand (shared filter/scope state)
 **Storage**: Read-only reuse of the existing `bun:sqlite` + sqlite-vec mirror store via `src/read`. No new persistent storage. Conversations: in-memory, session-scoped. Provider config/keys: client-side `localStorage`
-**Testing**: Vitest (+ @vitest/coverage-v8) for backend and shared/pure frontend logic at 100% line+branch; Testing Library for components; Playwright for E2E user journeys; mirror fixtures + stubbed LLM responses for the offline inner loop
+**Testing**: `bun:test` (`bun test --coverage`) for backend and shared/pure frontend logic at 100% line+branch; Testing Library for components; Playwright for E2E user journeys; mirror fixtures + stubbed LLM responses for the offline inner loop
 **Target Platform**: Self-hostable Linux service (Bun backend serving the static SPA), desktop-first modern browsers
 **Project Type**: Web application (frontend SPA + backend API) layered on the existing MCP-mirror monorepo
 **Performance Goals**: Filter/map updates reflected ≤2s for typical combinations (SC-003, SC-010); first grounded answer streaming begins promptly; smooth (interactive) map zoom/pan across national→province→municipality
@@ -83,7 +83,7 @@ apps/
 │   │   │   └── session.ts        # in-memory, session-scoped conversation store
 │   │   ├── read-bridge.ts        # adapts src/read + src/index/query.ts to API/tool shapes
 │   │   └── logging.ts            # reuse src/logging (structured JSON)
-│   └── tests/                    # contract + integration (Vitest, mirror fixtures, stubbed LLM)
+│   └── tests/                    # contract + integration (`bun:test`, mirror fixtures, stubbed LLM)
 └── explorer-web/                 # React + Vite SPA
     ├── src/
     │   ├── main.tsx

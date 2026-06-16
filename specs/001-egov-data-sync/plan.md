@@ -30,7 +30,7 @@ by downstream consumers.
 - Embeddings: multilingual sentence embedder (decision deferred to research.md — local ONNX vs. hosted API)
 - Translation: BG→EN machine translation provider (decision deferred to research.md — local vs. hosted)
 - Entity extraction: rule-based v1 (CKAN `organization` / `groups` / `tags`, Bulgarian gazetteer of municipalities and oblasts, ISO-8601 + Bulgarian-month date parsing) with confidence + provenance; ML extractors are out of scope for v1
-- Testing: Vitest + `@vitest/coverage-v8` (100% line + branch enforced in CI)
+- Testing: `bun:test` + `bun test --coverage` (100% line + branch enforced in CI)
 - Lint/Format: Biome (single config, pre-commit + CI)
 
 **Storage**:
@@ -40,7 +40,7 @@ by downstream consumers.
 - Sync-run manifests under `store/manifest/<run_id>.json`
 - Index artifacts (FTS + vec) live inside `store/danni.sqlite`
 
-**Testing**: Vitest. Inner dev loop runs against recorded portal fixtures under `tests/fixtures/portal/`; no live-network hit required for unit + integration tests. Live smoke runs against the real portal are gated behind an explicit env var and never required for CI green.
+**Testing**: `bun:test`. Inner dev loop runs against recorded portal fixtures under `tests/fixtures/portal/`; no live-network hit required for unit + integration tests. Live smoke runs against the real portal are gated behind an explicit env var and never required for CI green.
 
 **Target Platform**: Linux server (operator-controlled) with Bun 1.x. macOS dev workstation is supported for local development.
 
@@ -51,7 +51,7 @@ by downstream consumers.
 - Re-sync over an unchanged portal completes in < 10% of bootstrap time (SC-002)
 - Curation re-run over the existing local mirror does not re-fetch from the portal (FR-011)
 - Index query: top-5 retrieval in < 1s on a developer laptop for the full curated corpus
-- Vitest unit suite: < 5s end-to-end (Principle VI)
+- `bun test` unit suite: < 5s end-to-end (Principle VI)
 
 **Constraints**:
 - Respectful crawler: robots.txt honored and re-checked on a configurable cadence; per-host rate limit; identifying User-Agent including project name, version, contact URL/email; conditional requests; exponential backoff with jitter; configurable failure budget; no parallel hammering; no auth bypass (Principle XI)
@@ -75,7 +75,7 @@ by downstream consumers.
 | III | Contract-First API Design | ✅ PASS | `specs/portal-api/` and `specs/dataset-schemas/` are bootstrapped in Phase 1. `contracts/` defines manifest, curated-artifact, index-entry, sync-run, config schemas before code. CLI command schemas Zod-validated. MCP tools are out of scope here (follow-up feature) — no MCP contract claims are made. |
 | IV | Operational Excellence | ✅ PASS | Structured JSON logging per Sync Run; CLI exposes `status` (last sync time, per-component health); failures mapped to documented exit codes; graceful degradation (the local mirror is fully read-usable without network). |
 | V | Simplicity & YAGNI | ✅ PASS | SQLite over Postgres; in-process scheduler; no microservices; no message queue; rule-based entity extraction in v1. No invented abstractions on top of CKAN concepts. |
-| VI | Fast Feedback Loops | ✅ PASS | Bun + Vitest + Biome; recorded portal fixtures eliminate live-network dependency in dev loop. |
+| VI | Fast Feedback Loops | ✅ PASS | Bun + `bun:test` + Biome; recorded portal fixtures eliminate live-network dependency in dev loop. |
 | VII | Type Safety & Validation | ✅ PASS | TS strict mode; Zod at CLI, config, portal-response, and persisted-record-load boundaries. |
 | VIII | 100% Test Coverage & Endpoint Parity | ✅ PASS | Plan provisions: contract tests per consumed CKAN endpoint; round-trip parity tests per Dataset Schema Catalog entry; `tests/parity-matrix.json` checked in CI. Coverage gate: 100% line + branch. |
 | IX | Data Freshness & Sync Integrity | ✅ PASS | Every dataset/resource row carries `last_synced_at` and `source_etag_or_hash`. Withdrawn detection (FR-016) maps to constitution's "tombstone" requirement. In-place title/metadata renames are captured via `dataset_revisions` (data-model §1.10). Cross-identifier republication (same logical dataset under a new portal id) is **deferred to a follow-up feature** — see Complexity Tracking — because it requires semantic dedup beyond what CKAN exposes; v1 treats each portal id as authoritative per the spec assumption. Sync-run audit trail per FR-003 / FR-017a. Freshness block exposed by the read contracts so the future MCP layer can surface it directly. |
@@ -158,4 +158,4 @@ deliberately absent here.
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|--------------------------------------|
 | Cross-id rename / republication detection deferred to v2 | Constitution IX requires rename detection. CKAN exposes no stable identity beyond `id`; correctly detecting "same logical dataset, new id" requires content-hash + metadata heuristics that are themselves a research item. v1 captures in-place renames via `dataset_revisions`; cross-id republication is recorded as a *new* dataset (per spec assumption) and flagged for v2 reconciliation. | "Best-effort fuzzy match in v1" rejected: false positives would corrupt the audit trail (Principle IX) and silently merge unrelated datasets — worse than deferring. |
-| Test runner: `bun test` instead of Vitest | `bun:sqlite` (used by `src/store/db.ts` and every repo) is only resolvable inside the Bun runtime. Vitest's tinypool worker pool relies on Node-specific `worker_threads` semantics and hangs/crashes when run under Bun (`port.addListener is not a function`). Using `bun test` keeps the constitution's test API surface (describe/it/expect, beforeEach/afterEach), preserves 100%-line/branch coverage enforcement (`bun test --coverage --coverage-threshold=1.0`), and removes the cross-runtime hazard. | "Mock `bun:sqlite` in Vitest" rejected: would require an entire alternative SQLite layer (e.g. `better-sqlite3`) that diverges from production behavior — exactly the mock-vs-prod drift Principle VIII guards against. "Run Vitest under Node and live-test SQLite via subprocess" rejected: doubles the test infrastructure for a workaround. |
+| Test runner: `bun:test` (historical note — Vitest was the originally locked choice) | Vitest was originally the constitution-locked runner, but `bun:sqlite` (used by `src/store/db.ts` and every repo) is only resolvable inside the Bun runtime. Vitest's tinypool worker pool relies on Node-specific `worker_threads` semantics and hangs/crashes when run under Bun (`port.addListener is not a function`). `bun:test` was adopted instead — it keeps the constitution's test API surface (describe/it/expect, beforeEach/afterEach), preserves 100%-line/branch coverage enforcement (`bun test --coverage --coverage-threshold=1.0`), and removes the cross-runtime hazard. `bun:test` is now the locked runner per constitution v1.1.1. | "Mock `bun:sqlite` in Vitest" rejected: would require an entire alternative SQLite layer (e.g. `better-sqlite3`) that diverges from production behavior — exactly the mock-vs-prod drift Principle VIII guards against. "Run Vitest under Node and live-test SQLite via subprocess" rejected: doubles the test infrastructure for a workaround. |

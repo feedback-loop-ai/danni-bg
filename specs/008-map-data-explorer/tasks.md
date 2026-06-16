@@ -31,8 +31,8 @@ Multi-package monorepo (plan "Project Structure"): new `apps/explorer-api` (Bun 
 - [x] T002 [P] Initialize `apps/explorer-api/package.json` (Bun) with deps `hono`, `zod`, `ai`, `@ai-sdk/openai`, `@ai-sdk/anthropic` and a `tsconfig.json` extending the repo strict TS config
 - [x] T003 [P] Initialize `apps/explorer-web/package.json` (Vite + React) with deps `react`, `react-dom`, `vite`, `@vitejs/plugin-react`, `maplibre-gl`, `zustand`; add `apps/explorer-web/vite.config.ts` with `/api` dev proxy to `EXPLORER_API_PORT`
 - [x] T004 [P] Initialize `packages/geo-boundaries/package.json` + `tsconfig.json` with a `data/` folder placeholder and `src/` entry
-- [ ] T005 [P] Configure Vitest + `@vitest/coverage-v8` for `apps/explorer-api` and shared logic in `apps/explorer-api/vitest.config.ts` and `packages/geo-boundaries/vitest.config.ts` (100% line+branch thresholds)
-- [x] T006 [P] Configure Testing Library + Playwright for the SPA in `apps/explorer-web/vitest.config.ts` and `apps/explorer-web/playwright.config.ts`
+- [ ] T005 [P] Configure `bun:test` coverage (100% line+branch) for `apps/explorer-api` and `packages/geo-boundaries` via `bunfig.toml`
+- [x] T006 [P] Configure Testing Library + Playwright for the SPA in `apps/explorer-web/playwright.config.ts`
 - [ ] T007 [P] Wire lint/format/typecheck (Biome + `tsc --noEmit`) for the new packages into root scripts in root `package.json`
 - [x] T008 [P] Scaffold/extend `tests/parity-matrix.json` with empty rows for every endpoint and the four chat tool wrappers from `contracts/` (CI fails until each gains a contract-test id)
 
