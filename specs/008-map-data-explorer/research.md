@@ -116,9 +116,9 @@ This document resolves the open technical decisions for the explorer. Each entry
 ## R10. Testing strategy under the 100%-coverage constitution
 
 **Decision**:
-- **Backend + shared pure logic** (filter composition, geo-crosswalk, scope post-filter, citation extraction/validation, provider request shaping, API handlers): **100% line + branch coverage** via Vitest, exercised against recorded mirror fixtures (no live network/LLM in the inner loop — Constitution VI). LLM providers are tested behind a seam with recorded/stubbed responses.
+- **Backend + shared pure logic** (filter composition, geo-crosswalk, scope post-filter, citation extraction/validation, provider request shaping, API handlers): **100% line + branch coverage** via `bun:test`, exercised against recorded mirror fixtures (no live network/LLM in the inner loop — Constitution VI). LLM providers are tested behind a seam with recorded/stubbed responses.
 - **Backend API parity**: every HTTP endpoint and every model-facing tool wrapper has a contract test referencing its entry in `contracts/`, tracked in the existing `tests/parity-matrix.json` pattern (Constitution VIII).
-- **Frontend behavior**: Vitest + Testing Library for component logic; **Playwright** E2E for the map/filter/chat journeys (US1–US5 acceptance scenarios).
+- **Frontend behavior**: `bun:test` + Testing Library for component logic; **Playwright** E2E for the map/filter/chat journeys (US1–US5 acceptance scenarios).
 
 **Decision (deviation, see Complexity Tracking)**: WebGL/MapLibre canvas rendering glue cannot be meaningfully line-covered in a jsdom environment. That thin rendering layer is isolated into clearly-marked modules, validated **behaviorally via Playwright** rather than counted toward the 100% line-coverage gate. All non-rendering logic remains at 100%.
 

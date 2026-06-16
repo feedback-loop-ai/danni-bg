@@ -2,7 +2,7 @@
 
 **Feature**: 008-map-data-explorer · **Service**: `apps/explorer-api` (Bun + Hono)
 
-Contract-first per Constitution III. Every endpoint here MUST have a contract test (Vitest, mirror fixtures) registered in `tests/parity-matrix.json` before implementation (Constitution VIII). All inputs validated with Zod (Constitution VII). All responses are UTF-8 JSON unless noted (SSE for chat). Authoritative Bulgarian fields are returned verbatim; freshness blocks are mandatory on dataset/resource payloads (Constitution IX/X).
+Contract-first per Constitution III. Every endpoint here MUST have a contract test (`bun:test`, mirror fixtures) registered in `tests/parity-matrix.json` before implementation (Constitution VIII). All inputs validated with Zod (Constitution VII). All responses are UTF-8 JSON unless noted (SSE for chat). Authoritative Bulgarian fields are returned verbatim; freshness blocks are mandatory on dataset/resource payloads (Constitution IX/X).
 
 Base path: `/api`. Errors use a shared envelope:
 ```json

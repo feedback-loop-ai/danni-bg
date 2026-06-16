@@ -50,7 +50,7 @@ Single-project layout per plan.md:
 
 - [X] T001 Initialize Bun + TypeScript project at repo root: create `package.json` (name `danni-bg`, type `module`, scripts: `db:migrate`, `lint`, `format`, `test`, `coverage`, `danni`), `tsconfig.json` (`strict: true`, `noUncheckedIndexedAccess: true`, `target: ES2022`, `module: ESNext`, `moduleResolution: Bundler`), and `bun.lockb` via `bun install`.
 - [X] T002 [P] Configure Biome at `biome.json` (linter + formatter, single source of truth) and add `bun run lint` + `bun run format` scripts; wire pre-commit via `simple-git-hooks` entry in `package.json`.
-- [X] T003 [P] Configure Vitest at `vitest.config.ts` with `@vitest/coverage-v8`; enforce 100% line + 100% branch thresholds (Constitution VIII); set `setupFiles: ['tests/setup.ts']`.
+- [X] T003 [P] Configure `bun:test` via `bunfig.toml` (`preload = ['./tests/setup.ts']`, `coverage = true`, 100% line+branch target); enforce 100% line + 100% branch thresholds (Constitution VIII).
 - [X] T004 [P] Add `.gitignore` covering `store/`, `node_modules/`, `coverage/`, `dist/`, `*.tsbuildinfo`, plus `.gitkeep` placeholders under `store/raw/`, `store/curated/`, `store/manifest/`.
 - [X] T005 [P] Create directory skeleton: `src/{cli,crawler,store,manifest,curate,enrich,index,schedule,notify,config,logging,lib}/` (each with a placeholder `index.ts` that re-exports nothing) and `tests/{contract,integration,unit,fixtures/{portal,resources}}/`.
 - [X] T006 [P] Add `LICENSE` (project license per repo decision) and `README.md` with one-paragraph project summary + a pointer to `specs/001-egov-data-sync/quickstart.md`.

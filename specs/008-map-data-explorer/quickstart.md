@@ -59,7 +59,7 @@ Open the Vite dev URL. The SPA proxies `/api/*` to the backend. In production, t
 ## Test
 
 ```bash
-bun run test          # Vitest: backend + shared logic (100% line+branch), with mirror fixtures + stubbed LLM
+bun test             # backend + shared logic (100% line+branch), with mirror fixtures + stubbed LLM
 bun run coverage      # enforce 100% on backend + shared logic
 bun run --cwd apps/explorer-web test      # component tests (Testing Library)
 bun run --cwd apps/explorer-web e2e       # Playwright journeys (US1–US5); covers WebGL map behavior
