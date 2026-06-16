@@ -11,8 +11,16 @@ import { datasetView } from '../../../src/read/dataset-view.ts';
 import type { GridQuery } from '../../../src/read/resource-grid.ts';
 import { type ResourceContent, readResourceRows } from '../../../src/read/resource-rows.ts';
 import { DatasetsRepo } from '../../../src/store/repos/datasets.ts';
+import { EntitiesRepo, type EntityRow } from '../../../src/store/repos/entities.ts';
+import { EntityRelationsRepo } from '../../../src/store/repos/entity-relations.ts';
 import type { DatasetLite } from './dataset-lite.ts';
-import type { DatasetDetailView, DatasetPointer, FreshnessFilter } from './schemas.ts';
+import type {
+  DatasetDetailView,
+  DatasetPointer,
+  EntityGraphView,
+  EntityNode,
+  FreshnessFilter,
+} from './schemas.ts';
 
 /** Geographic entity ids attached to a dataset view (entity ids are namespaced `geo:`). */
 export function geoEntityIdsOf(view: CuratedDatasetView): string[] {
@@ -103,6 +111,43 @@ export class ReadBridge {
 
   detail(datasetId: string): DatasetDetailView {
     return viewToDetail(this.view(datasetId));
+  }
+
+  /**
+   * One entity's node in the knowledge graph: its canonical labels, its outgoing/incoming
+   * entity<->entity relations (e.g. a municipality's parent oblast, or an oblast's child
+   * municipalities), and how many datasets link to it directly. Returns null for an unknown id.
+   */
+  entityGraph(entityId: string): EntityGraphView | null {
+    const db = this.deps.db;
+    const entities = new EntitiesRepo(db);
+    const self = entities.get(entityId);
+    if (!self) return null;
+    const relations = new EntityRelationsRepo(db);
+    const toNode = (r: EntityRow): EntityNode => ({
+      entityId: r.id,
+      kind: r.kind,
+      labelBg: r.canonical_label_bg,
+      labelEn: r.canonical_label_en,
+    });
+    const resolve = (id: string): EntityNode => {
+      const e = entities.get(id);
+      return e ? toNode(e) : { entityId: id, kind: 'unknown', labelBg: id, labelEn: null };
+    };
+    return {
+      entity: toNode(self),
+      out: relations.bySubject(entityId).map((r) => ({
+        predicate: r.predicate,
+        confidence: r.confidence,
+        entity: resolve(r.object_id),
+      })),
+      in: relations.byObject(entityId).map((r) => ({
+        predicate: r.predicate,
+        confidence: r.confidence,
+        entity: resolve(r.subject_id),
+      })),
+      datasetCount: entities.datasetsForEntity(entityId).length,
+    };
   }
 
   rows(

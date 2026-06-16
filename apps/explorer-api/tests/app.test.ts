@@ -14,6 +14,7 @@ import { openDb } from '../../../src/store/db.ts';
 import { runMigrations } from '../../../src/store/migrate.ts';
 import { DatasetsRepo } from '../../../src/store/repos/datasets.ts';
 import { EntitiesRepo } from '../../../src/store/repos/entities.ts';
+import { EntityRelationsRepo } from '../../../src/store/repos/entity-relations.ts';
 import { OrganizationsRepo } from '../../../src/store/repos/organizations.ts';
 import { ResourcesRepo } from '../../../src/store/repos/resources.ts';
 import { type AppContext, createApp } from '../src/app.ts';
@@ -155,6 +156,50 @@ describe('explorer API routes', () => {
 
     const bad = await app.request('/api/regions/geo:bg-oblast-unmapped-xyz');
     expect(bad.status).toBe(404);
+  });
+
+  it('GET /api/entities/:id returns the knowledge-graph node with typed relations', async () => {
+    // Seed a municipality linked to a dataset, and a part_of edge to the (seeded) oblast.
+    const ents = new EntitiesRepo(db);
+    ents.upsert({
+      id: 'geo:bg-municipality-stolichna',
+      kind: 'geographic_unit',
+      canonicalLabelBg: 'Столична',
+    });
+    ents.attach({
+      datasetId: 'd1',
+      entityId: 'geo:bg-municipality-stolichna',
+      extractor: 'g',
+      confidence: 0.9,
+    });
+    new EntityRelationsRepo(db).upsert({
+      subjectId: 'geo:bg-municipality-stolichna',
+      predicate: 'part_of',
+      objectId: 'geo:bg-oblast-sofia-grad',
+      confidence: 1,
+    });
+
+    const muni = (await (
+      await app.request('/api/entities/geo:bg-municipality-stolichna')
+    ).json()) as {
+      entity: { kind: string };
+      out: { predicate: string; entity: { entityId: string } }[];
+      datasetCount: number;
+    };
+    expect(muni.entity.kind).toBe('geographic_unit');
+    expect(muni.out).toHaveLength(1);
+    expect(muni.out[0]?.predicate).toBe('part_of');
+    expect(muni.out[0]?.entity.entityId).toBe('geo:bg-oblast-sofia-grad');
+    expect(muni.datasetCount).toBe(1);
+
+    // Reverse edge is visible from the oblast.
+    const oblast = (await (await app.request('/api/entities/geo:bg-oblast-sofia-grad')).json()) as {
+      in: { entity: { entityId: string } }[];
+    };
+    expect(oblast.in.some((e) => e.entity.entityId === 'geo:bg-municipality-stolichna')).toBe(true);
+
+    const miss = await app.request('/api/entities/nope');
+    expect(miss.status).toBe(404);
   });
 
   it('GET /api/facets returns in-scope tag/publisher/freshness counts', async () => {
