@@ -113,6 +113,49 @@ describe('curate.run-curate', () => {
     expect(out.entitiesAttached).toBe(0);
   });
 
+  it('--entities-only re-extracts entities without parsing resources or translating', async () => {
+    // A captured resource that a full run WOULD parse — entities-only must not touch it.
+    const r = new ResourcesRepo(s.db);
+    r.upsert({ id: 'r1', datasetId: 'd1', sourceUrl: 'https://x/r1.json', declaredFormat: 'json' });
+    r.recordCapture({
+      id: 'r1',
+      bytes: 1,
+      sha256: 'a'.repeat(64),
+      rawPath: 'd1/r1/raw.json',
+      outcome: 'success',
+    });
+    ensureDir(join(s.storeRoot, 'raw', 'd1', 'r1'));
+    writeFileSync(join(s.storeRoot, 'raw', 'd1', 'r1', 'raw.json'), '{"a":1}');
+
+    // Translator supplied but must be ignored in entities-only mode.
+    const translator = new LocalMarianMtTranslator({
+      translateFn: async (text) => ({ text: `EN(${text})`, confidence: 0.7 }),
+    });
+    const out = await runCurate({
+      db: s.db,
+      storeRoot: s.storeRoot,
+      curatorVersion: 'v1',
+      entitiesOnly: true,
+      translator,
+    });
+
+    // No parsing → no artifacts of either kind; no translations.
+    expect(out.curated).toBe(0);
+    expect(out.uncurated).toBe(0);
+    expect(out.translationsWritten).toBe(0);
+    expect(new CuratedArtifactsRepo(s.db).byDataset('d1').length).toBe(0);
+
+    // Entities ARE attached, including the publisher-derived place
+    // ("Столична община" publisher → geo:bg-municipality-stolichna).
+    expect(out.entitiesAttached).toBeGreaterThan(0);
+    const geo = s.db
+      .query<{ entity_id: string }, []>(
+        "SELECT entity_id FROM dataset_entities WHERE dataset_id = 'd1' AND substr(entity_id,1,4) = 'geo:'",
+      )
+      .all();
+    expect(geo.some((g) => g.entity_id === 'geo:bg-municipality-stolichna')).toBe(true);
+  });
+
   it('writes translations when translator is supplied', async () => {
     const translator = new LocalMarianMtTranslator({
       translateFn: async (text) => ({ text: `EN(${text})`, confidence: 0.7 }),

@@ -10,9 +10,9 @@ import { findGazetteerMatches } from '../gazetteer/bg-admin.ts';
  *
  * Matches are emitted at a LOWER confidence than {@link BgAdminGazetteerExtractor}'s in-content
  * matches: a publisher affiliation is a weaker placement signal than the dataset itself naming the
- * place. This extractor must run BEFORE the in-content gazetteer extractor so that, for a dataset
- * that matches both ways, the stronger in-content confidence wins the `(dataset_id, entity_id)`
- * upsert (attach is INSERT OR REPLACE — last writer wins).
+ * place. When a dataset matches both ways, dataset_entities keeps one row per extractor (its PK
+ * includes the extractor), and the read layer takes the max confidence per (dataset, entity) — so
+ * the stronger in-content confidence wins downstream.
  */
 export class BgAdminPublisherExtractor implements Extractor {
   readonly id = 'bg_admin_publisher';
