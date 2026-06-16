@@ -13,7 +13,19 @@ export interface ChatMessage {
 export interface Conversation {
   sessionId: string;
   messages: ChatMessage[];
+  /**
+   * Datasets the conversation is currently grounded on (sticky focus): an explicit "ask about this
+   * dataset", else the datasets the last answer actually cited. Their rows are re-injected each turn
+   * so follow-ups stay grounded instead of relying on the model recalling the previous answer's prose.
+   */
+  contextDatasetIds: string[];
 }
+
+/** Cap on sticky-context datasets (their rows are re-read every turn — keep it small). */
+export const MAX_CONTEXT_DATASETS = 2;
+/** History window replayed to the model: keep the most recent turns within a char budget. */
+export const MAX_HISTORY_MESSAGES = 10;
+export const MAX_HISTORY_CHARS = 24_000;
 
 export class SessionStore {
   private readonly sessions = new Map<string, Conversation>();
@@ -26,7 +38,11 @@ export class SessionStore {
       const existing = this.sessions.get(sessionId);
       if (existing) return existing;
     }
-    const conv: Conversation = { sessionId: sessionId ?? this.newId(), messages: [] };
+    const conv: Conversation = {
+      sessionId: sessionId ?? this.newId(),
+      messages: [],
+      contextDatasetIds: [],
+    };
     this.sessions.set(conv.sessionId, conv);
     return conv;
   }
@@ -36,7 +52,36 @@ export class SessionStore {
     if (conv) conv.messages.push(message);
   }
 
+  /** Update the conversation's sticky grounding context (deduped, capped). */
+  setContext(sessionId: string, datasetIds: string[]): void {
+    const conv = this.sessions.get(sessionId);
+    if (conv) conv.contextDatasetIds = [...new Set(datasetIds)].slice(0, MAX_CONTEXT_DATASETS);
+  }
+
   get(sessionId: string): Conversation | undefined {
     return this.sessions.get(sessionId);
   }
+}
+
+/**
+ * The tail of a transcript to replay: the most recent messages within a count + char budget, in
+ * original order. Bounds the context window so a long conversation can't overflow the model (the
+ * grounding rows live in the system prompt, not here). Always keeps at least the last message.
+ */
+export function windowMessages(
+  messages: ChatMessage[],
+  maxMessages: number = MAX_HISTORY_MESSAGES,
+  maxChars: number = MAX_HISTORY_CHARS,
+): ChatMessage[] {
+  const out: ChatMessage[] = [];
+  let chars = 0;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (!m) continue;
+    if (out.length >= maxMessages) break;
+    if (out.length > 0 && chars + m.content.length > maxChars) break;
+    out.push(m);
+    chars += m.content.length;
+  }
+  return out.reverse();
 }

@@ -36,6 +36,12 @@ export interface RunChatTurnOptions {
   bridge: ReadBridge;
   scope: ScopeDescriptor;
   messages: ModelMessage[];
+  /**
+   * Datasets to pre-read as grounded context this turn (sticky focus). Drives buildFocusContext ONLY
+   * — it does NOT restrict tool scope — so follow-ups stay grounded without narrowing what tools may
+   * read. Defaults to `scope.datasetIds` when omitted.
+   */
+  groundingDatasetIds?: string[];
   maxSteps?: number;
   events?: ChatTurnEvents;
 }
@@ -145,7 +151,11 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
   const { tools, citedDatasetIds } = buildTools(bridge, scope);
   const resolve = resolver(bridge);
   // Pre-read focused datasets so the model is grounded in real rows, not the title alone.
-  const focus = buildFocusContext(bridge, scope.datasetIds ?? [], resolve);
+  const focus = buildFocusContext(
+    bridge,
+    opts.groundingDatasetIds ?? scope.datasetIds ?? [],
+    resolve,
+  );
   const system = focus ? `${SYSTEM_PROMPT}\n\n${FOCUS_HEADER}\n${focus.text}` : SYSTEM_PROMPT;
 
   const result = streamText({
@@ -226,7 +236,11 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
     .join('\n');
   // For focused datasets, include the actual sampled rows — not just titles — so a "what's in it"
   // question is answered from data instead of being fabricated.
-  const focus = buildFocusContext(bridge, scope.datasetIds ?? [], resolve);
+  const focus = buildFocusContext(
+    bridge,
+    opts.groundingDatasetIds ?? scope.datasetIds ?? [],
+    resolve,
+  );
   const system = `${SYSTEM_PROMPT}\nОтговаряй само въз основа на данните по-долу. Позовавай се на наборите по заглавие; НЕ показвай технически идентификатори. Не измисляй стойности (имена, ЕИК, числа) — ако данните не ги съдържат, кажи го. Ако никой не е релевантен на въпроса, отговори, че няма релевантни публични данни. Форматирай отговора с Markdown.`;
   const userMsg = `${focus ? `${FOCUS_HEADER}\n${focus.text}\n\n` : ''}Налични набори от данни:\n${context}\n\nВъпрос: ${query}`;
 

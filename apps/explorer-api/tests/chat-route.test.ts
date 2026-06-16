@@ -182,6 +182,35 @@ describe('POST /api/chat', () => {
     expect(anchor.geoEntityIds).toContain('geo:bg-oblast-sofia-grad');
   });
 
+  it('sticky grounding: a follow-up re-grounds in the previously cited dataset', async () => {
+    // Turn 1 reads d1 via a tool and cites it; turn 2 (same session, NO scope, NO tool call) must
+    // still cite d1 — only possible if the session carried d1 forward and re-injected it as context.
+    const model = mockModel([
+      toolCallStep('mirrorSearch', { query: 'въздух' }),
+      textStep('Има данни за въздуха.'),
+      textStep('А ето още по темата.'),
+    ]);
+    const app = appWith(model);
+    const provider = { kind: 'openai-compatible', model: 'm', apiKey: 'x' };
+
+    const r1 = parseSSE(await (await post(app, { message: 'q1', provider })).text());
+    const sid = (r1.find((e) => e.event === 'session')?.data as { sessionId: string }).sessionId;
+    expect(
+      (
+        r1.find((e) => e.event === 'citations')?.data as { citations: { datasetId: string }[] }
+      ).citations.map((cite) => cite.datasetId),
+    ).toEqual(['d1']);
+
+    const r2 = parseSSE(
+      await (await post(app, { sessionId: sid, message: 'q2', provider })).text(),
+    );
+    expect(
+      (
+        r2.find((e) => e.event === 'citations')?.data as { citations: { datasetId: string }[] }
+      ).citations.map((cite) => cite.datasetId),
+    ).toEqual(['d1']);
+  });
+
   it('replies "no relevant public data" when the model produces no text', async () => {
     const model = mockModel([emptyStep()]);
     const res = await post(appWith(model), {

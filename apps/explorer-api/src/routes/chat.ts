@@ -8,7 +8,7 @@ import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 import { runChatTurn } from '../chat/run.ts';
-import type { SessionStore } from '../chat/session.ts';
+import { MAX_CONTEXT_DATASETS, type SessionStore, windowMessages } from '../chat/session.ts';
 import { log } from '../logging.ts';
 import type { ReadBridge } from '../read-bridge.ts';
 import { scopeDescriptorSchema } from '../schemas.ts';
@@ -44,6 +44,11 @@ export function chatHandler(deps: ChatRouteDeps) {
     const conv = deps.sessions.getOrCreate(body.sessionId ?? null);
     deps.sessions.append(conv.sessionId, { role: 'user', content: body.message });
     const scope = body.scope ?? {};
+    // Sticky grounding: ground this turn in the explicitly-focused dataset(s) if given, otherwise in
+    // whatever the conversation is already about (set from the previous turn). Drives row injection
+    // only — not tool scope — so follow-ups stay grounded without narrowing the tools.
+    const explicitFocus = scope.datasetIds ?? [];
+    const groundingDatasetIds = explicitFocus.length > 0 ? explicitFocus : conv.contextDatasetIds;
 
     // Resolve the model up front so provider misconfig becomes a clean error event (FR-023).
     let model: LanguageModel;
@@ -66,7 +71,9 @@ export function chatHandler(deps: ChatRouteDeps) {
       });
     }
 
-    const messages: ModelMessage[] = conv.messages.map((m) => ({
+    // Replay only the recent window so a long conversation can't overflow the context (grounding
+    // rows live in the system prompt, not the transcript).
+    const messages: ModelMessage[] = windowMessages(conv.messages).map((m) => ({
       role: m.role,
       content: m.content,
     }));
@@ -82,6 +89,7 @@ export function chatHandler(deps: ChatRouteDeps) {
           bridge: deps.bridge,
           scope,
           messages,
+          groundingDatasetIds,
           events: {
             onToken: (delta) => {
               void stream.writeSSE({ event: 'token', data: JSON.stringify({ delta }) });
@@ -103,6 +111,13 @@ export function chatHandler(deps: ChatRouteDeps) {
           citations: result.citations,
           anchors: result.anchors,
         });
+        // Carry grounding forward: the conversation is now "about" the explicitly-focused dataset(s)
+        // if any, else whatever this answer cited — so the next follow-up re-injects their rows.
+        const nextContext =
+          explicitFocus.length > 0 ? explicitFocus : result.citations.map((cite) => cite.datasetId);
+        if (nextContext.length > 0) {
+          deps.sessions.setContext(conv.sessionId, nextContext.slice(0, MAX_CONTEXT_DATASETS));
+        }
       } catch (e) {
         log.error('chat_turn_failed', { sessionId: conv.sessionId });
         await stream.writeSSE({
