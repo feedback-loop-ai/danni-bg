@@ -62,7 +62,8 @@ store/
 - **Curated data**: `store/curated/<dataset_id>/<resource_id>/data.ndjson` (tabular, one JSON object
   per line), `data.json` (JSON/GeoJSON), `data.xml`, or `data.txt`, alongside a `schema.json`.
 - **Metadata + index**: `store/danni.sqlite` (`datasets`, `resources`, `curated_artifacts`,
-  `entities`, `dataset_entities`, `dataset_links`, `translations`, `datasets_fts`, `dataset_embeddings`).
+  `entities`, `dataset_entities`, `entity_relations`, `dataset_links`, `translations`, `datasets_fts`,
+  `dataset_embeddings`).
 
 ### Contracts
 
@@ -91,16 +92,21 @@ the human-facing front door, but the endpoints are a clean programmatic interfac
 |---|---|
 | `GET /api/datasets` | Filterable, paginated dataset pointers (free-text `q` runs hybrid search). |
 | `GET /api/datasets/:id` | The curated-dataset detail (resources, entities, related-dataset links — links/entities capped). |
-| `GET /api/datasets/:id/resources/:rid/rows` | Paginated curated rows / document / text for a resource. |
-| `GET /api/regions?level=oblast\|municipality` | Choropleth aggregates (dataset counts per admin unit). |
+| `GET /api/entities/:id` | An entity's knowledge-graph node: canonical labels (bg/en), kind, its outgoing + incoming typed `entity_relations` (e.g. a municipality's parent oblast via `part_of`, an oblast's child municipalities), and its direct dataset count. 404 for an unknown id. |
+| `GET /api/datasets/:id/resources/:rid/rows` | Paginated curated rows / document / text for a resource. Supports server-side sort + per-column filters (`sort`/`dir`/`filters` query params). |
+| `GET /api/regions?level=oblast\|municipality` | Choropleth aggregates: a hierarchical roll-up where an oblast's count is the de-duplicated union of its own + its municipalities' datasets (municipality summaries carry `oblastEntityId`). |
 | `GET /api/national`, `GET /api/facets` | Non-georeferenced datasets; filter facets with in-scope counts. |
 | `POST /api/chat` | **SSE** grounded chat: streams tokens + validated `citations` + map `anchors`. |
 
 All inputs are Zod-validated; responses are UTF-8 JSON (SSE for chat) with mandatory `freshness`
-blocks. The chat is grounded — it answers only from the four scoped read tools (or the RAG fallback)
-and every citation is validated against what those tools returned. Full shapes:
+blocks. The chat is grounded by construction: the focused/open dataset's real rows are injected as
+ground-truth context (sticky across follow-ups, hardened against fabrication), not just answered
+from the four scoped read tools — and every citation is still validated against what those tools
+returned. Full shapes:
 [`specs/008-map-data-explorer/contracts/http-api.md`](../specs/008-map-data-explorer/contracts/http-api.md)
-and [`chat-tools.md`](../specs/008-map-data-explorer/contracts/chat-tools.md).
+and [`chat-tools.md`](../specs/008-map-data-explorer/contracts/chat-tools.md); the entities endpoint
+has its own contract at
+[`specs/016-entity-knowledge-graph/contracts/entities-get.md`](../specs/016-entity-knowledge-graph/contracts/entities-get.md).
 
 ## Freshness
 
