@@ -143,6 +143,22 @@ export class DatasetsRepo {
     return { row: this.get(input.id) as DatasetRow, changes, inserted: false };
   }
 
+  /**
+   * Refresh only the source timestamps + crawl time for an existing dataset, without touching its
+   * title/description/tags/etc. Used by the metadata-only refresh to backfill metadata_modified
+   * (the portal's last-modified) cheaply, without a full re-capture.
+   */
+  updateMetadata(
+    id: string,
+    m: { metadataCreated: string | null; metadataModified: string | null; lastSyncedAt?: string },
+  ): void {
+    this.db
+      .query(
+        'UPDATE datasets SET metadata_created = ?, metadata_modified = ?, last_synced_at = ? WHERE id = ?',
+      )
+      .run(m.metadataCreated, m.metadataModified, m.lastSyncedAt ?? nowIso(), id);
+  }
+
   setLifecycle(id: string, state: LifecycleState, reason: string | null = null, now: string = nowIso()): void {
     this.db
       .query('UPDATE datasets SET lifecycle_state = ?, lifecycle_changed_at = ?, withdrawn_reason = ? WHERE id = ?')
