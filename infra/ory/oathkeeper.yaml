@@ -1,0 +1,85 @@
+version: v0.40.6
+
+log:
+  level: debug
+  format: text
+
+serve:
+  proxy:
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:5173
+      allowed_methods: [GET, POST, PUT, PATCH, DELETE]
+      allowed_headers: [Authorization, Content-Type, Cookie]
+      exposed_headers: [Content-Type, Set-Cookie]
+      allow_credentials: true
+    port: 4455
+    host: 0.0.0.0
+    timeout:
+      read: 5s
+      # Grounded chat streams SSE for the whole turn — keep the response open
+      # well past the default 120s so a long answer isn't cut mid-stream.
+      write: 600s
+      idle: 605s
+  api:
+    port: 4456
+    host: 0.0.0.0
+
+access_rules:
+  matching_strategy: regexp
+  repositories:
+    - file:///etc/config/oathkeeper/access-rules.json
+
+errors:
+  fallback:
+    - json
+  handlers:
+    json:
+      enabled: true
+      config:
+        verbose: true
+    redirect:
+      enabled: true
+      config:
+        to: http://localhost:5173/auth/login
+        when:
+          - error: [unauthorized, forbidden]
+            request:
+              header:
+                accept: [text/html]
+
+authenticators:
+  anonymous:
+    enabled: true
+    config:
+      subject: anonymous
+  cookie_session:
+    enabled: true
+    config:
+      check_session_url: http://kratos:4433/sessions/whoami
+      preserve_path: true
+      extra_from: "@this"
+      subject_from: "identity.id"
+      only:
+        - ory_kratos_session
+  noop:
+    enabled: true
+
+authorizers:
+  allow:
+    enabled: true
+  deny:
+    enabled: true
+
+mutators:
+  noop:
+    enabled: true
+  header:
+    enabled: true
+    config:
+      headers:
+        X-User-ID: "{{ print .Subject }}"
+        X-User-Email: '{{ print .Extra.identity.traits.email }}'
+        X-User-Verified: '{{ if .Extra.identity.verifiable_addresses }}{{ (index .Extra.identity.verifiable_addresses 0).verified }}{{ else }}false{{ end }}'
+        X-Session-ID: '{{ print .Extra.id }}'

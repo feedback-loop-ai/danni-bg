@@ -1,0 +1,18 @@
+[
+  {
+    "id": "gated-api",
+    "version": "v0.40.6",
+    "upstream": {
+      "url": "http://host.docker.internal:8790",
+      "preserve_host": true
+    },
+    "match": {
+      "url": "<http|https>://localhost:14455/api/<chat|admin|auth><.*>",
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    },
+    "authenticators": [{ "handler": "cookie_session" }],
+    "authorizer": { "handler": "allow" },
+    "mutators": [{ "handler": "header" }],
+    "errors": [{ "handler": "json", "config": { "verbose": true } }]
+  }
+]

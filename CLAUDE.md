@@ -16,6 +16,8 @@ capabilities each have their own spec:
 - 017 trustworthy grounded chat (anti-fabrication grounding, sticky context, auto-focus, value-filter)
 - 018 agentic quality evals (`eval/agentic`, DeepEval; `bun run eval:agentic`) + grounding
   completeness (RAG row injection) & transparency (opt-in `grounding` SSE event)
+- 019 identity (Ory Kratos+Oathkeeper, `infra/ory` + `docker-compose.yml`), tiered users
+  (admin/user in app `users` table), gated chat, admin platform settings (runtime LLM config) — phased
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->

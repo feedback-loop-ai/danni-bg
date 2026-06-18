@@ -1,0 +1,127 @@
+version: v1.1.0
+
+# Overridden by the DSN env in docker-compose (points at the dedicated kratos-postgres).
+dsn: memory
+
+serve:
+  public:
+    base_url: http://localhost:14433/
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:5173 # Vite dev (SPA origin)
+        - http://localhost:8790 # Hono-served SPA (prod-ish)
+      allowed_methods: [POST, GET, PUT, PATCH, DELETE]
+      allowed_headers: [Authorization, Cookie, Content-Type]
+      exposed_headers: [Content-Type, Set-Cookie]
+      allow_credentials: true
+  admin:
+    base_url: http://localhost:14434/
+
+selfservice:
+  default_browser_return_url: http://localhost:5173/
+  allowed_return_urls:
+    - http://localhost:5173
+    - http://localhost:5173/auth/callback
+    - http://localhost:5173/admin/settings
+
+  methods:
+    password:
+      enabled: true
+      config:
+        min_password_length: 10
+        haveibeenpwned_enabled: true
+        max_breaches: 0
+        identifier_similarity_check_enabled: true
+    link:
+      enabled: true
+      config:
+        lifespan: 1h
+    code:
+      enabled: true
+      config:
+        lifespan: 1h
+
+  flows:
+    error:
+      ui_url: http://localhost:5173/auth/error
+
+    settings:
+      ui_url: http://localhost:5173/auth/settings
+      privileged_session_max_age: 15m
+
+    recovery:
+      enabled: true
+      ui_url: http://localhost:5173/auth/recovery
+      use: code
+      lifespan: 1h
+      after:
+        default_browser_return_url: http://localhost:5173/auth/login
+
+    verification:
+      enabled: true
+      ui_url: http://localhost:5173/auth/verification
+      use: code
+      lifespan: 24h
+      after:
+        default_browser_return_url: http://localhost:5173/
+
+    logout:
+      after:
+        default_browser_return_url: http://localhost:5173/auth/login
+
+    login:
+      ui_url: http://localhost:5173/auth/login
+      lifespan: 10m
+      after:
+        default_browser_return_url: http://localhost:5173/auth/callback
+
+    registration:
+      ui_url: http://localhost:5173/auth/register
+      lifespan: 10m
+      after:
+        default_browser_return_url: http://localhost:5173/auth/callback
+        password:
+          hooks:
+            # Open self-service signup: auto-login on registration (session), then
+            # prompt to verify email (not required to use the app — chat is gated on
+            # auth, not verification). Verification stays available + encouraged.
+            - hook: session
+            - hook: show_verification_ui
+
+log:
+  level: debug
+  format: text
+  leak_sensitive_values: true # dev only
+
+secrets:
+  cookie:
+    - PLEASE-CHANGE-ME-I-AM-VERY-INSECURE
+  cipher:
+    - 32-LONG-SECRET-NOT-SECURE-AT-ALL
+
+ciphers:
+  algorithm: xchacha20-poly1305
+
+hashers:
+  algorithm: bcrypt
+  bcrypt:
+    cost: 8
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file:///etc/config/kratos/identity.schema.json
+
+courier:
+  smtp:
+    connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+  template_override_path: /etc/config/kratos/templates
+
+session:
+  lifespan: 24h
+  cookie:
+    same_site: Lax
+    persistent: true
+    domain: localhost

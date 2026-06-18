@@ -1,0 +1,97 @@
+# Local Ory identity stack for danni-bg (spec 019). Kratos owns identities in its
+# OWN Postgres; the danni app keeps its data in SQLite (store/danni.sqlite) — untouched.
+# Oathkeeper fronts the gated API routes (/api/{chat,admin,auth}), validates the Kratos
+# session, and injects X-User-* headers that the Hono backend trusts.
+#
+# Dev: docker compose up -d  →  bun run explorer:api (host :8790)  →  vite (host :5173).
+# Ports use a 14xxx/15xxx band to avoid colliding with the sibling looper stack (34xxx).
+services:
+  kratos-postgres:
+    image: postgres:16-alpine
+    container_name: danni-kratos-postgres
+    environment:
+      POSTGRES_USER: kratos
+      POSTGRES_PASSWORD: kratos
+      POSTGRES_DB: kratos
+    ports:
+      - "15432:5432"
+    volumes:
+      - kratos_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kratos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: apply Kratos SQL migrations before serve (serve does not auto-migrate
+  # a persistent DSN, even with --dev).
+  kratos-migrate:
+    image: oryd/kratos:v1.1.0
+    container_name: danni-kratos-migrate
+    volumes:
+      - ./infra/ory/kratos.yaml:/etc/config/kratos/kratos.yml:ro
+      - ./infra/ory/identity.schema.json:/etc/config/kratos/identity.schema.json:ro
+    environment:
+      DSN: postgres://kratos:kratos@kratos-postgres:5432/kratos?sslmode=disable
+    depends_on:
+      kratos-postgres:
+        condition: service_healthy
+    command: migrate sql -e --yes
+    restart: "no"
+
+  kratos:
+    image: oryd/kratos:v1.1.0
+    container_name: danni-kratos
+    ports:
+      - "14433:4433"
+      - "14434:4434"
+    volumes:
+      - ./infra/ory/kratos.yaml:/etc/config/kratos/kratos.yml:ro
+      - ./infra/ory/identity.schema.json:/etc/config/kratos/identity.schema.json:ro
+      - ./infra/ory/templates:/etc/config/kratos/templates:ro
+    environment:
+      DSN: postgres://kratos:kratos@kratos-postgres:5432/kratos?sslmode=disable
+    depends_on:
+      kratos-postgres:
+        condition: service_healthy
+      kratos-migrate:
+        condition: service_completed_successfully
+    # --dev auto-runs migrations; --watch-courier delivers queued emails to mailslurper.
+    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4433/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  oathkeeper:
+    image: oryd/oathkeeper:v0.40.6
+    container_name: danni-oathkeeper
+    ports:
+      - "14455:4455"
+      - "14456:4456"
+    volumes:
+      - ./infra/ory/oathkeeper.yaml:/etc/config/oathkeeper/oathkeeper.yml:ro
+      - ./infra/ory/access-rules.json:/etc/config/oathkeeper/access-rules.json:ro
+    depends_on:
+      kratos:
+        condition: service_healthy
+    extra_hosts:
+      # Reach the Hono backend running on the host (bun run explorer:api).
+      - "host.docker.internal:host-gateway"
+    command: serve -c /etc/config/oathkeeper/oathkeeper.yml
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4456/health/alive"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    container_name: danni-mailslurper
+    ports:
+      - "14438:4436" # web UI
+      - "14439:4437" # service API
+
+volumes:
+  kratos_postgres_data:
