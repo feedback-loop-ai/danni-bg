@@ -46,6 +46,8 @@ export type ScopeDescriptor = z.infer<typeof scopeDescriptorSchema>;
 
 export const errorCodeSchema = z.enum([
   'bad_request',
+  'unauthorized',
+  'forbidden',
   'not_found',
   'provider_error',
   'provider_unconfigured',

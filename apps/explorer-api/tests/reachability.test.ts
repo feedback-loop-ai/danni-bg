@@ -14,6 +14,7 @@ import { openDb } from '../../../src/store/db.ts';
 import { runMigrations } from '../../../src/store/migrate.ts';
 import { DatasetsRepo } from '../../../src/store/repos/datasets.ts';
 import { EntitiesRepo } from '../../../src/store/repos/entities.ts';
+import { UsersRepo } from '../../../src/store/repos/users.ts';
 import { type AppContext, createApp } from '../src/app.ts';
 import { ReadBridge } from '../src/read-bridge.ts';
 
@@ -77,6 +78,7 @@ describe('dataset reachability (SC-009)', () => {
     app = createApp({
       bridge: new ReadBridge({ db, storeRoot, embedder, freshnessSloSeconds: 86400 }),
       crosswalk: new Crosswalk(loadCrosswalk()),
+      users: new UsersRepo(db),
       health: () => ({
         lastSyncedAt: '2026-06-01T00:00:00Z',
         isStale: false,

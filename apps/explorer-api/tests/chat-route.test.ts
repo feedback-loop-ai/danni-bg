@@ -17,6 +17,7 @@ import { runMigrations } from '../../../src/store/migrate.ts';
 import { DatasetsRepo } from '../../../src/store/repos/datasets.ts';
 import { EntitiesRepo } from '../../../src/store/repos/entities.ts';
 import { ResourcesRepo } from '../../../src/store/repos/resources.ts';
+import { UsersRepo } from '../../../src/store/repos/users.ts';
 import { type AppContext, createApp } from '../src/app.ts';
 import { ProviderError } from '../src/chat/providers.ts';
 import { SessionStore } from '../src/chat/session.ts';
@@ -144,18 +145,42 @@ describe('POST /api/chat', () => {
     const ctx: AppContext = {
       bridge,
       crosswalk: new Crosswalk(loadCrosswalk()),
+      users: new UsersRepo(db),
       health: () => ({ lastSyncedAt: null, isStale: true, defaultProvider: 'absent' }),
       chat: { sessions: new SessionStore(() => 'sess-1'), serverDefault: null, selectModel },
     };
     return createApp(ctx);
   }
 
+  // /api/chat is gated (spec 019): post with the X-User-* headers Oathkeeper would inject so the
+  // grounded-chat assertions exercise the handler. The anon (401) path is covered separately.
+  const AUTH_HEADERS = {
+    'content-type': 'application/json',
+    'x-user-id': 'kratos-id-1',
+    'x-user-email': 'user@example.com',
+    'x-user-verified': 'true',
+  };
   const post = (app: ReturnType<typeof createApp>, body: unknown) =>
     app.request('/api/chat', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: AUTH_HEADERS,
       body: JSON.stringify(body),
     });
+
+  it('gates /api/chat: anonymous (no identity headers) → 401', async () => {
+    const app = appWith(mockModel([textStep('should not run')]));
+    const res = await app.request('/api/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        message: 'hi',
+        provider: { kind: 'openai-compatible', model: 'm', apiKey: 'x' },
+      }),
+    });
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe('unauthorized');
+  });
 
   it('streams a grounded answer with citations + anchors from tool results', async () => {
     const model = mockModel([

@@ -17,6 +17,7 @@ import { EntitiesRepo } from '../../../src/store/repos/entities.ts';
 import { EntityRelationsRepo } from '../../../src/store/repos/entity-relations.ts';
 import { OrganizationsRepo } from '../../../src/store/repos/organizations.ts';
 import { ResourcesRepo } from '../../../src/store/repos/resources.ts';
+import { UsersRepo } from '../../../src/store/repos/users.ts';
 import { type AppContext, createApp } from '../src/app.ts';
 import { ReadBridge } from '../src/read-bridge.ts';
 
@@ -85,6 +86,7 @@ describe('explorer API routes', () => {
     const ctx: AppContext = {
       bridge,
       crosswalk: new Crosswalk(loadCrosswalk()),
+      users: new UsersRepo(db),
       health: () => ({
         lastSyncedAt: '2026-06-01T00:00:00Z',
         isStale: false,
@@ -101,6 +103,36 @@ describe('explorer API routes', () => {
     const body = (await res.json()) as { status: string; components: { defaultProvider: string } };
     expect(body.status).toBe('degraded');
     expect(body.components.defaultProvider).toBe('absent');
+  });
+
+  it('POST /api/auth/callback materializes the app user + reports the tier', async () => {
+    const headers = {
+      'content-type': 'application/json',
+      'x-user-id': 'k-callback',
+      'x-user-email': 'cb@example.com',
+      'x-user-verified': 'true',
+    };
+    const res = await app.request('/api/auth/callback', { method: 'POST', headers });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { user: { email: string; role: string }; isAdmin: boolean };
+    expect(body.user.email).toBe('cb@example.com');
+    expect(body.user.role).toBe('user');
+    expect(body.isAdmin).toBe(false);
+  });
+
+  it('POST /api/auth/callback requires a session (401 anonymous)', async () => {
+    const res = await app.request('/api/auth/callback', { method: 'POST' });
+    expect(res.status).toBe(401);
+  });
+
+  it('POST /api/auth/logout returns the Kratos logout URL', async () => {
+    const res = await app.request('/api/auth/logout', {
+      method: 'POST',
+      headers: { 'x-user-id': 'k-lo', 'x-user-email': 'lo@example.com' },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { logoutUrl: string };
+    expect(body.logoutUrl).toContain('/self-service/logout/browser');
   });
 
   it('GET /api/datasets lists all, no auth header required', async () => {
@@ -289,6 +321,7 @@ describe('explorer API routes', () => {
         },
       } as unknown as ReadBridge,
       crosswalk: new Crosswalk(loadCrosswalk()),
+      users: new UsersRepo(db),
       health: () => ({ lastSyncedAt: null, isStale: true, defaultProvider: 'absent' }),
     };
     const res = await createApp(boom).request('/api/facets');
