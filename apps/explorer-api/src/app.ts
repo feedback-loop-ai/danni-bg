@@ -8,7 +8,9 @@ import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';
 import type { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
 import { MUNICIPALITIES, OBLASTS } from '../../../src/enrich/gazetteer/bg-admin.ts';
+import type { PlatformSettingsRepo } from '../../../src/store/repos/platform-settings.ts';
 import type { UsersRepo } from '../../../src/store/repos/users.ts';
+import { resolveServerDefault } from './admin/resolve-default.ts';
 import { capDatasetDetail } from './chat/cap.ts';
 import {
   type ProviderConfig,
@@ -22,6 +24,7 @@ import { requireAuth } from './middleware/require-auth.ts';
 import type { ReadBridge } from './read-bridge.ts';
 import { viewToPointer } from './read-bridge.ts';
 import { aggregateRegions } from './regions-aggregate.ts';
+import { adminRoutes } from './routes/admin.ts';
 import { authRoutes } from './routes/auth.ts';
 import { chatHandler } from './routes/chat.ts';
 import {
@@ -54,6 +57,8 @@ export interface AppContext {
   chat?: ChatConfig;
   /** App users repo — gates /api/chat + backs /api/auth (spec 019). */
   users: UsersRepo;
+  /** Platform settings repo — backs /api/admin/settings + the chat's default provider (spec 019). */
+  settings?: PlatformSettingsRepo;
   /** Kratos public base URL (for the logout flow URL). */
   kratosPublicUrl?: string;
 }
@@ -95,6 +100,12 @@ export function createApp(ctx: AppContext): Hono {
     sessions: new SessionStore(),
     serverDefault: serverDefaultFromEnv(),
   };
+  // The chat's default provider is resolved PER REQUEST so an admin's settings edit takes effect
+  // without a restart: settings store wins, else the env seed (spec 019). Falls back to the configured
+  // ChatConfig.serverDefault when no settings repo is wired (e.g. focused unit tests).
+  const resolveDefault = () =>
+    ctx.settings ? resolveServerDefault(ctx.settings, process.env) : chat.serverDefault;
+
   // Gated chat (spec 019): requireAuth runs before the streaming handler — anon → 401, else the
   // session's app user is resolved/created and the turn proceeds. The cast bridges the auth-typed
   // middleware onto the app's default env (it only gates + sets `user`, which chatHandler ignores).
@@ -104,13 +115,18 @@ export function createApp(ctx: AppContext): Hono {
     chatHandler({
       bridge: ctx.bridge,
       sessions: chat.sessions,
-      selectModel: chat.selectModel ?? ((p) => selectModel(p, chat.serverDefault)),
+      selectModel: chat.selectModel ?? ((p) => selectModel(p, resolveDefault())),
     }),
   );
 
   // Backend auth endpoints (find-or-create app user + tier; logout URL). Self-service login/register
   // are Kratos flows driven by the SPA via the /kratos proxy.
   app.route('/api/auth', authRoutes(ctx.users, ctx.kratosPublicUrl ?? 'http://localhost:14433'));
+
+  // Admin platform settings (spec 019) — mounted only when a settings repo is wired (always in prod).
+  if (ctx.settings) {
+    app.route('/api/admin', adminRoutes(ctx.users, ctx.settings));
+  }
 
   app.get('/healthz', (c) => {
     const h = ctx.health();
