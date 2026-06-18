@@ -42,3 +42,15 @@ danni.config.json
 # Playwright
 apps/explorer-web/test-results/
 apps/explorer-web/playwright-report/
+
+# Operational run logs (metadata refresh, server, etc.)
+_*.log
+
+# Python agentic eval (uv venv, caches, local override env)
+eval/agentic/.venv/
+eval/agentic/.env
+eval/agentic/uv.lock
+__pycache__/
+.pytest_cache/
+.deepeval/
+.deepeval-cache.json

@@ -26,6 +26,9 @@ export const chatRequestSchema = z
      */
     groundingDatasetIds: z.array(z.string()).optional(),
     provider: providerConfigSchema,
+    /** When true, emit a `grounding` SSE event with the exact context injected into the model.
+     * For observability / offline faithfulness evals; clients don't set it in normal use. */
+    debug: z.boolean().optional(),
   })
   .strict();
 
@@ -111,6 +114,12 @@ export function chatHandler(deps: ChatRouteDeps) {
             },
           },
         });
+        if (body.debug && result.groundingText) {
+          await stream.writeSSE({
+            event: 'grounding',
+            data: JSON.stringify({ text: result.groundingText }),
+          });
+        }
         await stream.writeSSE({
           event: 'citations',
           data: JSON.stringify({ citations: result.citations }),

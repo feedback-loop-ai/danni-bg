@@ -12,6 +12,7 @@
     "db:migrate": "bun run src/store/migrate-cli.ts",
     "explorer:api": "bun run --hot apps/explorer-api/src/server.ts",
     "explorer:gen-geo": "bun run packages/geo-boundaries/scripts/generate-crosswalk.ts",
+    "eval:agentic": "uv run --project eval/agentic pytest eval/agentic",
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "bun test",
