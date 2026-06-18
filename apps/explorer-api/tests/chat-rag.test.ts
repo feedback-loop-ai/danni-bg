@@ -6,6 +6,7 @@ import type { Database } from 'bun:sqlite';
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MockLanguageModelV3 } from 'ai/test';
 import { LocalOnnxEmbedder } from '../../../src/index/embedders/local-onnx.ts';
 import { runIndex } from '../../../src/index/run-index.ts';
 import { openDb } from '../../../src/store/db.ts';
@@ -128,6 +129,52 @@ describe('runChatTurn RAG fallback', () => {
       messages: [{ role: 'user', content: 'въздух качество' }],
     });
     expect(result.citations.map((c) => c.datasetId)).toEqual(['d2']);
+  });
+
+  it('injects the retrieved candidates real rows as ground truth (no titles-only fabrication)', async () => {
+    // The RAG fallback can't call tools, so it must pre-read the candidates' rows. Capture the prompt
+    // the model receives and assert the actual row values are present — not just the title.
+    const rows = [
+      { ime: 'ДГ № 7 Детелина', rayon: 'Панчарево' },
+      { ime: 'ДГ № 12 Звънче', rayon: 'Панчарево' },
+    ];
+    const fakeBridge = {
+      search: async () => [{ datasetId: 'd1', score: 1 }],
+      entityDatasets: async () => [],
+      view: (id: string) => ({
+        datasetId: id,
+        title: { bg: 'Детски градини' },
+        publisher: null,
+        sourceUrl: 'https://data.egov.bg/d1',
+        freshness: { isStale: false },
+        resources: [{ resourceId: 'r1', name: 'Списък' }],
+        entities: [],
+      }),
+      rows: () => ({ rows, total: 2 }),
+    } as unknown as ReadBridge;
+
+    // Capturing model: force the RAG fallback (first call errors), then record the prompt the RAG
+    // path builds on the second call before returning an answer.
+    let captured = '';
+    const steps = [errorStep(TOOL_ERR), textStep('Има две детски градини в Панчарево.')];
+    let i = 0;
+    const model = new MockLanguageModelV3({
+      doStream: async (opts) => {
+        captured += JSON.stringify(opts.prompt);
+        const step = steps[i++];
+        if (!step) throw new Error('mock model exhausted');
+        return step;
+      },
+    });
+
+    await runChatTurn({
+      model,
+      bridge: fakeBridge,
+      scope: {},
+      messages: [{ role: 'user', content: 'детски градини в Панчарево' }],
+    });
+    expect(captured).toContain('ДГ № 7 Детелина');
+    expect(captured).toContain('Колони: ime, rayon');
   });
 
   it('rethrows non-tool-choice errors', async () => {

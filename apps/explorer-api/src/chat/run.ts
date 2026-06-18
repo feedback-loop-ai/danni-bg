@@ -29,6 +29,12 @@ export interface ChatTurnResult {
   text: string;
   citations: Citation[];
   anchors: MapAnchor;
+  /**
+   * The grounding context actually injected into the model this turn (focused-dataset rows on the
+   * tool path; the retrieved-candidate rows block on the RAG path). Surfaced for observability /
+   * offline faithfulness evals — emitted to clients only on explicit debug request.
+   */
+  groundingText?: string | undefined;
 }
 
 export interface RunChatTurnOptions {
@@ -48,6 +54,9 @@ export interface RunChatTurnOptions {
 
 const EMPTY_ANCHOR: MapAnchor = { geoEntityIds: [], datasetIds: [] };
 const RAG_LIMIT = 6;
+// How many of the top retrieved candidates to pre-read rows for on the RAG path. Bounded so the
+// per-turn read + prompt size stay reasonable; the rest are still listed by title as an index.
+const RAG_GROUNDING_DATASETS = 3;
 // Always reserve output room so a borderline-large input can't make the provider compute a
 // non-positive output budget (vLLM reports "requested 0 output tokens"). Grounded answers are short.
 const MAX_OUTPUT_TOKENS = 1500;
@@ -75,6 +84,12 @@ const FOCUS_HEADER =
   'ДАННИ (ground truth) — потребителят разглежда следните набори. Отговаряй от тези редове; ако ' +
   'извадката е частична (отбелязано) или търсиш конкретни стойности в дадена колона, извикай ' +
   'readResource с filters (име на колона → подниз), за да получиш точните редове:';
+// RAG-path variant: tools are NOT available here, so the model can't fetch more rows — it must
+// answer from this sample or say there is no data. No readResource hint (it can't call it).
+const RAG_GROUNDING_HEADER =
+  'ДАННИ (ground truth) — извадка от редовете на най-релевантните набори по-долу. Отговаряй САМО ' +
+  'въз основа на тези редове и заглавия; НЕ измисляй стойности (имена, ЕИК, адреси, дати, числа). ' +
+  'Ако извадката не съдържа търсеното, кажи че няма такива данни в портала:';
 
 /**
  * Build a grounded context block for the datasets the user has focused ("ask about this dataset").
@@ -183,6 +198,11 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
   });
 
   let text = '';
+  // Capture the tool results the model actually received — this IS the grounding on the tool path
+  // (the analogue of the focus/RAG row block). Surfaced via groundingText for observability/evals so
+  // a faithfulness check sees exactly what the model saw. Bounded so a big result can't grow unbounded.
+  const toolResults: string[] = [];
+  let toolResultsChars = 0;
   for await (const part of result.fullStream) {
     if (part.type === 'text-delta') {
       text += part.text;
@@ -191,6 +211,14 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
       events?.onTool?.(part.toolName, 'start');
     } else if (part.type === 'tool-result') {
       events?.onTool?.(part.toolName, 'done');
+      if (toolResultsChars < GROUNDING_TOTAL_CHARS) {
+        const line = `Резултат от ${part.toolName}: ${JSON.stringify(part.output ?? null)}`.slice(
+          0,
+          GROUNDING_TOTAL_CHARS - toolResultsChars,
+        );
+        toolResults.push(line);
+        toolResultsChars += line.length;
+      }
     } else if (part.type === 'error') {
       throw part.error instanceof Error ? part.error : new Error(String(part.error));
     }
@@ -203,7 +231,13 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
   const citations = buildCitations([...(focus?.ids ?? []), ...citedDatasetIds], resolve, (v) =>
     inScope(v, scope),
   );
-  return { text, citations, anchors: buildAnchors(citations, resolve) };
+  const groundingText = [focus?.text, ...toolResults].filter(Boolean).join('\n\n') || undefined;
+  return {
+    text,
+    citations,
+    anchors: buildAnchors(citations, resolve),
+    ...(groundingText ? { groundingText } : {}),
+  };
 }
 
 /** Retrieval-augmented fallback: the backend retrieves scoped datasets and feeds them as context. */
@@ -249,15 +283,20 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
         `${i + 1}. ${v.title.bg} (издател: ${v.publisher?.title.bg ?? '—'}; ${v.freshness.isStale ? 'остарели' : 'актуални'} данни)`,
     )
     .join('\n');
-  // For focused datasets, include the actual sampled rows — not just titles — so a "what's in it"
-  // question is answered from data instead of being fabricated.
-  const focus = buildFocusContext(
-    bridge,
-    opts.groundingDatasetIds ?? scope.datasetIds ?? [],
-    resolve,
-  );
+  // Ground the answer in REAL rows, not just titles. The model can't call tools on this path, so we
+  // pre-read a sample of the top retrieved candidates (plus any explicitly focused dataset, which
+  // takes budget priority) and hand it over as ground truth — otherwise the model confabulates
+  // specific values (names, dates, ids) from the titles alone.
+  const explicitFocusIds = opts.groundingDatasetIds ?? scope.datasetIds ?? [];
+  const groundingIds = [
+    ...new Set([
+      ...explicitFocusIds,
+      ...candidates.slice(0, RAG_GROUNDING_DATASETS).map((v) => v.datasetId),
+    ]),
+  ];
+  const grounding = buildFocusContext(bridge, groundingIds, resolve);
   const system = `${SYSTEM_PROMPT}\nОтговаряй само въз основа на данните по-долу. Позовавай се на наборите по заглавие; НЕ показвай технически идентификатори. Не измисляй стойности (имена, ЕИК, числа) — ако данните не ги съдържат, кажи го. Ако никой не е релевантен на въпроса, отговори, че няма релевантни публични данни. Форматирай отговора с Markdown.`;
-  const userMsg = `${focus ? `${FOCUS_HEADER}\n${focus.text}\n\n` : ''}Налични набори от данни:\n${context}\n\nВъпрос: ${query}`;
+  const userMsg = `${grounding ? `${RAG_GROUNDING_HEADER}\n${grounding.text}\n\n` : ''}Налични набори от данни:\n${context}\n\nВъпрос: ${query}`;
 
   const result = streamText({
     model,
@@ -289,5 +328,10 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
     resolve,
     (v) => inScope(v, scope),
   );
-  return { text, citations, anchors: buildAnchors(citations, resolve) };
+  return {
+    text,
+    citations,
+    anchors: buildAnchors(citations, resolve),
+    ...(grounding ? { groundingText: grounding.text } : {}),
+  };
 }
