@@ -9,6 +9,7 @@ import { loadCrosswalk } from '../../../packages/geo-boundaries/src/load.ts';
 import { loadConfig } from '../../../src/config/loader.ts';
 import { buildEmbedder } from '../../../src/index/embedders/factory.ts';
 import { openDb } from '../../../src/store/db.ts';
+import { UsersRepo } from '../../../src/store/repos/users.ts';
 import { type AppContext, type HealthInfo, createApp } from './app.ts';
 import { log } from './logging.ts';
 import { ReadBridge } from './read-bridge.ts';
@@ -40,6 +41,8 @@ export function main(): void {
     }),
     crosswalk: new Crosswalk(loadCrosswalk()),
     health: () => buildHealth(db, slo),
+    users: new UsersRepo(db),
+    kratosPublicUrl: process.env.KRATOS_PUBLIC_URL ?? 'http://localhost:14433',
   };
   const app = createApp(ctx);
   // Serve the built SPA (production); in dev the Vite server proxies /api here instead (T068).

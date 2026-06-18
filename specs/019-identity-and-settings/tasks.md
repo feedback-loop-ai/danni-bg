@@ -29,15 +29,15 @@ description: "Task list for 019-identity-and-settings (phased A→D; in progress
 
 ## Phase B — API auth + users + gate chat + admin CLI — PR 2
 
-- [ ] B001 [US1] `migrations/008_users.sql` (users table per data-model)
-- [ ] B002 [US1] `src/store/repos/users.ts` — `UsersRepo` (findByKratosId, findOrCreateByKratosId, setRole, get)
-- [ ] B003 [US1] `apps/explorer-api/src/middleware/auth.ts` — pure `X-User-*` header reader
-- [ ] B004 [US2] `apps/explorer-api/src/middleware/require-auth.ts` — `requireAuth` (401, find-or-create, `c.set('user')`, last_login_at) + `requireAdmin` (403)
-- [ ] B005 [US1] `apps/explorer-api/src/routes/auth.ts` — `POST /api/auth/callback`, `POST /api/auth/logout`
-- [ ] B006 [US2] `src/cli/admin.ts` + register in `src/cli/danni.ts` — `admin-grant|admin-revoke|admin-list`
-- [ ] B007 [US1] Wire `app.ts` (AppContext.users; gate `/api/chat` + `/api/auth/*` with requireAuth) + `server.ts` (construct UsersRepo)
-- [ ] B008 [US1] Add gated routes to `apps/explorer-api/tests/parity-matrix.json`
-- [ ] B009 [US1] Tests: `users.test.ts` (idempotency, role default, Cyrillic), `auth-middleware.test.ts` (401/200/403, find-or-create), update `app.test.ts` (chat 401 anon; public still anon)
+- [X] B001 [US1] `migrations/008_users.sql` (users table per data-model)
+- [X] B002 [US1] `src/store/repos/users.ts` — `UsersRepo` (findByKratosId, findOrCreateByKratosId, setRole, get)
+- [X] B003 [US1] `apps/explorer-api/src/middleware/auth.ts` — pure `X-User-*` header reader
+- [X] B004 [US2] `apps/explorer-api/src/middleware/require-auth.ts` — `requireAuth` (401, find-or-create, `c.set('user')`, last_login_at) + `requireAdmin` (403)
+- [X] B005 [US1] `apps/explorer-api/src/routes/auth.ts` — `POST /api/auth/callback`, `POST /api/auth/logout`
+- [X] B006 [US2] `src/cli/admin.ts` + register in `src/cli/danni.ts` — `admin-grant|admin-revoke|admin-list`
+- [X] B007 [US1] Wire `app.ts` (AppContext.users; gate `/api/chat` + `/api/auth/*` with requireAuth) + `server.ts` (construct UsersRepo)
+- [X] B008 [US1] Add gated routes to `apps/explorer-api/tests/parity-matrix.json`
+- [X] B009 [US1] Tests: `users.test.ts` (idempotency, role default, Cyrillic), `auth-middleware.test.ts` (401/200/403, find-or-create), update `app.test.ts` (chat 401 anon; public still anon)
 
 **Checkpoint**: anon `POST /api/chat` → 401; with `X-User-*` headers → streams; non-admin → 403 on an admin probe.
 

@@ -13,6 +13,7 @@ import { runIndex } from '../../../src/index/run-index.ts';
 import { openDb } from '../../../src/store/db.ts';
 import { runMigrations } from '../../../src/store/migrate.ts';
 import { DatasetsRepo } from '../../../src/store/repos/datasets.ts';
+import { UsersRepo } from '../../../src/store/repos/users.ts';
 import { type AppContext, createApp } from '../src/app.ts';
 import { ReadBridge } from '../src/read-bridge.ts';
 
@@ -55,6 +56,7 @@ describe('stale degradation on data routes', () => {
         isStale: true,
         defaultProvider: 'configured',
       }),
+      users: new UsersRepo(db),
     };
     app = createApp(ctx);
   });

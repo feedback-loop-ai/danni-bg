@@ -5,8 +5,10 @@
 
 import type { LanguageModel } from 'ai';
 import { Hono } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import type { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
 import { MUNICIPALITIES, OBLASTS } from '../../../src/enrich/gazetteer/bg-admin.ts';
+import type { UsersRepo } from '../../../src/store/repos/users.ts';
 import { capDatasetDetail } from './chat/cap.ts';
 import {
   type ProviderConfig,
@@ -16,9 +18,11 @@ import {
 } from './chat/providers.ts';
 import { SessionStore } from './chat/session.ts';
 import { type DatasetLite, hasGeo, liteToPointer, matchesFiltersLite } from './dataset-lite.ts';
+import { requireAuth } from './middleware/require-auth.ts';
 import type { ReadBridge } from './read-bridge.ts';
 import { viewToPointer } from './read-bridge.ts';
 import { aggregateRegions } from './regions-aggregate.ts';
+import { authRoutes } from './routes/auth.ts';
 import { chatHandler } from './routes/chat.ts';
 import {
   type DatasetPointer,
@@ -48,6 +52,10 @@ export interface AppContext {
   crosswalk: Crosswalk;
   health: () => HealthInfo;
   chat?: ChatConfig;
+  /** App users repo — gates /api/chat + backs /api/auth (spec 019). */
+  users: UsersRepo;
+  /** Kratos public base URL (for the logout flow URL). */
+  kratosPublicUrl?: string;
 }
 
 const LABELS = new Map<string, { labelBg: string; labelEn: string | null }>([
@@ -87,14 +95,22 @@ export function createApp(ctx: AppContext): Hono {
     sessions: new SessionStore(),
     serverDefault: serverDefaultFromEnv(),
   };
+  // Gated chat (spec 019): requireAuth runs before the streaming handler — anon → 401, else the
+  // session's app user is resolved/created and the turn proceeds. The cast bridges the auth-typed
+  // middleware onto the app's default env (it only gates + sets `user`, which chatHandler ignores).
   app.post(
     '/api/chat',
+    requireAuth(ctx.users) as MiddlewareHandler,
     chatHandler({
       bridge: ctx.bridge,
       sessions: chat.sessions,
       selectModel: chat.selectModel ?? ((p) => selectModel(p, chat.serverDefault)),
     }),
   );
+
+  // Backend auth endpoints (find-or-create app user + tier; logout URL). Self-service login/register
+  // are Kratos flows driven by the SPA via the /kratos proxy.
+  app.route('/api/auth', authRoutes(ctx.users, ctx.kratosPublicUrl ?? 'http://localhost:14433'));
 
   app.get('/healthz', (c) => {
     const h = ctx.health();

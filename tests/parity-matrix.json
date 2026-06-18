@@ -82,6 +82,18 @@
     {
       "name": "POST /api/chat",
       "testId": "apps/explorer-api/tests/chat-route.test.ts#streams a grounded answer with citations + anchors from tool results"
+    },
+    {
+      "name": "POST /api/chat (gated: anon → 401)",
+      "testId": "apps/explorer-api/tests/chat-route.test.ts#gates /api/chat: anonymous (no identity headers) → 401"
+    },
+    {
+      "name": "POST /api/auth/callback",
+      "testId": "apps/explorer-api/tests/app.test.ts#POST /api/auth/callback materializes the app user + reports the tier"
+    },
+    {
+      "name": "POST /api/auth/logout",
+      "testId": "apps/explorer-api/tests/app.test.ts#POST /api/auth/logout returns the Kratos logout URL"
     }
   ],
   "explorerChatTools": [
