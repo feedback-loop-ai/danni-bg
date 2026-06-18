@@ -14,6 +14,8 @@ capabilities each have their own spec:
   015 `danni curate --entities-only`
 - 016 entity knowledge graph (`entity_relations`, predicate `part_of`, `GET /api/entities/:id`)
 - 017 trustworthy grounded chat (anti-fabrication grounding, sticky context, auto-focus, value-filter)
+- 018 agentic quality evals (`eval/agentic`, DeepEval; `bun run eval:agentic`) + grounding
+  completeness (RAG row injection) & transparency (opt-in `grounding` SSE event)
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->

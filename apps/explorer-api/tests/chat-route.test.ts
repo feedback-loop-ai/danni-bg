@@ -226,6 +226,22 @@ describe('POST /api/chat', () => {
     ).toEqual(['d1']);
   });
 
+  it('emits a grounding event with the exact injected context when debug is set', async () => {
+    // Opt-in transparency for evals/observability: debug:true surfaces the grounded text the model
+    // was given. Without debug (the test above) no grounding event is emitted — covering both branches.
+    const res = await post(appWith(mockModel([textStep('Ето данните за този набор.')])), {
+      message: 'какво има тук?',
+      groundingDatasetIds: ['d1'],
+      debug: true,
+      provider: { kind: 'openai-compatible', model: 'm', apiKey: 'x' },
+    });
+    const events = parseSSE(await res.text());
+    const grounding = events.find((e) => e.event === 'grounding')?.data as
+      | { text: string }
+      | undefined;
+    expect(grounding?.text).toContain('Качество на въздуха');
+  });
+
   it('replies "no relevant public data" when the model produces no text', async () => {
     const model = mockModel([emptyStep()]);
     const res = await post(appWith(model), {
