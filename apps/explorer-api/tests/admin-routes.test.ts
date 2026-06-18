@@ -1,0 +1,96 @@
+// Admin settings API (spec 019, Phase C) — hermetic via createApp + injected identity headers.
+
+import { Database } from 'bun:sqlite';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
+import { loadCrosswalk } from '../../../packages/geo-boundaries/src/load.ts';
+import { runMigrations } from '../../../src/store/migrate.ts';
+import { PlatformSettingsRepo } from '../../../src/store/repos/platform-settings.ts';
+import { UsersRepo } from '../../../src/store/repos/users.ts';
+import { type AppContext, createApp } from '../src/app.ts';
+import type { ReadBridge } from '../src/read-bridge.ts';
+
+const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
+
+function setup() {
+  const db = new Database(':memory:');
+  runMigrations(db, join(ROOT, 'migrations'));
+  const users = new UsersRepo(db);
+  const settings = new PlatformSettingsRepo(db);
+  const ctx: AppContext = {
+    bridge: {} as ReadBridge,
+    crosswalk: new Crosswalk(loadCrosswalk()),
+    health: () => ({ lastSyncedAt: null, isStale: true, defaultProvider: 'absent' }),
+    users,
+    settings,
+  };
+  return { db, users, settings, app: createApp(ctx) };
+}
+
+const ADMIN = {
+  'content-type': 'application/json',
+  'x-user-id': 'admin-k',
+  'x-user-email': 'admin@example.com',
+  'x-user-verified': 'true',
+};
+const USER = { ...ADMIN, 'x-user-id': 'user-k', 'x-user-email': 'user@example.com' };
+
+describe('GET/PUT /api/admin/settings', () => {
+  let s: ReturnType<typeof setup>;
+  beforeEach(() => {
+    s = setup();
+    s.users.findOrCreateByKratosId({ kratosIdentityId: 'admin-k', email: 'admin@example.com' });
+    s.users.setRoleByEmail('admin@example.com', 'admin');
+  });
+  afterEach(() => s.db.close());
+
+  const get = (h: Record<string, string>) => s.app.request('/api/admin/settings', { headers: h });
+  const put = (h: Record<string, string>, body: unknown) =>
+    s.app.request('/api/admin/settings', { method: 'PUT', headers: h, body: JSON.stringify(body) });
+
+  it('401 for anonymous', async () => {
+    expect((await get({})).status).toBe(401);
+  });
+
+  it('403 for a non-admin user', async () => {
+    expect((await get(USER)).status).toBe(403);
+    expect((await put(USER, { toggles: { chatEnabled: false } })).status).toBe(403);
+  });
+
+  it('PUT persists the LLM provider; GET masks the key and never returns it raw', async () => {
+    await put(ADMIN, {
+      llm: { kind: 'openai-compatible', model: 'm', baseUrl: 'http://x', apiKey: 'sk-secret-7777' },
+    });
+    const res = await get(ADMIN);
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).not.toContain('sk-secret-7777');
+    const body = JSON.parse(text);
+    expect(body.source).toBe('settings');
+    expect(body.llm.model).toBe('m');
+    expect(body.llm.apiKeyMasked).toBe(true);
+    expect(body.llm.apiKeyHint).toBe('••••7777');
+  });
+
+  it('PUT with an omitted key keeps the existing secret while updating other fields', async () => {
+    await put(ADMIN, {
+      llm: { kind: 'openai-compatible', model: 'm', baseUrl: 'http://x', apiKey: 'sk-keep-1234' },
+    });
+    await put(ADMIN, { llm: { kind: 'openai-compatible', model: 'm2', baseUrl: 'http://y' } });
+    const stored = s.settings.get('llm.default') as { apiKey: string; model: string };
+    expect(stored.apiKey).toBe('sk-keep-1234');
+    expect(stored.model).toBe('m2');
+  });
+
+  it('PUT toggles round-trips', async () => {
+    await put(ADMIN, { toggles: { chatEnabled: false, freshnessSloSeconds: 3600 } });
+    const body = (await (await get(ADMIN)).json()) as { toggles: unknown };
+    expect(body.toggles).toEqual({ chatEnabled: false, freshnessSloSeconds: 3600 });
+  });
+
+  it('PUT rejects an invalid body with 400', async () => {
+    expect((await put(ADMIN, { llm: { kind: 'bogus', model: 'm' } })).status).toBe(400);
+  });
+});

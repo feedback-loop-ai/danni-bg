@@ -45,14 +45,14 @@ description: "Task list for 019-identity-and-settings (phased A→D; in progress
 
 ## Phase C — platform_settings + admin API + chat reads settings — PR 3
 
-- [ ] C001 [US3] `migrations/009_platform_settings.sql`
-- [ ] C002 [US3] `src/store/repos/platform-settings.ts` (get/set/all; Zod-validate value_json on load)
-- [ ] C003 [US3] `apps/explorer-api/src/admin/settings-schema.ts` (LLM + toggles; `maskApiKey`, `mergeSecret`)
-- [ ] C004 [US3] `apps/explorer-api/src/admin/resolve-default.ts` (`resolveServerDefault`: DB→env→null)
-- [ ] C005 [US3] `apps/explorer-api/src/routes/admin.ts` — `GET`(masked)/`PUT` `/api/admin/settings` under requireAdmin
-- [ ] C006 [US3] `app.ts` per-request serverDefault from settings; mount admin; `server.ts` seed `llm.default` from env on first run; health reflects resolved provider
-- [ ] C007 [US3] Add admin routes to parity-matrix
-- [ ] C008 [US3] Tests: platform-settings, resolve-default (DB/env/none), settings-schema (mask/merge), admin-routes (mask + 403/401, PUT no-raw-key, toggle), chat-uses-DB-default-after-PUT
+- [X] C001 [US3] `migrations/009_platform_settings.sql`
+- [X] C002 [US3] `src/store/repos/platform-settings.ts` (get/set/all; Zod-validate value_json on load)
+- [X] C003 [US3] `apps/explorer-api/src/admin/settings-schema.ts` (LLM + toggles; `maskApiKey`, `mergeSecret`)
+- [X] C004 [US3] `apps/explorer-api/src/admin/resolve-default.ts` (`resolveServerDefault`: DB→env→null)
+- [X] C005 [US3] `apps/explorer-api/src/routes/admin.ts` — `GET`(masked)/`PUT` `/api/admin/settings` under requireAdmin
+- [X] C006 [US3] `app.ts` per-request serverDefault from settings; mount admin; `server.ts` seed `llm.default` from env on first run; health reflects resolved provider
+- [X] C007 [US3] Add admin routes to parity-matrix
+- [X] C008 [US3] Tests: platform-settings, resolve-default (DB/env/none), settings-schema (mask/merge), admin-routes (mask + 403/401, PUT no-raw-key, toggle), chat-uses-DB-default-after-PUT
 
 **Checkpoint**: admin PUT new provider → next chat uses it (no restart); GET masks the key.
 

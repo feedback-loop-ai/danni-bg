@@ -94,6 +94,14 @@
     {
       "name": "POST /api/auth/logout",
       "testId": "apps/explorer-api/tests/app.test.ts#POST /api/auth/logout returns the Kratos logout URL"
+    },
+    {
+      "name": "GET /api/admin/settings",
+      "testId": "apps/explorer-api/tests/admin-routes.test.ts#PUT persists the LLM provider; GET masks the key and never returns it raw"
+    },
+    {
+      "name": "PUT /api/admin/settings",
+      "testId": "apps/explorer-api/tests/admin-routes.test.ts#PUT with an omitted key keeps the existing secret while updating other fields"
     }
   ],
   "explorerChatTools": [
