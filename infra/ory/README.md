@@ -1,11 +1,18 @@
 # Ory identity stack (danni-bg)
 
-Local Kratos + Oathkeeper stack backing identity management + tiered users (spec
+Local Ory identity stack backing identity management + tiered users (spec
 `specs/019-identity-and-settings/`). Kratos owns identities in its own Postgres; the
-danni app keeps its data in SQLite. Oathkeeper fronts the **gated** API routes
-(`/api/{chat,admin,auth}`), validates the Kratos session, and injects `X-User-*`
-headers the Hono backend trusts. Public routes (`/api/datasets`, `/api/regions`, …)
-bypass Oathkeeper and hit Hono directly.
+danni app keeps its data in SQLite.
+
+**Single-port mode (default).** The Hono backend is self-contained: it serves the API +
+SPA, **reverse-proxies `/kratos/*` to Kratos** on the same origin, and **validates the
+Kratos session itself** (`/sessions/whoami`) for the gated routes (`/api/{chat,admin,auth}`).
+So `http://localhost:8790` is a complete, standalone entry point and **Oathkeeper is
+optional** — you only need Kratos (+ its Postgres + mailslurper).
+
+**Oathkeeper (optional).** If you front the stack with Oathkeeper, it validates the
+session and injects `X-User-*` headers, which the backend trusts in preference to its own
+whoami call. The compose file still includes it for that deployment style.
 
 ## Components & ports (14xxx/15xxx band — avoids the looper stack's 34xxx)
 
@@ -21,13 +28,14 @@ bypass Oathkeeper and hit Hono directly.
 ## Run (dev)
 
 ```bash
-docker compose up -d          # from repo root
-bun run explorer:api          # Hono backend on :8790 (host)
-cd apps/explorer-web && vite  # SPA on :5173 — the browser entry point
+docker compose up -d                          # Kratos (+ Postgres + mailslurper); Oathkeeper optional
+bun run explorer:api                          # Hono backend on :8790 — serves API + SPA + /kratos proxy
+# either open http://localhost:8790 directly (built SPA), OR for HMR:
+cd apps/explorer-web && bunx vite --port 5173 # → http://localhost:5173
 ```
 
-The Vite dev server proxies: `/kratos/*` → Kratos public (first-party cookies/CSRF);
-`/api/{chat,admin,auth}/*` → Oathkeeper (14455); public `/api/*` + `/healthz` → Hono (8790).
+Hono on `:8790` is a complete entry point (proxies `/kratos`, self-validates sessions). The Vite
+dev server just proxies everything (`/api`, `/kratos`, `/healthz`) → `:8790` for hot-reload.
 
 ## Verify
 

@@ -6,11 +6,16 @@
 
 import { Hono } from 'hono';
 import type { UsersRepo } from '../../../../src/store/repos/users.ts';
+import type { SessionResolver } from '../auth/kratos-session.ts';
 import { type AuthEnv, requireAuth } from '../middleware/require-auth.ts';
 
-export function authRoutes(users: UsersRepo, kratosPublicUrl: string): Hono<AuthEnv> {
+export function authRoutes(
+  users: UsersRepo,
+  kratosPublicUrl: string,
+  resolveSession?: SessionResolver,
+): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
-  app.use('*', requireAuth(users));
+  app.use('*', requireAuth(users, resolveSession));
 
   app.post('/callback', (c) => {
     const u = c.get('user');

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { Hono } from 'hono';
 import { runMigrations } from '../../../src/store/migrate.ts';
 import { UsersRepo } from '../../../src/store/repos/users.ts';
+import type { SessionResolver } from '../src/auth/kratos-session.ts';
 import { type AuthEnv, requireAdmin, requireAuth } from '../src/middleware/require-auth.ts';
 
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
@@ -77,5 +78,51 @@ describe('requireAuth / requireAdmin', () => {
     });
     expect(res.status).toBe(200);
     expect(s.users.findByEmail('boss@example.com')?.role).toBe('admin');
+  });
+});
+
+describe('requireAuth session-resolver fallback (single-port, no Oathkeeper)', () => {
+  function appWith(resolver?: SessionResolver) {
+    const db = new Database(':memory:');
+    runMigrations(db, join(ROOT, 'migrations'));
+    const users = new UsersRepo(db);
+    const app = new Hono<AuthEnv>();
+    app.use('/me', requireAuth(users, resolver));
+    app.get('/me', (c) => c.json(c.get('user')));
+    return { db, users, app };
+  }
+
+  it('resolves the session from the cookie when no X-User-* headers are present', async () => {
+    const resolver: SessionResolver = async (cookie) =>
+      cookie === 'ory_kratos_session=ok'
+        ? { userId: 'k9', email: 'cookie@example.com', verified: true }
+        : null;
+    const { db, users, app } = appWith(resolver);
+    const res = await app.request('/me', { headers: { cookie: 'ory_kratos_session=ok' } });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { email: string }).email).toBe('cookie@example.com');
+    expect(users.findByKratosId('k9')?.role).toBe('user');
+    db.close();
+  });
+
+  it('401s when neither headers nor the resolver yield an identity', async () => {
+    const { db, app } = appWith(async () => null);
+    expect((await app.request('/me')).status).toBe(401);
+    db.close();
+  });
+
+  it('prefers Oathkeeper headers over the resolver (resolver not called)', async () => {
+    let called = false;
+    const resolver: SessionResolver = async () => {
+      called = true;
+      return null;
+    };
+    const { db, app } = appWith(resolver);
+    const res = await app.request('/me', {
+      headers: { 'x-user-id': 'kh', 'x-user-email': 'hdr@example.com', 'x-user-verified': 'true' },
+    });
+    expect(res.status).toBe(200);
+    expect(called).toBe(false);
+    db.close();
   });
 });

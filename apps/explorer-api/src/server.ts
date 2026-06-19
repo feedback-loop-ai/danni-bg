@@ -14,6 +14,7 @@ import { UsersRepo } from '../../../src/store/repos/users.ts';
 import { resolveServerDefault } from './admin/resolve-default.ts';
 import { LLM_SETTING_KEY } from './admin/settings-schema.ts';
 import { type AppContext, type HealthInfo, createApp } from './app.ts';
+import { kratosProxy, kratosSessionResolver } from './auth/kratos-session.ts';
 import { serverDefaultFromEnv } from './chat/providers.ts';
 import { log } from './logging.ts';
 import { ReadBridge } from './read-bridge.ts';
@@ -57,6 +58,7 @@ export function main(): void {
   const slo = config.store.freshnessSloSeconds;
   const settings = new PlatformSettingsRepo(db);
   seedSettings(settings);
+  const kratosUrl = process.env.KRATOS_PUBLIC_URL ?? 'http://localhost:14433';
   const ctx: AppContext = {
     bridge: new ReadBridge({
       db,
@@ -68,10 +70,16 @@ export function main(): void {
     health: () => buildHealth(db, slo, settings),
     users: new UsersRepo(db),
     settings,
-    kratosPublicUrl: process.env.KRATOS_PUBLIC_URL ?? 'http://localhost:14433',
+    kratosPublicUrl: kratosUrl,
+    // Single-port mode: validate the Kratos session ourselves so the app works without Oathkeeper
+    // in front (Oathkeeper's X-User-* headers still take precedence when present).
+    sessionResolver: kratosSessionResolver(kratosUrl),
   };
   const app = createApp(ctx);
-  // Serve the built SPA (production); in dev the Vite server proxies /api here instead (T068).
+  // Reverse-proxy Kratos on the same origin so the SPA's self-service flows + whoami work without a
+  // separate proxy (first-party cookies/CSRF). Registered before the SPA catch-all.
+  app.all('/kratos/*', kratosProxy(kratosUrl));
+  // Serve the built SPA (production) / dev (Vite proxies here). SPA fallback for client routes.
   app.use('/*', serveStatic({ root: SPA_ROOT }));
   app.get('*', serveStatic({ path: `${SPA_ROOT}/index.html` }));
   const port = Number.parseInt(process.env.EXPLORER_API_PORT ?? '8790', 10);

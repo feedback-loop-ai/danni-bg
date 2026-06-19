@@ -5,6 +5,7 @@
 
 import type { MiddlewareHandler } from 'hono';
 import type { UserRow, UsersRepo } from '../../../../src/store/repos/users.ts';
+import type { SessionResolver } from '../auth/kratos-session.ts';
 import { readAuth } from './auth.ts';
 
 /** Hono environment for routes behind the auth guards: the resolved app user is on the context. */
@@ -20,17 +21,30 @@ function isBootstrapAdmin(email: string): boolean {
   return list.includes(email.toLowerCase());
 }
 
-export function requireAuth(users: UsersRepo): MiddlewareHandler<AuthEnv> {
+/**
+ * Resolve the request identity from Oathkeeper's injected X-User-* headers (when fronted by
+ * Oathkeeper) OR, when those are absent and a `resolveSession` is configured, by validating the
+ * Kratos session cookie directly (single-port mode — no Oathkeeper needed). 401 if neither yields one.
+ */
+export function requireAuth(
+  users: UsersRepo,
+  resolveSession?: SessionResolver,
+): MiddlewareHandler<AuthEnv> {
   return async (c, next) => {
-    const auth = readAuth(c);
-    if (!auth.isAuthenticated || !auth.userId || !auth.email) {
+    const header = readAuth(c);
+    let identity: { userId: string; email: string; verified: boolean } | null =
+      header.isAuthenticated && header.userId && header.email
+        ? { userId: header.userId, email: header.email, verified: header.verified }
+        : null;
+    if (!identity && resolveSession) identity = await resolveSession(c.req.header('cookie'));
+    if (!identity) {
       return c.json({ error: { code: 'unauthorized', message: 'authentication required' } }, 401);
     }
-    const createRole = isBootstrapAdmin(auth.email) ? 'admin' : 'user';
+    const createRole = isBootstrapAdmin(identity.email) ? 'admin' : 'user';
     const user = users.findOrCreateByKratosId({
-      kratosIdentityId: auth.userId,
-      email: auth.email,
-      emailVerified: auth.verified,
+      kratosIdentityId: identity.userId,
+      email: identity.email,
+      emailVerified: identity.verified,
       createRole,
     });
     c.set('user', user);
