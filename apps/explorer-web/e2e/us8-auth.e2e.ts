@@ -2,7 +2,7 @@
 // Kratos login form renders. Auth is stubbed (whoami + callback); no live Ory stack.
 
 import { expect, test } from '@playwright/test';
-import { stubApi, stubAuth, stubLoginFlow, stubLogout } from './fixtures.ts';
+import { stubApi, stubAuth, stubLoginFlow, stubLogout, stubRecovery } from './fixtures.ts';
 
 test('anonymous visitor can browse but the chat input is replaced by a sign-in prompt', async ({
   page,
@@ -40,6 +40,18 @@ test('a signed-in user sees the chat input and their email in the header', async
   await expect(page.getByText('user@example.com')).toBeVisible();
   // A normal user has no admin settings link.
   await expect(page.getByRole('link', { name: 'Настройки' })).toHaveCount(0);
+});
+
+test('recovery advances to the code-entry step after submitting an email', async ({ page }) => {
+  await stubApi(page);
+  await stubAuth(page); // anonymous
+  await stubRecovery(page);
+  await page.goto('/auth/recovery');
+  await page.fill('input[name="email"]', 'forgot@example.com');
+  await page.locator('button[name="method"][value="code"]').first().click();
+  // The multi-step flow re-renders in place with the emailed-code input (not navigating away).
+  await expect(page.locator('input[name="code"]')).toBeVisible();
+  await expect(page.getByText('A recovery code has been sent')).toBeVisible();
 });
 
 test('logout runs the Kratos logout flow (same-origin)', async ({ page }) => {
