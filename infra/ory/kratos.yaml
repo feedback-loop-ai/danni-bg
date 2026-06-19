@@ -48,6 +48,17 @@ selfservice:
       enabled: true
       config:
         lifespan: 1h
+    passkey:
+      enabled: true
+      config:
+        rp:
+          display_name: danni.bg
+          # Relying-party ID = the registrable domain (no scheme/port). `origins` lists the full
+          # origins where the WebAuthn ceremony runs — the single-port app, plus the optional Vite dev.
+          id: localhost
+          origins:
+            - http://localhost:8790
+            - http://localhost:5173
 
   flows:
     error:
@@ -84,6 +95,9 @@ selfservice:
         default_browser_return_url: http://localhost:8790/auth/callback
 
     registration:
+      # Keep the single-screen form (traits + password + passkey together) rather than v26's
+      # profile-first multi-screen flow, so the existing one-step registration UI keeps working.
+      enable_legacy_one_step: true
       ui_url: http://localhost:8790/auth/register
       lifespan: 10m
       after:

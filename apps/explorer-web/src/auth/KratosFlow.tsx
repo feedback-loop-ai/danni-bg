@@ -7,6 +7,7 @@ import type {
   UiContainer,
   UiNode,
   UiNodeInputAttributes,
+  UiNodeScriptAttributes,
   UpdateLoginFlowBody,
   UpdateRecoveryFlowBody,
   UpdateRegistrationFlowBody,
@@ -15,6 +16,7 @@ import type {
 } from '@ory/client';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Card } from '../components/ui/card.tsx';
 import { type FlowKind, flowMessages, kratos } from '../lib/kratos.ts';
 import { useAuth } from './AuthContext.tsx';
 
@@ -86,15 +88,91 @@ async function submitFlow(
 }
 
 const INPUT_CLASS =
-  'w-full rounded border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring';
+  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40';
+const PRIMARY_BTN =
+  'w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50';
+const PASSKEY_BTN =
+  'flex w-full items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground disabled:opacity-50';
 
-function NodeField({ node }: { node: UiNode }) {
+// Kratos labels its nodes in English; translate the ones we render to Bulgarian.
+const FIELD_LABELS: Record<string, string> = {
+  identifier: 'Имейл',
+  'traits.email': 'Имейл',
+  email: 'Имейл',
+  'traits.name.first': 'Име',
+  'traits.name.last': 'Фамилия',
+  password: 'Парола',
+  code: 'Код',
+};
+
+function buttonLabel(name: string, value: string, kind: FlowKind, fallback?: string): string {
+  if (name === 'passkey_login_trigger') return 'Вход с passkey';
+  if (name === 'passkey_register_trigger') return 'Регистрация с passkey';
+  if (name === 'method' && value === 'password')
+    return kind === 'registration' ? 'Регистрация' : 'Вход';
+  if (name === 'method' && value === 'profile') return 'Запази';
+  if (name === 'method' && value === 'link') return 'Изпрати връзка за възстановяване';
+  if (name === 'method' && value === 'code') return 'Потвърди';
+  return fallback ?? 'Изпрати';
+}
+
+function PasskeyIcon() {
+  // lucide "key-round"
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" />
+      <circle cx="16.5" cy="7.5" r=".5" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Stable React key for a node — its input name or script id is unique within a flow. */
+function nodeKey(node: UiNode): string {
+  const a = node.attributes as { name?: string; id?: string };
+  return a.name ?? a.id ?? node.group;
+}
+
+function NodeField({ node, kind }: { node: UiNode; kind: FlowKind }) {
   if (node.type !== 'input') return null;
-  const a = node.attributes as UiNodeInputAttributes;
-  const label = node.meta?.label?.text;
+  const a = node.attributes as UiNodeInputAttributes & { onclickTrigger?: string };
   const value = a.value === undefined || a.value === null ? '' : String(a.value);
 
   if (a.type === 'hidden') return <input type="hidden" name={a.name} defaultValue={value} />;
+
+  // Passkey trigger: the WebAuthn ceremony lives in Kratos's injected webauthn.js, exposed as a
+  // global named by `onclickTrigger` (e.g. `oryPasskeyLogin`). Calling it reads the challenge,
+  // prompts the authenticator, writes the credential into the hidden field, and natively submits
+  // the form — so the <form> below carries an `action`/`method` for that submit to reach Kratos.
+  if (a.type === 'button' && a.onclickTrigger) {
+    return (
+      <button
+        type="button"
+        disabled={a.disabled}
+        className={PASSKEY_BTN}
+        onClick={() => {
+          const fn = (window as unknown as Record<string, undefined | (() => void)>)[
+            a.onclickTrigger as string
+          ];
+          fn?.();
+        }}
+      >
+        <PasskeyIcon />
+        {buttonLabel(a.name, value, kind, node.meta?.label?.text)}
+      </button>
+    );
+  }
+
   if (a.type === 'submit' || a.type === 'button') {
     return (
       <button
@@ -102,15 +180,17 @@ function NodeField({ node }: { node: UiNode }) {
         name={a.name}
         value={value}
         disabled={a.disabled}
-        className="w-full rounded bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        className={PRIMARY_BTN}
       >
-        {label ?? 'Изпрати'}
+        {buttonLabel(a.name, value, kind, node.meta?.label?.text)}
       </button>
     );
   }
+
+  const label = FIELD_LABELS[a.name] ?? node.meta?.label?.text;
   return (
-    <label className="block space-y-1">
-      {label ? <span className="text-sm text-muted-foreground">{label}</span> : null}
+    <label className="block space-y-1.5">
+      {label ? <span className="text-sm font-medium">{label}</span> : null}
       <input
         className={INPUT_CLASS}
         name={a.name}
@@ -138,6 +218,13 @@ const ALT_LINKS: Record<FlowKind, { to: string; label: string }[]> = {
   recovery: [{ to: '/auth/login', label: 'Назад към вход' }],
   verification: [{ to: '/', label: 'Към началото' }],
   settings: [{ to: '/', label: 'Към началото' }],
+};
+
+const SUBTITLES: Partial<Record<FlowKind, string>> = {
+  login: 'Влезте в профила си',
+  registration: 'Създайте нов профил',
+  recovery: 'Ще ви изпратим връзка за смяна на паролата',
+  verification: 'Потвърдете имейл адреса си',
 };
 
 export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
@@ -169,6 +256,31 @@ export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
       active = false;
     };
   }, [kind, flowId]);
+
+  // Inject Kratos's script nodes (the WebAuthn helper that defines the window.oryPasskey* globals).
+  useEffect(() => {
+    if (!flow) return;
+    const added: HTMLScriptElement[] = [];
+    for (const node of flow.ui.nodes) {
+      if (node.type !== 'script') continue;
+      const a = node.attributes as UiNodeScriptAttributes;
+      if (document.getElementById(a.id)) continue;
+      const s = document.createElement('script');
+      s.src = a.src;
+      s.id = a.id;
+      s.async = true;
+      s.type = a.type;
+      if (a.crossorigin) s.crossOrigin = a.crossorigin;
+      if (a.integrity) s.integrity = a.integrity;
+      if (a.referrerpolicy) s.referrerPolicy = a.referrerpolicy;
+      if (a.nonce) s.nonce = a.nonce;
+      document.body.appendChild(s);
+      added.push(s);
+    }
+    return () => {
+      for (const s of added) s.remove();
+    };
+  }, [flow]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -226,39 +338,73 @@ export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
     }
   }
 
+  // The settings flow ("Смяна на парола") carries both a `profile` and a `password` method group,
+  // each with its own submit — rendering both gives two Save buttons. This page only changes the
+  // password, so keep the `password` group (+ the `default` csrf).
+  const visibleNodes =
+    flow?.ui.nodes.filter(
+      (node) => kind !== 'settings' || node.group === 'password' || node.group === 'default',
+    ) ?? [];
+  // Passkey is the alternative method: render the full primary form (email + password + submit)
+  // first, then an "или" divider, then the passkey button — instead of Kratos's source order,
+  // which interleaves the shared email field, the passkey button, and the password field.
+  const isPasskey = (g?: string) => g === 'passkey' || g === 'webauthn';
+  const primaryNodes = visibleNodes.filter((n) => !isPasskey(n.group));
+  const passkeyNodes = visibleNodes.filter((n) => isPasskey(n.group));
+  const hasPasskeyButton = passkeyNodes.some(
+    (n) => n.type === 'input' && (n.attributes as UiNodeInputAttributes).type === 'button',
+  );
+
   return (
-    <div className="mx-auto mt-16 w-full max-w-sm space-y-4 px-4">
-      <h1 className="text-xl font-semibold">{title}</h1>
-      {fatal ? <p className="text-sm text-destructive">{fatal}</p> : null}
-      {flow ? (
-        <form onSubmit={onSubmit} className="space-y-3">
-          {flowMessages(flow.ui).map((m) => (
-            <p key={m} className="text-sm text-muted-foreground">
-              {m}
-            </p>
-          ))}
-          {flow.ui.nodes
-            // The settings flow ("Смяна на парола") carries both a `profile` and a `password`
-            // method group, each with its own submit — rendering both gives two Save buttons. This
-            // page only changes the password, so keep the `password` group (+ the `default` csrf).
-            .filter(
-              (node) =>
-                kind !== 'settings' || node.group === 'password' || node.group === 'default',
-            )
-            .map((node, i) => (
-              <NodeField key={`${node.group}-${i}`} node={node} />
+    <div className="flex min-h-[80vh] items-center justify-center px-4 py-12">
+      <Card className="w-full max-w-sm space-y-6 p-8">
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+          {SUBTITLES[kind] ? (
+            <p className="text-sm text-muted-foreground">{SUBTITLES[kind]}</p>
+          ) : null}
+        </div>
+        {fatal ? <p className="text-sm text-destructive">{fatal}</p> : null}
+        {flow ? (
+          // `action`/`method` mirror the Kratos flow so the passkey button's native form submit
+          // (triggered from webauthn.js) posts to Kratos; password & co. still go via the SDK below.
+          // Hidden inputs render as display:none, so they add no gaps to the space-y rhythm.
+          <form
+            onSubmit={onSubmit}
+            action={flow.ui.action}
+            method={flow.ui.method?.toLowerCase()}
+            className="space-y-4"
+          >
+            {flowMessages(flow.ui).map((m) => (
+              <p key={m} className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                {m}
+              </p>
             ))}
-        </form>
-      ) : (
-        !fatal && <p className="text-sm text-muted-foreground">Зареждане…</p>
-      )}
-      <div className="flex gap-4 text-sm">
-        {ALT_LINKS[kind].map((l) => (
-          <Link key={l.to} to={l.to} className="text-primary hover:underline">
-            {l.label}
-          </Link>
-        ))}
-      </div>
+            {primaryNodes.map((node) => (
+              <NodeField key={nodeKey(node)} node={node} kind={kind} />
+            ))}
+            {hasPasskeyButton ? (
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                или
+                <span className="h-px flex-1 bg-border" />
+              </div>
+            ) : null}
+            {passkeyNodes.map((node) => (
+              <NodeField key={nodeKey(node)} node={node} kind={kind} />
+            ))}
+          </form>
+        ) : (
+          !fatal && <p className="text-sm text-muted-foreground">Зареждане…</p>
+        )}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          {ALT_LINKS[kind].map((l) => (
+            <Link key={l.to} to={l.to} className="text-primary hover:underline">
+              {l.label}
+            </Link>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
