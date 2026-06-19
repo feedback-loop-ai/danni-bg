@@ -18,6 +18,13 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '../components/ui/card.tsx';
 import { type FlowKind, flowMessages, kratos } from '../lib/kratos.ts';
+import {
+  type Theme,
+  applyResolvedTheme,
+  loadTheme,
+  resolveTheme,
+  saveTheme,
+} from '../lib/theme.ts';
 import { useAuth } from './AuthContext.tsx';
 
 interface Flow {
@@ -107,9 +114,11 @@ const FIELD_LABELS: Record<string, string> = {
 
 function buttonLabel(name: string, value: string, kind: FlowKind, fallback?: string): string {
   if (name === 'passkey_login_trigger') return 'Вход с passkey';
-  if (name === 'passkey_register_trigger') return 'Регистрация с passkey';
+  if (name === 'passkey_register_trigger')
+    return kind === 'settings' ? 'Добави passkey' : 'Регистрация с passkey';
+  if (name === 'passkey_remove') return 'Премахни';
   if (name === 'method' && value === 'password')
-    return kind === 'registration' ? 'Регистрация' : 'Вход';
+    return kind === 'registration' ? 'Регистрация' : kind === 'settings' ? 'Запази' : 'Вход';
   if (name === 'method' && value === 'profile') return 'Запази';
   if (name === 'method' && value === 'link') return 'Изпрати връзка за възстановяване';
   if (name === 'method' && value === 'code') return 'Потвърди';
@@ -173,6 +182,21 @@ function NodeField({ node, kind }: { node: UiNode; kind: FlowKind }) {
     );
   }
 
+  // Remove a registered passkey: a small destructive button, not the full-width primary.
+  if ((a.type === 'submit' || a.type === 'button') && a.name === 'passkey_remove') {
+    return (
+      <button
+        type="submit"
+        name={a.name}
+        value={value}
+        disabled={a.disabled}
+        className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-destructive transition hover:bg-destructive/10"
+      >
+        {buttonLabel(a.name, value, kind, node.meta?.label?.text)}
+      </button>
+    );
+  }
+
   if (a.type === 'submit' || a.type === 'button') {
     return (
       <button
@@ -226,6 +250,58 @@ const SUBTITLES: Partial<Record<FlowKind, string>> = {
   recovery: 'Ще ви изпратим връзка за смяна на паролата',
   verification: 'Потвърдете имейл адреса си',
 };
+
+// Settings page (`kind === 'settings'`) renders each Kratos method group as its own labelled
+// section/form, so each submits independently (no cross-section required-field interference).
+const SETTINGS_SECTIONS: { group: string; title: string; subtitle?: string }[] = [
+  { group: 'profile', title: 'Профил', subtitle: 'Име и имейл' },
+  { group: 'password', title: 'Парола', subtitle: 'Смяна на паролата' },
+  { group: 'passkey', title: 'Passkeys', subtitle: 'Вход без парола чрез биометрия или ключ' },
+];
+
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'light', label: 'Светъл' },
+  { value: 'dark', label: 'Тъмен' },
+  { value: 'system', label: 'Системен' },
+];
+
+// Appearance is a purely client-side preference (localStorage + a `.dark` class on <html>), shared
+// with the header ThemeToggle via lib/theme.ts — it is not part of the Kratos flow.
+function AppearanceSection() {
+  const [theme, setTheme] = useState<Theme>(() => loadTheme(localStorage));
+  function choose(next: Theme) {
+    setTheme(next);
+    saveTheme(localStorage, next);
+    applyResolvedTheme(
+      document.documentElement,
+      resolveTheme(next, window.matchMedia('(prefers-color-scheme: dark)').matches),
+    );
+  }
+  return (
+    <section className="space-y-3 rounded-lg border border-border p-4">
+      <div>
+        <h2 className="text-sm font-semibold">Облик</h2>
+        <p className="text-xs text-muted-foreground">Тема на приложението</p>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {THEME_OPTIONS.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => choose(o.value)}
+            className={
+              theme === o.value
+                ? 'rounded-md border border-primary bg-primary/10 px-3 py-2 text-sm font-medium text-primary'
+                : 'rounded-md border border-border px-3 py-2 text-sm transition hover:bg-accent'
+            }
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
   const [params] = useSearchParams();
@@ -295,10 +371,17 @@ export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
     });
     try {
       const out = await submitFlow(kind, flow.id, body);
-      if (kind === 'login' || kind === 'registration' || kind === 'settings') {
-        // Terminal: a session now exists (or the password was changed). Go home.
+      if (kind === 'login' || kind === 'registration') {
+        // Terminal: a session now exists. Go home.
         await refresh();
         navigate('/', { replace: true });
+        return;
+      }
+      if (kind === 'settings') {
+        // Stay on the settings page; re-render with Kratos's "saved" message (refresh in case the
+        // email/verified state changed).
+        await refresh();
+        if (out?.ui) setFlow(out as Flow);
         return;
       }
       // A valid recovery code hands off to the settings (new-password) flow. Kratos signals this
@@ -338,19 +421,78 @@ export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
     }
   }
 
-  // The settings flow ("Смяна на парола") carries both a `profile` and a `password` method group,
-  // each with its own submit — rendering both gives two Save buttons. This page only changes the
-  // password, so keep the `password` group (+ the `default` csrf).
-  const visibleNodes =
-    flow?.ui.nodes.filter(
-      (node) => kind !== 'settings' || node.group === 'password' || node.group === 'default',
-    ) ?? [];
-  // Passkey is the alternative method: render the full primary form (email + password + submit)
-  // first, then an "или" divider, then the passkey button — instead of Kratos's source order,
-  // which interleaves the shared email field, the passkey button, and the password field.
+  // Settings is a full account page: Appearance (client-side) + one labelled form per Kratos method
+  // group (Профил / Парола / Passkeys), each submitting independently.
+  if (kind === 'settings') {
+    const csrfNode = flow?.ui.nodes.find(
+      (n) => n.group === 'default' && (n.attributes as UiNodeInputAttributes).name === 'csrf_token',
+    );
+    return (
+      <div className="flex min-h-[80vh] items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-md space-y-6 p-8">
+          <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+          {fatal ? <p className="text-sm text-destructive">{fatal}</p> : null}
+          <AppearanceSection />
+          {flow ? (
+            <>
+              {flowMessages(flow.ui).map((m) => (
+                <p key={m} className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                  {m}
+                </p>
+              ))}
+              {SETTINGS_SECTIONS.map((sec) => {
+                const secNodes = flow.ui.nodes.filter((n) => n.group === sec.group);
+                if (secNodes.length === 0) return null;
+                return (
+                  <section
+                    key={sec.group}
+                    className="space-y-3 rounded-lg border border-border p-4"
+                  >
+                    <div>
+                      <h2 className="text-sm font-semibold">{sec.title}</h2>
+                      {sec.subtitle ? (
+                        <p className="text-xs text-muted-foreground">{sec.subtitle}</p>
+                      ) : null}
+                    </div>
+                    {/* One form per section so each method submits on its own. `action` lets the
+                        passkey "Add" button submit natively (via webauthn.js). */}
+                    <form
+                      onSubmit={onSubmit}
+                      action={flow.ui.action}
+                      method={flow.ui.method?.toLowerCase()}
+                      className="space-y-3"
+                    >
+                      {csrfNode ? <NodeField node={csrfNode} kind={kind} /> : null}
+                      {secNodes.map((n) => (
+                        <NodeField key={nodeKey(n)} node={n} kind={kind} />
+                      ))}
+                    </form>
+                  </section>
+                );
+              })}
+            </>
+          ) : (
+            !fatal && <p className="text-sm text-muted-foreground">Зареждане…</p>
+          )}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            {ALT_LINKS.settings.map((l) => (
+              <Link key={l.to} to={l.to} className="text-primary hover:underline">
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // login / registration / recovery / verification — a single credential form. Passkey is the
+  // alternative method: render the full primary form (email + password + submit) first, then an
+  // "или" divider, then the passkey button — instead of Kratos's source order, which interleaves
+  // the shared email field, the passkey button, and the password field.
   const isPasskey = (g?: string) => g === 'passkey' || g === 'webauthn';
-  const primaryNodes = visibleNodes.filter((n) => !isPasskey(n.group));
-  const passkeyNodes = visibleNodes.filter((n) => isPasskey(n.group));
+  const primaryNodes = flow?.ui.nodes.filter((n) => !isPasskey(n.group)) ?? [];
+  const passkeyNodes = flow?.ui.nodes.filter((n) => isPasskey(n.group)) ?? [];
   const hasPasskeyButton = passkeyNodes.some(
     (n) => n.type === 'input' && (n.attributes as UiNodeInputAttributes).type === 'button',
   );

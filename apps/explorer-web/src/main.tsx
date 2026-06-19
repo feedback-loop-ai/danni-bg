@@ -39,7 +39,7 @@ if (root) {
             />
             <Route
               path="/auth/settings"
-              element={<KratosFlow kind="settings" title="Смяна на парола" />}
+              element={<KratosFlow kind="settings" title="Настройки" />}
             />
             <Route path="/auth/callback" element={<Callback />} />
             <Route path="/auth/error" element={<AuthError />} />

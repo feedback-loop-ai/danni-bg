@@ -12,7 +12,7 @@ test('an admin opens the settings page and sees the provider with a masked key',
   await stubAdminSettings(page);
   await page.goto('/');
 
-  await page.getByRole('link', { name: 'Настройки' }).click();
+  await page.getByRole('link', { name: 'Платформа' }).click();
   await expect(page).toHaveURL(/\/admin\/settings$/);
   await expect(page.getByRole('heading', { name: 'Настройки на платформата' })).toBeVisible();
 
@@ -31,5 +31,7 @@ test('a non-admin has no settings link and is redirected away from /admin/settin
   // RequireAdmin sends a normal user back home (chat input visible = signed in on home).
   await expect(page).toHaveURL('http://localhost:5173/');
   await expect(page.getByLabel('Въпрос')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Настройки' })).toHaveCount(0);
+  // A normal user sees their own settings link but not the admin platform one.
+  await expect(page.getByRole('link', { name: 'Настройки' })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Платформа' })).toHaveCount(0);
 });
