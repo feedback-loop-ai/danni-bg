@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import municipalitiesRaw from '../../../packages/geo-boundaries/data/municipalities.geojson?raw';
 import oblastsRaw from '../../../packages/geo-boundaries/data/oblasts.geojson?raw';
+import { AuthWidget } from './auth/AuthWidget.tsx';
 import { ChatPanel } from './chat/ChatPanel.tsx';
 import { ThemeToggle } from './components/ThemeToggle.tsx';
 import { Button } from './components/ui/button.tsx';
@@ -133,7 +134,8 @@ export function App() {
         <span className="text-xs opacity-80">
           Интерактивна карта на отворените данни на България
         </span>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-4">
+          <AuthWidget />
           <ThemeToggle theme={theme} onChange={setTheme} />
         </div>
       </header>

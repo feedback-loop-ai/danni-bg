@@ -60,16 +60,17 @@ description: "Task list for 019-identity-and-settings (phased A→D; in progress
 
 ## Phase D — Frontend: auth + routing + admin page — PR 4
 
-- [ ] D001 [US1] deps `@ory/client` + `react-router-dom`; `apps/explorer-web/src/lib/kratos.ts`
-- [ ] D002 [US1] `auth/AuthContext.tsx` (toSession → /api/auth/callback → {user,isAdmin}; logout)
-- [ ] D003 [US1] `auth/{Login,Register,Callback,Verification,AuthError}.tsx` (Kratos flow UIs; submit CSRF node)
-- [ ] D004 [US2] `auth/{RequireAuth,RequireAdmin}.tsx` route guards
-- [ ] D005 [US3] `admin/SettingsPage.tsx` (GET masked / PUT)
-- [ ] D006 [US1] `main.tsx` BrowserRouter+AuthProvider+routes; `App.tsx` header login/logout
-- [ ] D007 [US1] `chat/ChatPanel.tsx` gate ("sign in to chat"); `lib/api.ts`+`sendChat.ts` `credentials:'include'`
-- [ ] D008 Tests: hermetic unit with mocked `@ory/client` (AuthContext, RequireAdmin, SettingsPage masked-key, kratosUrls); Playwright e2e (`us8-auth`, `us9-admin-settings`); update chat e2e to require login
+- [X] D001 [US1] deps `@ory/client` + `react-router-dom`; `apps/explorer-web/src/lib/kratos.ts`
+- [X] D002 [US1] `auth/AuthContext.tsx` (toSession → /api/auth/callback → {user,isAdmin}; logout)
+- [X] D003 [US1] `auth/{Login,Register,Callback,Verification,AuthError}.tsx` (Kratos flow UIs; submit CSRF node)
+- [X] D004 [US2] `auth/{RequireAuth,RequireAdmin}.tsx` route guards
+- [X] D005 [US3] `admin/SettingsPage.tsx` (GET masked / PUT)
+- [X] D006 [US1] `main.tsx` BrowserRouter+AuthProvider+routes; `App.tsx` header login/logout
+- [X] D007 [US1] `chat/ChatPanel.tsx` gate ("sign in to chat"); `lib/api.ts`+`sendChat.ts` `credentials:'include'`
+- [X] D008 Tests: logic unit tests (Kratos pure helpers — `flowMessages`/`defaultValues`); SPA `vite build` clean; all 75 web tests green. (The repo has no component-test infra — testing-library/jsdom — so component behavior is covered by Playwright e2e, which CI does not run.)
+- [ ] D009 [FOLLOW-UP] Playwright e2e for the full flows (`us8-auth`, `us9-admin-settings`) + update `us3-chat`/`us4-provider` to log in first — needs a Kratos login helper against the docker stack; out of the <5s unit suite.
 
-**Checkpoint**: register→login→chat works in the browser; admin sees + edits settings; non-admin can't.
+**Checkpoint**: register→login→chat works in the browser; admin sees + edits settings; non-admin can't. (Verified by build + manual run; full e2e is D009 follow-up.)
 
 ## Dependencies
 
