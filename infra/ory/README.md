@@ -8,7 +8,14 @@ danni app keeps its data in SQLite.
 SPA, **reverse-proxies `/kratos/*` to Kratos** on the same origin, and **validates the
 Kratos session itself** (`/sessions/whoami`) for the gated routes (`/api/{chat,admin,auth}`).
 So `http://localhost:8790` is a complete, standalone entry point and **Oathkeeper is
-optional** — you only need Kratos (+ its Postgres + mailslurper).
+optional** — you only need Kratos (+ its Postgres + Mailpit).
+
+Kratos's `serve.public.base_url` is `http://localhost:8790/kratos/`, so every browser-facing URL
+it builds — flow actions, redirects, and the **recovery/verification magic links** — is on the
+single-port origin and travels through the `/kratos` proxy. Clicking a recovery link
+(`:8790/kratos/self-service/recovery?flow=…&token=…`) validates server-side and 303-redirects to
+`:8790/auth/settings` with a session, so password reset completes entirely on `:8790`. Kratos's own
+`:14433` is internal-only (proxy upstream + the server-side `whoami` call).
 
 **Oathkeeper (optional).** If you front the stack with Oathkeeper, it validates the
 session and injects `X-User-*` headers, which the backend trusts in preference to its own
@@ -18,17 +25,17 @@ whoami call. The compose file still includes it for that deployment style.
 
 | Component        | Host port | Purpose                                  |
 |------------------|-----------|------------------------------------------|
-| Kratos public    | 14433     | self-service flows, `/sessions/whoami`   |
+| Kratos public    | 14433     | proxy upstream + server-side whoami (not hit by the browser) |
 | Kratos admin     | 14434     | identity admin API                       |
 | Oathkeeper proxy | 14455     | access proxy for gated `/api/*`          |
 | Oathkeeper api   | 14456     | health/rules                             |
 | Kratos Postgres  | 15432     | Kratos DB (separate from danni SQLite)   |
-| Mailslurper UI   | 14438     | catches verification/recovery emails     |
+| Mailpit UI + API | 14438     | catches verification/recovery emails     |
 
 ## Run (dev)
 
 ```bash
-docker compose up -d                          # Kratos (+ Postgres + mailslurper); Oathkeeper optional
+docker compose up -d                          # Kratos (+ Postgres + Mailpit); Oathkeeper optional
 bun run explorer:api                          # Hono backend on :8790 — serves API + SPA + /kratos proxy
 # either open http://localhost:8790 directly (built SPA), OR for HMR:
 cd apps/explorer-web && bunx vite --port 5173 # → http://localhost:5173
@@ -42,8 +49,13 @@ dev server just proxies everything (`/api`, `/kratos`, `/healthz`) → `:8790` f
 ```bash
 curl -s http://localhost:14433/health/ready   # kratos
 curl -s http://localhost:14456/health/alive   # oathkeeper
-open http://localhost:14438                    # mailslurper inbox
+open http://localhost:14438                    # mailpit inbox (UI + JSON API at /api/v1/messages)
 ```
+
+Mailpit replaces Mailslurper: it serves its web UI and JSON API on a single port (no separate
+service port), so its UI can never read another local instance's mailbox. Kratos delivers over
+plain SMTP (`smtp://mailpit:1025/?disable_starttls=true`, no auth — Kratos refuses to send
+credentials over an unencrypted connection, and Mailpit accepts unauthenticated dev mail).
 
 ## Notes
 

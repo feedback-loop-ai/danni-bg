@@ -20,7 +20,7 @@ identity with an admin + normal-user tier, and an admin settings area to configu
   extensible key/value store; the LLM provider (kind/model/baseUrl/apiKey) moves from `.env` to
   runtime config.
 - Q: How is Ory deployed? → A: **danni owns its Ory stack** — Kratos + Oathkeeper + Postgres +
-  mailslurper via a docker-compose in this repo, mirroring the sibling `looper` project.
+  mailpit via a docker-compose in this repo, mirroring the sibling `looper` project.
 - Q: Where do roles live — Kratos or the app? → A: **App DB.** Kratos holds a minimal identity
   (email + name); the `users.role` column (keyed by `kratos_identity_id`) is the tier, checked in-app.
   Keeps the identity schema minimal and role edits a simple SQLite update (mirrors looper).
@@ -111,7 +111,7 @@ The stored API key is never shown back in full.
 ### Setup - danni owns its Ory stack
 
 A repo docker-compose stands up Kratos (identity, own Postgres), Oathkeeper (access proxy for gated
-routes), and mailslurper (dev email). Vite is the single browser entry point and proxies `/kratos/*`
+routes), and mailpit (dev email). Vite is the single browser entry point and proxies `/kratos/*`
 → Kratos, gated `/api/{chat,admin,auth}` → Oathkeeper, public `/api/*` + `/healthz` → Hono. Config
 lives in `infra/ory/`. Ports use a 14xxx/15xxx band to avoid colliding with looper's stack.
 
@@ -134,7 +134,7 @@ lives in `infra/ory/`. Ports use a 14xxx/15xxx band to avoid colliding with loop
 
 (Continues the FR series; 018 ended at FR-051.)
 
-- **FR-052**: danni MUST run its own Ory stack (Kratos + Oathkeeper + Postgres + mailslurper) via a
+- **FR-052**: danni MUST run its own Ory stack (Kratos + Oathkeeper + Postgres + mailpit) via a
   repo docker-compose. Kratos owns identities (minimal schema: email + name) in Postgres; danni app
   data (incl. the new `users`/`platform_settings`) stays in SQLite.
 - **FR-053**: Public routes (`GET /api/{datasets,regions,national,facets,entities,…}`, `/healthz`, the
@@ -178,7 +178,7 @@ lives in `infra/ory/`. Ports use a 14xxx/15xxx band to avoid colliding with loop
 
 ### Measurable Outcomes
 
-- **SC-001**: `docker compose up` brings Kratos + Oathkeeper + mailslurper healthy; an anonymous gated
+- **SC-001**: `docker compose up` brings Kratos + Oathkeeper + mailpit healthy; an anonymous gated
   route returns 401 and an anonymous public route returns 200. *(Phase A — verified.)*
 - **SC-002**: A new visitor registers, is auto-logged-in, and can use the chat; anonymous → chat 401
   but map/datasets work.
@@ -201,7 +201,7 @@ lives in `infra/ory/`. Ports use a 14xxx/15xxx band to avoid colliding with loop
   minimal and role edits trivial.
 - **Secrets**: the LLM API key in `platform_settings` is single-tenant admin config; masked on read,
   never logged. `kratos.yaml` cookie/cipher secrets are dev placeholders to rotate for any deploy.
-- **Dev email** via mailslurper; production SMTP is out of scope here.
+- **Dev email** via mailpit; production SMTP is out of scope here.
 - **Out of scope (now)**: Ory Hydra (OAuth2 server), Keto (relationship RBAC), social/OIDC login, MFA,
   API keys, org/team multi-tenancy. The 2-tier model is intentionally simple.
 - **Builds on 017/018**: reuses the chat provider seam (`selectModel`/`ServerDefault`), the existing

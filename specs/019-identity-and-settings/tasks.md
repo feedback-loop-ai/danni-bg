@@ -17,7 +17,7 @@ description: "Task list for 019-identity-and-settings (phased A→D; in progress
 
 - [X] A001 [SETUP] `infra/ory/{kratos.yaml,identity.schema.json,oathkeeper.yaml,access-rules.json}` (mirror looper; danni 14xxx ports; open-signup registration hook)
 - [X] A002 [SETUP] `infra/ory/templates/{verification_code,recovery_code}/valid/email.{subject,body}.gotmpl`
-- [X] A003 [SETUP] `docker-compose.yml` — kratos-postgres, kratos-migrate (one-shot `migrate sql`), kratos, oathkeeper, mailslurper
+- [X] A003 [SETUP] `docker-compose.yml` — kratos-postgres, kratos-migrate (one-shot `migrate sql`), kratos, oathkeeper, mailpit
 - [X] A004 [SETUP] Vite proxy split — `/kratos`→Kratos, gated `/api/{chat,admin,auth}`→Oathkeeper, public `/api/*`+`/healthz`→Hono — `apps/explorer-web/vite.config.ts`
 - [X] A005 [SETUP] `.env.example` (KRATOS_*/OATHKEEPER_* + EXPLORER_DEFAULT_* now a seed) + `infra/ory/README.md`
 - [X] A006 [SETUP] spec set under `specs/019-identity-and-settings/`

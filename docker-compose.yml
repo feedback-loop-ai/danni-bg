@@ -26,7 +26,7 @@ services:
   # One-shot: apply Kratos SQL migrations before serve (serve does not auto-migrate
   # a persistent DSN, even with --dev).
   kratos-migrate:
-    image: oryd/kratos:v1.1.0
+    image: oryd/kratos:v26.2.0
     container_name: danni-kratos-migrate
     volumes:
       - ./infra/ory/kratos.yaml:/etc/config/kratos/kratos.yml:ro
@@ -40,7 +40,7 @@ services:
     restart: "no"
 
   kratos:
-    image: oryd/kratos:v1.1.0
+    image: oryd/kratos:v26.2.0
     container_name: danni-kratos
     ports:
       - "14433:4433"
@@ -56,7 +56,7 @@ services:
         condition: service_healthy
       kratos-migrate:
         condition: service_completed_successfully
-    # --dev auto-runs migrations; --watch-courier delivers queued emails to mailslurper.
+    # --dev auto-runs migrations; --watch-courier delivers queued emails to mailpit.
     command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4433/health/ready"]
@@ -65,7 +65,7 @@ services:
       retries: 5
 
   oathkeeper:
-    image: oryd/oathkeeper:v0.40.6
+    image: oryd/oathkeeper:v26.2.0
     container_name: danni-oathkeeper
     ports:
       - "14455:4455"
@@ -86,12 +86,16 @@ services:
       timeout: 5s
       retries: 5
 
-  mailslurper:
-    image: oryd/mailslurper:latest-smtps
-    container_name: danni-mailslurper
+  # Mailpit catches dev email (Kratos courier → mailpit:1025). Single self-contained port for the
+  # UI+API (8025), so — unlike Mailslurper — its web UI never reads another instance's mailbox.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: danni-mailpit
     ports:
-      - "14438:4436" # web UI
-      - "14439:4437" # service API
+      - "14438:8025" # web UI (http://localhost:14438) + its own API
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
 
 volumes:
   kratos_postgres_data:

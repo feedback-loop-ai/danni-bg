@@ -12,7 +12,7 @@ the Hono backend trusts them; roles live in the app DB; the SPA drives Kratos se
 
 Phased delivery (each a PR):
 - **A — Ory infra**: `infra/ory/` (kratos/oathkeeper/access-rules/identity schema/templates) + root
-  `docker-compose.yml` (kratos + kratos-migrate + postgres + oathkeeper + mailslurper, 14xxx/15xxx
+  `docker-compose.yml` (kratos + kratos-migrate + postgres + oathkeeper + mailpit, 14xxx/15xxx
   ports) + Vite proxy split + `.env.example`. *(shipped)*
 - **B — API auth**: `users` table/repo, header-trust middleware (`requireAuth`/`requireAdmin`),
   find-or-create app user, gate `POST /api/chat`, `/api/auth/{callback,logout}`, `danni admin-grant` CLI.
@@ -26,7 +26,7 @@ Phased delivery (each a PR):
 **Language/Version**: TypeScript 5.x strict (backend + SPA). Infra is YAML/JSON. CLI is Bun.
 **Primary Dependencies**: Bun + Hono (`apps/explorer-api`); `bun:sqlite` store; React SPA
 (`apps/explorer-web`) — adds `@ory/client` + `react-router-dom`; Ory Kratos v1.1.0 + Oathkeeper
-v0.40.6 + Postgres 16 + mailslurper (docker).
+v0.40.6 + Postgres 16 + mailpit (docker).
 **Storage**: Kratos → its own Postgres (docker). danni app → SQLite, +2 tables (`users`,
 `platform_settings`) via migrations `008`/`009`.
 **Testing**: `bun:test`, hermetic (header injection for guards; mocked `@ory/client` for the SPA; no
