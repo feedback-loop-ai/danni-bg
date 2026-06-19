@@ -2,12 +2,13 @@
 // dataset opens its detail (FR-027).
 
 import { expect, test } from '@playwright/test';
-import { stubApi } from './fixtures.ts';
+import { stubApi, stubAuth } from './fixtures.ts';
 
 test('active filters are sent as chat scope and citations open dataset detail', async ({
   page,
 }) => {
   const stub = await stubApi(page);
+  await stubAuth(page, { id: 'u1', email: 'user@example.com', role: 'user' }); // chat is gated (spec 019)
   await page.goto('/');
 
   // Apply a filter from the tag facet, then ask a question.

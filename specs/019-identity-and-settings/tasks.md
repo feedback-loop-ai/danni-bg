@@ -68,7 +68,7 @@ description: "Task list for 019-identity-and-settings (phased A→D; in progress
 - [X] D006 [US1] `main.tsx` BrowserRouter+AuthProvider+routes; `App.tsx` header login/logout
 - [X] D007 [US1] `chat/ChatPanel.tsx` gate ("sign in to chat"); `lib/api.ts`+`sendChat.ts` `credentials:'include'`
 - [X] D008 Tests: logic unit tests (Kratos pure helpers — `flowMessages`/`defaultValues`); SPA `vite build` clean; all 75 web tests green. (The repo has no component-test infra — testing-library/jsdom — so component behavior is covered by Playwright e2e, which CI does not run.)
-- [ ] D009 [FOLLOW-UP] Playwright e2e for the full flows (`us8-auth`, `us9-admin-settings`) + update `us3-chat`/`us4-provider` to log in first — needs a Kratos login helper against the docker stack; out of the <5s unit suite.
+- [X] D009 Playwright e2e (`us8-auth`, `us9-admin-settings`) + auth stubs in `e2e/fixtures.ts` (`stubAuth`/`stubLoginFlow`/`stubAdminSettings`); updated the gated chat specs (`us3`/`us5`/`us7`) to sign in first. Hermetic (stubbed Kratos whoami + `/api/auth/callback`, no live Ory stack), matching the existing e2e pattern. 14/14 e2e pass. (Not in CI — Playwright runs locally via `bunx playwright test`.)
 
 **Checkpoint**: register→login→chat works in the browser; admin sees + edits settings; non-admin can't. (Verified by build + manual run; full e2e is D009 follow-up.)
 

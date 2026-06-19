@@ -2,10 +2,11 @@
 // the question is prefilled, and the chat request scope carries datasetIds = [that dataset] (FR-025).
 
 import { expect, test } from '@playwright/test';
-import { stubApi } from './fixtures.ts';
+import { stubApi, stubAuth } from './fixtures.ts';
 
 test('focuses the chat on a dataset and sends it as datasetIds scope', async ({ page }) => {
   const stub = await stubApi(page);
+  await stubAuth(page, { id: 'u1', email: 'user@example.com', role: 'user' }); // chat is gated (spec 019)
   await page.goto('/');
 
   await page.getByRole('button', { name: /Качество на въздуха/ }).click();

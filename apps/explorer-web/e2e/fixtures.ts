@@ -174,3 +174,134 @@ export async function stubApi(page: Page): Promise<ApiStub> {
 
   return stub;
 }
+
+// --- Auth stubs (spec 019) ----------------------------------------------------------------------
+// Hermetic: stub Kratos `whoami` + the backend `/api/auth/callback` to simulate auth states, instead
+// of running a live Ory stack. Register AFTER stubApi so the specific routes win (Playwright: the
+// last-added matching handler is used).
+
+export interface E2EUser {
+  id: string;
+  email: string;
+  role: 'admin' | 'user';
+}
+
+export async function stubAuth(page: Page, user?: E2EUser): Promise<void> {
+  await page.route('**/kratos/sessions/whoami', (route) =>
+    user
+      ? route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 'sess-1',
+            active: true,
+            identity: { id: user.id, traits: { email: user.email } },
+          }),
+        })
+      : route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: { id: 'session_inactive' } }),
+        }),
+  );
+  await page.route('**/api/auth/callback', (route) =>
+    user
+      ? route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            user: { id: user.id, email: user.email, displayName: null, role: user.role },
+            isAdmin: user.role === 'admin',
+          }),
+        })
+      : route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }),
+  );
+}
+
+const LOGIN_FLOW = {
+  id: 'login-flow-1',
+  type: 'browser',
+  ui: {
+    action: 'http://localhost:5173/kratos/self-service/login?flow=login-flow-1',
+    method: 'POST',
+    nodes: [
+      {
+        type: 'input',
+        group: 'default',
+        attributes: { name: 'csrf_token', type: 'hidden', value: 'csrf', disabled: false },
+        messages: [],
+        meta: {},
+      },
+      {
+        type: 'input',
+        group: 'password',
+        attributes: {
+          name: 'identifier',
+          type: 'email',
+          value: '',
+          required: true,
+          disabled: false,
+        },
+        messages: [],
+        meta: { label: { id: 1, text: 'Имейл', type: 'info' } },
+      },
+      {
+        type: 'input',
+        group: 'password',
+        attributes: { name: 'password', type: 'password', required: true, disabled: false },
+        messages: [],
+        meta: { label: { id: 2, text: 'Парола', type: 'info' } },
+      },
+      {
+        type: 'input',
+        group: 'password',
+        attributes: { name: 'method', type: 'submit', value: 'password', disabled: false },
+        messages: [],
+        meta: { label: { id: 3, text: 'Вход', type: 'info' } },
+      },
+    ],
+  },
+};
+
+/** Stub the Kratos login self-service flow (create/get → flow JSON; POST update → success). */
+export async function stubLoginFlow(page: Page): Promise<void> {
+  await page.route('**/kratos/self-service/login**', (route) => {
+    if (route.request().method() === 'POST') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ session: { id: 'sess-1', active: true } }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(LOGIN_FLOW),
+    });
+  });
+}
+
+/** Stub the admin settings API. Returns a handle capturing PUT bodies. Register AFTER stubApi. */
+export async function stubAdminSettings(page: Page): Promise<{ puts: string[] }> {
+  const handle = { puts: [] as string[] };
+  const current = {
+    llm: {
+      kind: 'openai-compatible',
+      model: 'deepseek-v4-pro',
+      baseUrl: 'https://api.deepseek.com',
+      apiKeyMasked: true,
+      apiKeyHint: '••••c7f',
+    },
+    toggles: { chatEnabled: true },
+    source: 'settings',
+  };
+  await page.route('**/api/admin/settings', (route) => {
+    if (route.request().method() === 'PUT') handle.puts.push(route.request().postData() ?? '');
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(current),
+    });
+  });
+  return handle;
+}
