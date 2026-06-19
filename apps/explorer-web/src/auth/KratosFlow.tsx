@@ -10,6 +10,7 @@ import type {
   UpdateLoginFlowBody,
   UpdateRecoveryFlowBody,
   UpdateRegistrationFlowBody,
+  UpdateSettingsFlowBody,
   UpdateVerificationFlowBody,
 } from '@ory/client';
 import { useEffect, useState } from 'react';
@@ -26,6 +27,7 @@ async function createFlow(kind: FlowKind): Promise<Flow> {
   if (kind === 'login') return (await kratos.createBrowserLoginFlow()).data;
   if (kind === 'registration') return (await kratos.createBrowserRegistrationFlow()).data;
   if (kind === 'recovery') return (await kratos.createBrowserRecoveryFlow()).data;
+  if (kind === 'settings') return (await kratos.createBrowserSettingsFlow()).data;
   return (await kratos.createBrowserVerificationFlow()).data;
 }
 
@@ -33,31 +35,54 @@ async function getFlow(kind: FlowKind, id: string): Promise<Flow> {
   if (kind === 'login') return (await kratos.getLoginFlow({ id })).data;
   if (kind === 'registration') return (await kratos.getRegistrationFlow({ id })).data;
   if (kind === 'recovery') return (await kratos.getRecoveryFlow({ id })).data;
+  if (kind === 'settings') return (await kratos.getSettingsFlow({ id })).data;
   return (await kratos.getVerificationFlow({ id })).data;
 }
 
-async function submitFlow(kind: FlowKind, id: string, body: Record<string, string>): Promise<void> {
+/** Submit a flow step; returns the updated flow (multi-step flows like recovery continue in place). */
+async function submitFlow(
+  kind: FlowKind,
+  id: string,
+  body: Record<string, string>,
+): Promise<{ ui?: UiContainer } | undefined> {
   if (kind === 'login') {
-    await kratos.updateLoginFlow({
-      flow: id,
-      updateLoginFlowBody: body as unknown as UpdateLoginFlowBody,
-    });
-  } else if (kind === 'registration') {
-    await kratos.updateRegistrationFlow({
-      flow: id,
-      updateRegistrationFlowBody: body as unknown as UpdateRegistrationFlowBody,
-    });
-  } else if (kind === 'recovery') {
-    await kratos.updateRecoveryFlow({
-      flow: id,
-      updateRecoveryFlowBody: body as unknown as UpdateRecoveryFlowBody,
-    });
-  } else {
+    return (
+      await kratos.updateLoginFlow({
+        flow: id,
+        updateLoginFlowBody: body as unknown as UpdateLoginFlowBody,
+      })
+    ).data as { ui?: UiContainer };
+  }
+  if (kind === 'registration') {
+    return (
+      await kratos.updateRegistrationFlow({
+        flow: id,
+        updateRegistrationFlowBody: body as unknown as UpdateRegistrationFlowBody,
+      })
+    ).data as { ui?: UiContainer };
+  }
+  if (kind === 'recovery') {
+    return (
+      await kratos.updateRecoveryFlow({
+        flow: id,
+        updateRecoveryFlowBody: body as unknown as UpdateRecoveryFlowBody,
+      })
+    ).data as { ui?: UiContainer };
+  }
+  if (kind === 'settings') {
+    return (
+      await kratos.updateSettingsFlow({
+        flow: id,
+        updateSettingsFlowBody: body as unknown as UpdateSettingsFlowBody,
+      })
+    ).data as { ui?: UiContainer };
+  }
+  return (
     await kratos.updateVerificationFlow({
       flow: id,
       updateVerificationFlowBody: body as unknown as UpdateVerificationFlowBody,
-    });
-  }
+    })
+  ).data as { ui?: UiContainer };
 }
 
 const INPUT_CLASS =
@@ -112,6 +137,7 @@ const ALT_LINKS: Record<FlowKind, { to: string; label: string }[]> = {
   registration: [{ to: '/auth/login', label: 'Вече имам профил' }],
   recovery: [{ to: '/auth/login', label: 'Назад към вход' }],
   verification: [{ to: '/', label: 'Към началото' }],
+  settings: [{ to: '/', label: 'Към началото' }],
 };
 
 export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
@@ -156,21 +182,47 @@ export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
       body[k] = String(v);
     });
     try {
-      await submitFlow(kind, flow.id, body);
-      await refresh();
-      navigate('/', { replace: true });
+      const out = await submitFlow(kind, flow.id, body);
+      if (kind === 'login' || kind === 'registration' || kind === 'settings') {
+        // Terminal: a session now exists (or the password was changed). Go home.
+        await refresh();
+        navigate('/', { replace: true });
+        return;
+      }
+      // A valid recovery code hands off to the settings (new-password) flow. Kratos signals this
+      // either as a 422 redirect (caught below) or — in v1.x — a 200 with a `continue_with` item;
+      // handle the latter here by navigating into the settings flow.
+      const cont = (out as { continue_with?: { action: string; flow?: { id: string } }[] })
+        .continue_with;
+      const toSettings = cont?.find((c) => c.action === 'show_settings_ui');
+      if (toSettings?.flow?.id) {
+        navigate(`/auth/settings?flow=${toSettings.flow.id}`, { replace: true });
+        return;
+      }
+      // Otherwise recovery / verification are multi-step: re-render with the returned flow so the
+      // next step (e.g. the emailed-code input) and its "code sent" message appear in place.
+      if (out?.ui) setFlow(out as Flow);
     } catch (err) {
       const res = (err as { response?: { status?: number; data?: unknown } }).response;
-      if (res?.status === 400 && res.data) {
-        setFlow(res.data as Flow); // re-render with field messages
-      } else if (res?.status === 422) {
-        window.location.href = (res.data as { redirect_browser_to: string }).redirect_browser_to;
-      } else if (res?.status === 410) {
-        setFlow(null); // expired → re-init
-        navigate(`/auth/${kind}`, { replace: true });
+      const data = res?.data as (Flow & { redirect_browser_to?: string }) | undefined;
+      if (res?.status === 422 && data?.redirect_browser_to) {
+        // e.g. recovery code accepted → Kratos hands off to the settings flow to set a new password.
+        // Navigate SAME-ORIGIN (strip the configured host) so it works on whatever port we're on.
+        goSameOrigin(data.redirect_browser_to);
+      } else if ((res?.status === 400 || res?.status === 410) && data?.ui) {
+        setFlow(data); // validation messages, or the next step rendered with an error
       } else {
         setFatal('Възникна грешка. Опитайте отново.');
       }
+    }
+  }
+
+  function goSameOrigin(target: string) {
+    try {
+      const u = new URL(target, window.location.origin);
+      navigate(u.pathname + u.search, { replace: true });
+    } catch {
+      navigate('/', { replace: true });
     }
   }
 

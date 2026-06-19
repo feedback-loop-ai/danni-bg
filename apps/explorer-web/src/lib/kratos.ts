@@ -10,7 +10,7 @@ export const kratos = new FrontendApi(
   new Configuration({ basePath, baseOptions: { withCredentials: true } }),
 );
 
-export type FlowKind = 'login' | 'registration' | 'recovery' | 'verification';
+export type FlowKind = 'login' | 'registration' | 'recovery' | 'verification' | 'settings';
 
 /** Human-readable messages from a Kratos UI container (flow-level + per-node). Pure → tested. */
 export function flowMessages(ui: UiContainer | undefined | null): string[] {

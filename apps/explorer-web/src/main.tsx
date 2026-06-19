@@ -37,6 +37,10 @@ if (root) {
               path="/auth/verification"
               element={<KratosFlow kind="verification" title="Потвърждение на имейл" />}
             />
+            <Route
+              path="/auth/settings"
+              element={<KratosFlow kind="settings" title="Смяна на парола" />}
+            />
             <Route path="/auth/callback" element={<Callback />} />
             <Route path="/auth/error" element={<AuthError />} />
             <Route

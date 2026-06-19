@@ -306,6 +306,55 @@ export async function stubAdminSettings(page: Page): Promise<{ puts: string[] }>
   return handle;
 }
 
+function recoveryNode(name: string, type: string, extra: Record<string, unknown> = {}) {
+  return {
+    type: 'input',
+    group: 'code',
+    attributes: { name, type, disabled: false, ...extra },
+    messages: [],
+    meta: {},
+  };
+}
+
+/** Stub the Kratos recovery flow: create (email step) → submit returns the code-entry step. */
+export async function stubRecovery(page: Page): Promise<void> {
+  const emailStep = {
+    id: 'rec-1',
+    type: 'browser',
+    ui: {
+      action: 'http://localhost:5173/kratos/self-service/recovery?flow=rec-1',
+      method: 'POST',
+      nodes: [
+        recoveryNode('csrf_token', 'hidden', { value: 'csrf' }),
+        recoveryNode('email', 'email', { required: true }),
+        recoveryNode('method', 'submit', { value: 'code' }),
+      ],
+    },
+  };
+  const codeStep = {
+    ...emailStep,
+    ui: {
+      ...emailStep.ui,
+      messages: [{ id: 1, text: 'A recovery code has been sent', type: 'info' }],
+      nodes: [
+        recoveryNode('csrf_token', 'hidden', { value: 'csrf' }),
+        recoveryNode('code', 'text', { required: true }),
+        recoveryNode('method', 'submit', { value: 'code' }),
+      ],
+    },
+  };
+  await page.route('**/kratos/self-service/recovery/browser', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(emailStep),
+    }),
+  );
+  await page.route(/\/kratos\/self-service\/recovery\?/, (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(codeStep) }),
+  );
+}
+
 /** Stub the Kratos logout flow (create → token; submit → 204). */
 export async function stubLogout(page: Page): Promise<void> {
   await page.route('**/kratos/self-service/logout/browser', (route) =>
