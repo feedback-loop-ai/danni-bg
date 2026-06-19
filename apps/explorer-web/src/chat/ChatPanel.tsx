@@ -148,119 +148,128 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const empty = messages.length === 0;
 
   return (
-    <section className="flex h-full flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Чат</h2>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Нов разговор"
-            title="Нов разговор"
-            disabled={empty && !streaming && !chatFocus && !error}
-            onClick={newChat}
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-40 disabled:hover:bg-transparent"
-          >
-            <SquarePen className="size-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Настройки на доставчика"
-            aria-pressed={showSettings}
-            onClick={() => setShowSettings((v) => !v)}
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          >
-            <Cog className="size-4" />
-          </button>
-        </div>
-      </div>
-      {showSettings && <ProviderSettings provider={provider} onChange={updateProvider} />}
-      <div ref={scrollRef} aria-label="Разговор" className="flex-1 space-y-4 overflow-y-auto">
-        {empty && (
-          <div className="flex h-full flex-col items-center justify-center gap-4 px-2 text-center">
-            <p className="text-sm text-muted-foreground">
-              Задайте въпрос за публичните данни — отговорите се базират на наличните набори и
-              посочват източници.
-            </p>
-            <div className="flex flex-col gap-2">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => void send(s)}
-                  className="rounded-lg border bg-card px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {messages.map((m) =>
-          m.role === 'user' ? (
-            <div
-              key={m.id}
-              className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
-            >
-              {m.content}
-            </div>
-          ) : (
-            <div key={m.id} className="space-y-2">
-              <div className="prose prose-sm prose-slate max-w-none dark:prose-invert prose-headings:mt-2 prose-p:my-1.5 prose-ol:my-1.5 prose-ul:my-1.5 prose-li:my-0.5">
-                {m.content ? (
-                  <Markdown remarkPlugins={[remarkGfm]}>
-                    {completePartialMarkdown(m.content)}
-                  </Markdown>
-                ) : (
-                  streaming && <span className="text-muted-foreground">…</span>
-                )}
-              </div>
-              {m.citations && m.citations.length > 0 && (
-                <div className="citation space-y-1 border-l-2 border-primary/30 pl-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Източници
-                  </p>
-                  {m.citations.map((c) => (
-                    <div key={c.datasetId} className="flex items-start gap-1 text-xs">
-                      <button
-                        type="button"
-                        className="text-left text-primary underline-offset-2 hover:underline"
-                        onClick={() => onSelectDataset(c.datasetId)}
-                      >
-                        {c.titleBg}
-                      </button>
-                      <a
-                        href={c.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="shrink-0 text-muted-foreground hover:text-primary"
-                      >
-                        ↗
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ),
-        )}
-      </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {chatFocus && (
-        <div className="flex items-center gap-1 text-xs">
-          <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-accent-foreground">
-            <span className="truncate">Контекст: {chatFocus.titleBg}</span>
+    <section className="relative flex h-full flex-col gap-3">
+      {/* When signed out, the whole chat is blurred + non-interactive behind a centered prompt. */}
+      <div
+        className={
+          user
+            ? 'flex h-full min-h-0 flex-col gap-3'
+            : 'pointer-events-none flex h-full min-h-0 select-none flex-col gap-3 blur-sm'
+        }
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Чат
+          </h2>
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              aria-label="Премахни контекста"
-              onClick={() => setChatFocus(null)}
-              className="flex size-4 shrink-0 items-center justify-center rounded-full hover:bg-primary/20"
+              aria-label="Нов разговор"
+              title="Нов разговор"
+              disabled={empty && !streaming && !chatFocus && !error}
+              onClick={newChat}
+              className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-40 disabled:hover:bg-transparent"
             >
-              <X className="size-3" />
+              <SquarePen className="size-4" />
             </button>
-          </span>
+            <button
+              type="button"
+              aria-label="Настройки на доставчика"
+              aria-pressed={showSettings}
+              onClick={() => setShowSettings((v) => !v)}
+              className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >
+              <Cog className="size-4" />
+            </button>
+          </div>
         </div>
-      )}
-      {user ? (
+        {showSettings && <ProviderSettings provider={provider} onChange={updateProvider} />}
+        <div ref={scrollRef} aria-label="Разговор" className="flex-1 space-y-4 overflow-y-auto">
+          {empty && (
+            <div className="flex h-full flex-col items-center justify-center gap-4 px-2 text-center">
+              <p className="text-sm text-muted-foreground">
+                Задайте въпрос за публичните данни — отговорите се базират на наличните набори и
+                посочват източници.
+              </p>
+              <div className="flex flex-col gap-2">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => void send(s)}
+                    className="rounded-lg border bg-card px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {messages.map((m) =>
+            m.role === 'user' ? (
+              <div
+                key={m.id}
+                className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
+              >
+                {m.content}
+              </div>
+            ) : (
+              <div key={m.id} className="space-y-2">
+                <div className="prose prose-sm prose-slate max-w-none dark:prose-invert prose-headings:mt-2 prose-p:my-1.5 prose-ol:my-1.5 prose-ul:my-1.5 prose-li:my-0.5">
+                  {m.content ? (
+                    <Markdown remarkPlugins={[remarkGfm]}>
+                      {completePartialMarkdown(m.content)}
+                    </Markdown>
+                  ) : (
+                    streaming && <span className="text-muted-foreground">…</span>
+                  )}
+                </div>
+                {m.citations && m.citations.length > 0 && (
+                  <div className="citation space-y-1 border-l-2 border-primary/30 pl-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Източници
+                    </p>
+                    {m.citations.map((c) => (
+                      <div key={c.datasetId} className="flex items-start gap-1 text-xs">
+                        <button
+                          type="button"
+                          className="text-left text-primary underline-offset-2 hover:underline"
+                          onClick={() => onSelectDataset(c.datasetId)}
+                        >
+                          {c.titleBg}
+                        </button>
+                        <a
+                          href={c.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="shrink-0 text-muted-foreground hover:text-primary"
+                        >
+                          ↗
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ),
+          )}
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        {chatFocus && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-accent-foreground">
+              <span className="truncate">Контекст: {chatFocus.titleBg}</span>
+              <button
+                type="button"
+                aria-label="Премахни контекста"
+                onClick={() => setChatFocus(null)}
+                className="flex size-4 shrink-0 items-center justify-center rounded-full hover:bg-primary/20"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          </div>
+        )}
         <div className="relative rounded-3xl border border-input bg-background shadow-sm focus-within:ring-2 focus-within:ring-ring">
           <textarea
             aria-label="Въпрос"
@@ -297,14 +306,18 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             </button>
           )}
         </div>
-      ) : (
-        <div className="rounded-3xl border border-input bg-background px-4 py-3 text-center text-sm text-muted-foreground">
-          <Link to="/auth/login" className="text-primary hover:underline">
-            Влезте
-          </Link>{' '}
-          в профила си, за да използвате чата.
+      </div>
+
+      {!user ? (
+        <div className="absolute inset-0 z-10 flex items-center justify-center p-6 text-center">
+          <p className="max-w-[16rem] text-sm text-muted-foreground">
+            <Link to="/auth/login" className="font-medium text-primary hover:underline">
+              Влезте
+            </Link>{' '}
+            в профила си, за да използвате чата.
+          </p>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

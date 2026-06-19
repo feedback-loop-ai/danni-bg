@@ -52,3 +52,8 @@ open http://localhost:14438                    # mailslurper inbox
 - Identity schema is minimal (email + name). Roles/tiers live in the danni app DB
   (`users.role`), not in Kratos — see the spec.
 - First admin: register + log in once, then `danni admin-grant <email>`.
+- Email templates live in `infra/ory/templates/<template>/valid/email.{subject,body}.gotmpl`
+  (mounted at `/etc/config/kratos/templates`, set via `courier.template_override_path`). If you add
+  templates and they don't take effect, recreate the container so the bind mount is fresh:
+  `docker compose up -d --force-recreate kratos` (a container created before the files existed keeps a
+  stale empty mount). Verify with `docker exec danni-kratos find /etc/config/kratos/templates -type f`.
