@@ -237,9 +237,17 @@ export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
               {m}
             </p>
           ))}
-          {flow.ui.nodes.map((node, i) => (
-            <NodeField key={`${node.group}-${i}`} node={node} />
-          ))}
+          {flow.ui.nodes
+            // The settings flow ("Смяна на парола") carries both a `profile` and a `password`
+            // method group, each with its own submit — rendering both gives two Save buttons. This
+            // page only changes the password, so keep the `password` group (+ the `default` csrf).
+            .filter(
+              (node) =>
+                kind !== 'settings' || node.group === 'password' || node.group === 'default',
+            )
+            .map((node, i) => (
+              <NodeField key={`${node.group}-${i}`} node={node} />
+            ))}
         </form>
       ) : (
         !fatal && <p className="text-sm text-muted-foreground">Зареждане…</p>
