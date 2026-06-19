@@ -127,9 +127,16 @@ export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
     (async () => {
       try {
         const f = flowId ? await getFlow(kind, flowId) : await createFlow(kind);
+        // Guard against a non-flow response (e.g. when /kratos isn't proxied and the request returns
+        // the SPA's index.html): show a clear error instead of crashing the render on `f.ui.nodes`.
+        if (!f?.ui?.nodes) throw new Error('invalid flow response');
         if (active) setFlow(f);
       } catch {
-        if (active) setFatal('Неуспешно зареждане. Опитайте отново.');
+        if (active) {
+          setFatal(
+            'Услугата за вход е недостъпна. Отворете приложението през dev сървъра (http://localhost:5173) или проверете дали Ory стекът работи.',
+          );
+        }
       }
     })();
     return () => {
