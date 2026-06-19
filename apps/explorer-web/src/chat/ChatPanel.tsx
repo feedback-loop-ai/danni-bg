@@ -1,7 +1,9 @@
 import { ArrowUp, Cog, Square, SquarePen, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
+import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
+import { useAuth } from '../auth/AuthContext.tsx';
 import { completePartialMarkdown } from '../lib/markdown.ts';
 import { filterStateToScope } from '../lib/scope.ts';
 import { useExplorer } from '../store/explorerStore.ts';
@@ -33,6 +35,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const chatFocus = useExplorer((s) => s.chatFocus);
   const setChatFocus = useExplorer((s) => s.setChatFocus);
   const reader = useExplorer((s) => s.reader);
+  const { user } = useAuth();
 
   const [provider, setProvider] = useState<ProviderConfig>(() => loadProvider(localStorage));
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -257,42 +260,51 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
           </span>
         </div>
       )}
-      <div className="relative rounded-3xl border border-input bg-background shadow-sm focus-within:ring-2 focus-within:ring-ring">
-        <textarea
-          aria-label="Въпрос"
-          value={input}
-          rows={1}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              void send();
-            }
-          }}
-          placeholder="Попитайте за публичните данни…"
-          className="max-h-40 w-full resize-none bg-transparent py-3 pr-12 pl-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none"
-        />
-        {streaming ? (
-          <button
-            type="button"
-            aria-label="Спри генерирането"
-            onClick={stop}
-            className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Square className="size-3.5" fill="currentColor" />
-          </button>
-        ) : (
-          <button
-            type="button"
-            aria-label="Изпрати"
-            disabled={input.trim() === ''}
-            onClick={() => void send()}
-            className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:bg-primary/90 disabled:opacity-40"
-          >
-            <ArrowUp className="size-4" />
-          </button>
-        )}
-      </div>
+      {user ? (
+        <div className="relative rounded-3xl border border-input bg-background shadow-sm focus-within:ring-2 focus-within:ring-ring">
+          <textarea
+            aria-label="Въпрос"
+            value={input}
+            rows={1}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                void send();
+              }
+            }}
+            placeholder="Попитайте за публичните данни…"
+            className="max-h-40 w-full resize-none bg-transparent py-3 pr-12 pl-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none"
+          />
+          {streaming ? (
+            <button
+              type="button"
+              aria-label="Спри генерирането"
+              onClick={stop}
+              className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Square className="size-3.5" fill="currentColor" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              aria-label="Изпрати"
+              disabled={input.trim() === ''}
+              onClick={() => void send()}
+              className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:bg-primary/90 disabled:opacity-40"
+            >
+              <ArrowUp className="size-4" />
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-input bg-background px-4 py-3 text-center text-sm text-muted-foreground">
+          <Link to="/auth/login" className="text-primary hover:underline">
+            Влезте
+          </Link>{' '}
+          в профила си, за да използвате чата.
+        </div>
+      )}
     </section>
   );
 }

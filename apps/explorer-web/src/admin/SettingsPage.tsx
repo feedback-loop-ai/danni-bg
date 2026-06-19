@@ -1,0 +1,143 @@
+// Admin platform settings page (spec 019). Edits the chat's default LLM provider + toggles at runtime.
+// The API key is write-only: shown masked, left blank to keep the existing one.
+
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { type AdminSettings, type SettingsPut, getSettings, putSettings } from '../lib/adminApi.ts';
+
+const INPUT =
+  'w-full rounded border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring';
+
+export function SettingsPage() {
+  const [data, setData] = useState<AdminSettings | null>(null);
+  const [kind, setKind] = useState('openai-compatible');
+  const [model, setModel] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [chatEnabled, setChatEnabled] = useState(true);
+  const [sloSeconds, setSloSeconds] = useState('');
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function hydrate(s: AdminSettings) {
+    setData(s);
+    setKind(s.llm?.kind ?? 'openai-compatible');
+    setModel(s.llm?.model ?? '');
+    setBaseUrl(s.llm?.baseUrl ?? '');
+    setApiKey('');
+    setChatEnabled(s.toggles.chatEnabled ?? true);
+    setSloSeconds(s.toggles.freshnessSloSeconds ? String(s.toggles.freshnessSloSeconds) : '');
+  }
+
+  useEffect(() => {
+    getSettings()
+      .then(hydrate)
+      .catch(() => setError('Неуспешно зареждане на настройките.'));
+  }, []);
+
+  async function onSave(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus(null);
+    setError(null);
+    const body: SettingsPut = {
+      llm: { kind, model, baseUrl: baseUrl || null, ...(apiKey ? { apiKey } : {}) },
+      toggles: {
+        chatEnabled,
+        ...(sloSeconds ? { freshnessSloSeconds: Number.parseInt(sloSeconds, 10) } : {}),
+      },
+    };
+    try {
+      hydrate(await putSettings(body));
+      setStatus('Записано.');
+    } catch {
+      setError('Записът неуспешен.');
+    }
+  }
+
+  return (
+    <div className="mx-auto mt-10 w-full max-w-lg space-y-5 px-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Настройки на платформата</h1>
+        <Link to="/" className="text-sm text-primary hover:underline">
+          Към началото
+        </Link>
+      </div>
+
+      <form onSubmit={onSave} className="space-y-4">
+        <fieldset className="space-y-3 rounded border border-border p-4">
+          <legend className="px-1 text-sm font-medium">LLM доставчик (chat)</legend>
+          <label className="block space-y-1">
+            <span className="text-sm text-muted-foreground">Тип</span>
+            <select className={INPUT} value={kind} onChange={(e) => setKind(e.target.value)}>
+              <option value="openai-compatible">openai-compatible</option>
+              <option value="anthropic">anthropic</option>
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm text-muted-foreground">Модел</span>
+            <input
+              className={INPUT}
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              required
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm text-muted-foreground">Base URL</span>
+            <input className={INPUT} value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm text-muted-foreground">
+              API ключ{' '}
+              {data?.llm?.apiKeyMasked
+                ? `(текущ: ${data.llm.apiKeyHint}; празно = без промяна)`
+                : ''}
+            </span>
+            <input
+              className={INPUT}
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder={data?.llm?.apiKeyHint ?? ''}
+            />
+          </label>
+        </fieldset>
+
+        <fieldset className="space-y-3 rounded border border-border p-4">
+          <legend className="px-1 text-sm font-medium">Платформа</legend>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={chatEnabled}
+              onChange={(e) => setChatEnabled(e.target.checked)}
+            />
+            Чатът е активен
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm text-muted-foreground">Праг за свежест (секунди)</span>
+            <input
+              className={INPUT}
+              type="number"
+              value={sloSeconds}
+              onChange={(e) => setSloSeconds(e.target.value)}
+            />
+          </label>
+        </fieldset>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            Запиши
+          </button>
+          {status ? <span className="text-sm text-green-600">{status}</span> : null}
+          {error ? <span className="text-sm text-destructive">{error}</span> : null}
+          {data ? (
+            <span className="text-xs text-muted-foreground">източник: {data.source}</span>
+          ) : null}
+        </div>
+      </form>
+    </div>
+  );
+}

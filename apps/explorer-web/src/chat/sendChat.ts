@@ -62,6 +62,7 @@ export async function sendChat(
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
+    credentials: 'include', // send the Kratos session cookie through Oathkeeper (gated route)
     ...(signal ? { signal } : {}),
   });
   // A non-OK response is a JSON error envelope, not an SSE stream — surface it.
