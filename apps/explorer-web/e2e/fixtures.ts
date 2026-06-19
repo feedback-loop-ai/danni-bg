@@ -318,6 +318,8 @@ function recoveryNode(name: string, type: string, extra: Record<string, unknown>
 
 /** Stub the Kratos recovery flow: create (email step) → submit returns the code-entry step. */
 export async function stubRecovery(page: Page): Promise<void> {
+  // Link-mode recovery (kratos.yaml `recovery.use: link`): submit an email, Kratos emails a magic
+  // link and re-renders the same email form with a confirmation message — there is no in-app code step.
   const emailStep = {
     id: 'rec-1',
     type: 'browser',
@@ -327,19 +329,16 @@ export async function stubRecovery(page: Page): Promise<void> {
       nodes: [
         recoveryNode('csrf_token', 'hidden', { value: 'csrf' }),
         recoveryNode('email', 'email', { required: true }),
-        recoveryNode('method', 'submit', { value: 'code' }),
+        recoveryNode('method', 'submit', { value: 'link' }),
       ],
     },
   };
-  const codeStep = {
+  const linkSentStep = {
     ...emailStep,
     ui: {
       ...emailStep.ui,
-      messages: [{ id: 1, text: 'A recovery code has been sent', type: 'info' }],
-      nodes: [
-        recoveryNode('csrf_token', 'hidden', { value: 'csrf' }),
-        recoveryNode('code', 'text', { required: true }),
-        recoveryNode('method', 'submit', { value: 'code' }),
+      messages: [
+        { id: 1, text: 'A recovery link has been sent to your email address', type: 'info' },
       ],
     },
   };
@@ -351,7 +350,11 @@ export async function stubRecovery(page: Page): Promise<void> {
     }),
   );
   await page.route(/\/kratos\/self-service\/recovery\?/, (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(codeStep) }),
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(linkSentStep),
+    }),
   );
 }
 

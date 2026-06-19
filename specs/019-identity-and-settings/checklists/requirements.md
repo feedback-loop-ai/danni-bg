@@ -9,7 +9,7 @@
 - [X] CHK001 Public-vs-gated split is explicit and enumerated (public browse; gated chat + admin) (FR-053, US1)
 - [X] CHK002 Open self-service signup + default `user` tier + auto-login is specified (FR-054, US1 scenario 2)
 - [X] CHK003 The Oathkeeper→header-injection trust boundary and the backend "trust only headers / 401 if absent" rule are specified (FR-055, Assumptions)
-- [X] CHK004 danni-owned Ory stack (Kratos+Oathkeeper+Postgres+mailslurper) + Kratos-Postgres vs danni-SQLite separation is specified (FR-052, Setup)
+- [X] CHK004 danni-owned Ory stack (Kratos+Oathkeeper+Postgres+mailpit) + Kratos-Postgres vs danni-SQLite separation is specified (FR-052, Setup)
 
 ## Tiers & bootstrap
 

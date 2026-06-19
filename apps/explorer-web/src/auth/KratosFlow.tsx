@@ -160,7 +160,7 @@ export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
       } catch {
         if (active) {
           setFatal(
-            'Услугата за вход е недостъпна. Отворете приложението през dev сървъра (http://localhost:5173) или проверете дали Ory стекът работи.',
+            'Услугата за вход е недостъпна. Отворете приложението на http://localhost:8790 или проверете дали Ory стекът работи.',
           );
         }
       }

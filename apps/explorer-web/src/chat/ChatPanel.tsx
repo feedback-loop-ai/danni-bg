@@ -98,9 +98,14 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
       };
       // Auto-focus the dataset open in the reader: ground the answer in its rows without narrowing
       // scope. A deliberate chatFocus (scope.datasetIds) takes precedence on the backend.
-      const groundingDatasetIds = reader ? [reader.datasetId] : undefined;
       await sendChat(
-        { sessionId, message: question, scope, groundingDatasetIds, provider },
+        {
+          sessionId,
+          message: question,
+          scope,
+          ...(reader ? { groundingDatasetIds: [reader.datasetId] } : {}),
+          provider,
+        },
         {
           onSession: setSessionId,
           onToken: (delta) => {

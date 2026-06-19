@@ -1,11 +1,14 @@
-version: v1.1.0
+version: v26.2.0
 
 # Overridden by the DSN env in docker-compose (points at the dedicated kratos-postgres).
 dsn: memory
 
 serve:
   public:
-    base_url: http://localhost:14433/
+    # Single-port (:8790): the Hono server reverse-proxies /kratos/* to Kratos, so Kratos must build
+    # all browser-facing URLs (magic links, flow actions, redirects) against the proxied origin.
+    # Incoming requests have the /kratos prefix stripped by the proxy before they reach Kratos.
+    base_url: http://localhost:8790/kratos/
     cors:
       enabled: true
       allowed_origins:
@@ -19,8 +22,12 @@ serve:
     base_url: http://localhost:14434/
 
 selfservice:
-  default_browser_return_url: http://localhost:5173/
+  default_browser_return_url: http://localhost:8790/
   allowed_return_urls:
+    - http://localhost:8790
+    - http://localhost:8790/auth/callback
+    - http://localhost:8790/admin/settings
+    # Kept so the optional Vite-dev origin (:5173) can still be a valid return target.
     - http://localhost:5173
     - http://localhost:5173/auth/callback
     - http://localhost:5173/admin/settings
@@ -44,43 +51,43 @@ selfservice:
 
   flows:
     error:
-      ui_url: http://localhost:5173/auth/error
+      ui_url: http://localhost:8790/auth/error
 
     settings:
-      ui_url: http://localhost:5173/auth/settings
+      ui_url: http://localhost:8790/auth/settings
       privileged_session_max_age: 15m
 
     recovery:
       enabled: true
-      ui_url: http://localhost:5173/auth/recovery
-      use: code
+      ui_url: http://localhost:8790/auth/recovery
+      use: link
       lifespan: 1h
       after:
-        default_browser_return_url: http://localhost:5173/auth/login
+        default_browser_return_url: http://localhost:8790/auth/login
 
     verification:
       enabled: true
-      ui_url: http://localhost:5173/auth/verification
-      use: code
+      ui_url: http://localhost:8790/auth/verification
+      use: link
       lifespan: 24h
       after:
-        default_browser_return_url: http://localhost:5173/
+        default_browser_return_url: http://localhost:8790/
 
     logout:
       after:
-        default_browser_return_url: http://localhost:5173/auth/login
+        default_browser_return_url: http://localhost:8790/auth/login
 
     login:
-      ui_url: http://localhost:5173/auth/login
+      ui_url: http://localhost:8790/auth/login
       lifespan: 10m
       after:
-        default_browser_return_url: http://localhost:5173/auth/callback
+        default_browser_return_url: http://localhost:8790/auth/callback
 
     registration:
-      ui_url: http://localhost:5173/auth/register
+      ui_url: http://localhost:8790/auth/register
       lifespan: 10m
       after:
-        default_browser_return_url: http://localhost:5173/auth/callback
+        default_browser_return_url: http://localhost:8790/auth/callback
         password:
           hooks:
             # Open self-service signup: auto-login on registration (session), then
@@ -116,7 +123,9 @@ identity:
 
 courier:
   smtp:
-    connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+    # No credentials: Kratos refuses to send AUTH over an unencrypted connection, and Mailpit
+    # accepts unauthenticated mail by default — so plaintext + no-auth is the working dev combo.
+    connection_uri: smtp://mailpit:1025/?disable_starttls=true
   template_override_path: /etc/config/kratos/templates
 
 session:

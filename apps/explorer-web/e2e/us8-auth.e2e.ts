@@ -44,16 +44,16 @@ test('a signed-in user sees the chat input and their email in the header', async
   await expect(page.getByRole('link', { name: 'Настройки' })).toHaveCount(0);
 });
 
-test('recovery advances to the code-entry step after submitting an email', async ({ page }) => {
+test('recovery confirms a reset link was emailed after submitting an email', async ({ page }) => {
   await stubApi(page);
   await stubAuth(page); // anonymous
   await stubRecovery(page);
   await page.goto('/auth/recovery');
   await page.fill('input[name="email"]', 'forgot@example.com');
-  await page.locator('button[name="method"][value="code"]').first().click();
-  // The multi-step flow re-renders in place with the emailed-code input (not navigating away).
-  await expect(page.locator('input[name="code"]')).toBeVisible();
-  await expect(page.getByText('A recovery code has been sent')).toBeVisible();
+  await page.locator('button[name="method"][value="link"]').first().click();
+  // Link mode re-renders the email form in place with a confirmation message (no in-app code step).
+  await expect(page.getByText('A recovery link has been sent')).toBeVisible();
+  await expect(page.locator('input[name="code"]')).toHaveCount(0);
 });
 
 test('logout runs the Kratos logout flow (same-origin)', async ({ page }) => {
