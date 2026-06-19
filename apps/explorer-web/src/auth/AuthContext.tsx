@@ -52,13 +52,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
+      // Same-origin logout: run the flow via the /kratos proxy and submit the token ourselves rather
+      // than navigating to Kratos's `logout_url` (which redirects to the configured return URL on a
+      // different port). The session cookie is cleared via the proxied Set-Cookie; we then go home.
       const { data } = await kratos.createBrowserLogoutFlow();
-      window.location.href = data.logout_url;
+      await kratos.updateLogoutFlow({ token: data.logout_token });
     } catch {
-      // Already logged out / no session — fall back to a soft reset.
-      setSession(null);
-      setUser(null);
+      // Already logged out / no session — fall through to the reset.
     }
+    setSession(null);
+    setUser(null);
+    window.location.assign('/'); // hard reload re-runs whoami (now 401) → clean anonymous state
   }, []);
 
   useEffect(() => {

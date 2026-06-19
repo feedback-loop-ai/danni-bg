@@ -2,7 +2,7 @@
 // Kratos login form renders. Auth is stubbed (whoami + callback); no live Ory stack.
 
 import { expect, test } from '@playwright/test';
-import { stubApi, stubAuth, stubLoginFlow } from './fixtures.ts';
+import { stubApi, stubAuth, stubLoginFlow, stubLogout } from './fixtures.ts';
 
 test('anonymous visitor can browse but the chat input is replaced by a sign-in prompt', async ({
   page,
@@ -40,4 +40,16 @@ test('a signed-in user sees the chat input and their email in the header', async
   await expect(page.getByText('user@example.com')).toBeVisible();
   // A normal user has no admin settings link.
   await expect(page.getByRole('link', { name: 'Настройки' })).toHaveCount(0);
+});
+
+test('logout runs the Kratos logout flow (same-origin)', async ({ page }) => {
+  await stubApi(page);
+  await stubAuth(page, { id: 'u1', email: 'user@example.com', role: 'user' });
+  await stubLogout(page);
+  await page.goto('/');
+  await expect(page.getByLabel('Въпрос')).toBeVisible(); // signed in
+
+  const logoutFlow = page.waitForRequest('**/kratos/self-service/logout/browser');
+  await page.getByRole('button', { name: 'Изход' }).click();
+  await logoutFlow; // the logout flow was initiated against the same-origin /kratos proxy
 });

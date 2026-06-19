@@ -305,3 +305,21 @@ export async function stubAdminSettings(page: Page): Promise<{ puts: string[] }>
   });
   return handle;
 }
+
+/** Stub the Kratos logout flow (create → token; submit → 204). */
+export async function stubLogout(page: Page): Promise<void> {
+  await page.route('**/kratos/self-service/logout/browser', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        logout_url: 'http://localhost:5173/kratos/self-service/logout?token=tok',
+        logout_token: 'tok',
+      }),
+    }),
+  );
+  // The token submit (GET /self-service/logout?token=...) → cleared.
+  await page.route(/\/kratos\/self-service\/logout\?/, (route) =>
+    route.fulfill({ status: 204, body: '' }),
+  );
+}
