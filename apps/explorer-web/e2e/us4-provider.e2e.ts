@@ -2,10 +2,11 @@
 // reload (FR-024 — kept in localStorage, never server-side).
 
 import { expect, test } from '@playwright/test';
-import { stubApi } from './fixtures.ts';
+import { stubApi, stubAuth } from './fixtures.ts';
 
 test('provider config persists across a reload', async ({ page }) => {
   await stubApi(page);
+  await stubAuth(page, { id: 'u1', email: 'user@example.com', role: 'user' }); // chat panel is gated (spec 019)
   await page.goto('/');
 
   await page.getByRole('button', { name: 'Настройки на доставчика' }).click();

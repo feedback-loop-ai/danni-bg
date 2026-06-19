@@ -13,8 +13,8 @@ test('anonymous visitor can browse but the chat input is replaced by a sign-in p
 
   // Public browse works.
   await expect(page.getByRole('button', { name: /Качество на въздуха/ })).toBeVisible();
-  // Chat is gated: no input, a sign-in prompt + a header login link instead.
-  await expect(page.getByLabel('Въпрос')).toHaveCount(0);
+  // Chat is gated: the panel is blurred behind a centered sign-in prompt + a header login link.
+  await expect(page.getByText(/използвате чата/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Влезте' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Вход' })).toBeVisible();
 });
@@ -38,6 +38,8 @@ test('a signed-in user sees the chat input and their email in the header', async
 
   await expect(page.getByLabel('Въпрос')).toBeVisible();
   await expect(page.getByText('user@example.com')).toBeVisible();
+  // Signed in → no blur overlay prompt.
+  await expect(page.getByText(/използвате чата/)).toHaveCount(0);
   // A normal user has no admin settings link.
   await expect(page.getByRole('link', { name: 'Настройки' })).toHaveCount(0);
 });
