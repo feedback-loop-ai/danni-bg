@@ -15,6 +15,7 @@ import {
   settingsPutSchema,
   togglesSchema,
 } from '../admin/settings-schema.ts';
+import type { SessionResolver } from '../auth/kratos-session.ts';
 import { serverDefaultFromEnv } from '../chat/providers.ts';
 import { type AuthEnv, requireAdmin, requireAuth } from '../middleware/require-auth.ts';
 
@@ -56,9 +57,13 @@ function togglesView(settings: PlatformSettingsRepo): Record<string, unknown> {
   return raw != null ? togglesSchema.parse(raw) : {};
 }
 
-export function adminRoutes(users: UsersRepo, settings: PlatformSettingsRepo): Hono<AuthEnv> {
+export function adminRoutes(
+  users: UsersRepo,
+  settings: PlatformSettingsRepo,
+  resolveSession?: SessionResolver,
+): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
-  app.use('*', requireAuth(users), requireAdmin);
+  app.use('*', requireAuth(users, resolveSession), requireAdmin);
 
   app.get('/settings', (c) => {
     const { source, llm } = maskedLlm(settings);

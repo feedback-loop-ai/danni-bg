@@ -11,6 +11,7 @@ import { MUNICIPALITIES, OBLASTS } from '../../../src/enrich/gazetteer/bg-admin.
 import type { PlatformSettingsRepo } from '../../../src/store/repos/platform-settings.ts';
 import type { UsersRepo } from '../../../src/store/repos/users.ts';
 import { resolveServerDefault } from './admin/resolve-default.ts';
+import type { SessionResolver } from './auth/kratos-session.ts';
 import { capDatasetDetail } from './chat/cap.ts';
 import {
   type ProviderConfig,
@@ -61,6 +62,9 @@ export interface AppContext {
   settings?: PlatformSettingsRepo;
   /** Kratos public base URL (for the logout flow URL). */
   kratosPublicUrl?: string;
+  /** Validate a Kratos session cookie directly (single-port mode, no Oathkeeper). When omitted, only
+   * Oathkeeper's injected X-User-* headers are trusted (used by hermetic tests). */
+  sessionResolver?: SessionResolver;
 }
 
 const LABELS = new Map<string, { labelBg: string; labelEn: string | null }>([
@@ -111,7 +115,7 @@ export function createApp(ctx: AppContext): Hono {
   // middleware onto the app's default env (it only gates + sets `user`, which chatHandler ignores).
   app.post(
     '/api/chat',
-    requireAuth(ctx.users) as MiddlewareHandler,
+    requireAuth(ctx.users, ctx.sessionResolver) as MiddlewareHandler,
     chatHandler({
       bridge: ctx.bridge,
       sessions: chat.sessions,
@@ -121,11 +125,14 @@ export function createApp(ctx: AppContext): Hono {
 
   // Backend auth endpoints (find-or-create app user + tier; logout URL). Self-service login/register
   // are Kratos flows driven by the SPA via the /kratos proxy.
-  app.route('/api/auth', authRoutes(ctx.users, ctx.kratosPublicUrl ?? 'http://localhost:14433'));
+  app.route(
+    '/api/auth',
+    authRoutes(ctx.users, ctx.kratosPublicUrl ?? 'http://localhost:14433', ctx.sessionResolver),
+  );
 
   // Admin platform settings (spec 019) — mounted only when a settings repo is wired (always in prod).
   if (ctx.settings) {
-    app.route('/api/admin', adminRoutes(ctx.users, ctx.settings));
+    app.route('/api/admin', adminRoutes(ctx.users, ctx.settings, ctx.sessionResolver));
   }
 
   app.get('/healthz', (c) => {
