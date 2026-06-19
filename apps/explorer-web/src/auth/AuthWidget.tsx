@@ -16,9 +16,12 @@ export function AuthWidget() {
   }
   return (
     <div className="flex items-center gap-3 text-sm">
+      <Link to="/auth/settings" className="text-primary hover:underline">
+        Настройки
+      </Link>
       {isAdmin ? (
         <Link to="/admin/settings" className="text-primary hover:underline">
-          Настройки
+          Платформа
         </Link>
       ) : null}
       <span className="hidden text-muted-foreground sm:inline">{user.email}</span>

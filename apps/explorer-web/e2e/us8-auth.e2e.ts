@@ -40,8 +40,9 @@ test('a signed-in user sees the chat input and their email in the header', async
   await expect(page.getByText('user@example.com')).toBeVisible();
   // Signed in → no blur overlay prompt.
   await expect(page.getByText(/използвате чата/)).toHaveCount(0);
-  // A normal user has no admin settings link.
-  await expect(page.getByRole('link', { name: 'Настройки' })).toHaveCount(0);
+  // A normal user has their own settings link but not the admin platform one.
+  await expect(page.getByRole('link', { name: 'Настройки' })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Платформа' })).toHaveCount(0);
 });
 
 test('recovery confirms a reset link was emailed after submitting an email', async ({ page }) => {
