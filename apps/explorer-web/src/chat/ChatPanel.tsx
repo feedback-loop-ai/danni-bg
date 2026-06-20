@@ -1,4 +1,4 @@
-import { ArrowUp, Square, SquarePen, X } from 'lucide-react';
+import { ArrowUp, Plus, Square, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import { Link } from 'react-router-dom';
@@ -273,7 +273,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             onClick={newChat}
             className="absolute bottom-2 left-2 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-all hover:scale-110 hover:bg-accent hover:text-accent-foreground active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-transparent"
           >
-            <SquarePen className="size-4" />
+            <Plus className="size-4" />
           </button>
           {streaming ? (
             <button
