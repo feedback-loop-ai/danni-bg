@@ -92,6 +92,9 @@ able to ground on that municipality's datasets.
    (so the model can only retrieve in-scope datasets) and the region-datasets fallback.
 2. Asking, under an oblast scope, about a municipality in that oblast returns grounded citations from
    the municipality's datasets (which a flat oblast scope would have excluded).
+3. A **generic** question under a tight geo-scope (e.g. "регистри" scoped to one oblast) still
+   retrieves the region's datasets — retrieval must not starve because the globally top-ranked hits
+   fall outside the region.
 
 ### Edge Cases
 - Empty selection → no geo filter (full mirror), as before.
@@ -117,6 +120,10 @@ able to ground on that municipality's datasets.
   facet counts, the national view, the regions endpoint, and the keyword-search path.
 - **FR-099**: The grounded chat's geo-scope MUST be expanded identically, so scoping chat to an oblast
   includes its municipalities' datasets in both the hard scope filter and the region-datasets fallback.
+- **FR-100**: Under an active geo-scope, chat retrieval MUST be scope-aware: the `mirrorSearch` tool
+  and the RAG path MUST over-fetch the ranked results and backfill directly from the region's datasets,
+  so a generic query never returns empty when the region holds matching data (filtering a global
+  top-N after ranking is insufficient for a small region).
 
 ## Success Criteria *(mandatory)*
 
@@ -128,10 +135,9 @@ able to ground on that municipality's datasets.
   `geoUnitIds`; the drill-down union carries only the municipalities (no oblast id).
 - **SC-004**: Under an oblast chat-scope, a municipality-specific question grounds on that
   municipality's datasets (verified: 28 citations, "Казанлък" in the injected grounding).
+- **SC-005**: A generic query under a tight geo-scope retrieves the region's datasets instead of
+  starving (verified: "регистри" scoped to Стара Загора went from 0 citations / 30 floundering
+  searches to 58 citations / 2 searches after the scope-aware over-fetch + backfill).
 
 ## Out of scope
-- The chat tool-loop's global-search-then-scope-filter **recall** (top-ranked national hits for a
-  generic query may not fall in a small region, so a tool-calling model can still surface little under
-  a tight geo-scope). The expansion fixes the *filter semantics*, not retrieval ranking — a separate
-  follow-up.
 - Cross-level roll-up beyond municipality→oblast (e.g. region groupings of oblasts).

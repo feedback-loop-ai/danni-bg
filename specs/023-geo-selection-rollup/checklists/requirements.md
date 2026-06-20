@@ -16,6 +16,8 @@ Retrospective verification for spec 023 (all items met on `main`).
 - [x] FR-098 — Expansion applied across list / facets / national / regions / keyword-search.
 - [x] FR-099 — Chat geo-scope expanded identically (hard filter + fallback). *(live: oblast scope
   grounds on Казанлък municipality datasets)*
+- [x] FR-100 — Scope-aware retrieval: over-fetch + region backfill in `mirrorSearch` and the RAG path.
+  *(live: "регистри" under an oblast scope 0→58 citations)*
 
 ## Success criteria
 
@@ -23,6 +25,8 @@ Retrospective verification for spec 023 (all items met on `main`).
 - [x] SC-002 — Municipality total exact (Казанлък 33).
 - [x] SC-003 — Multi-select issues both `geoUnitIds`; drill union excludes the oblast.
 - [x] SC-004 — Oblast chat-scope grounds on a municipality's datasets (28 citations).
+- [x] SC-005 — Generic query under a tight geo-scope retrieves the region (регистри + Стара Загора:
+  0→58 citations, 30→2 searches).
 
 ## Quality gates
 
@@ -31,7 +35,7 @@ Retrospective verification for spec 023 (all items met on `main`).
 - [x] 181 explorer-api `bun:test` + web unit tests + tsc + biome green; CI green on PRs #66/#67.
 - [x] Backward-compatible API (semantic-only change to `geoUnitIds`).
 
-## Known limitation
+## Resolved follow-up
 
-- [ ] Tool-loop retrieval recall under a tight geo-scope is unchanged (global-rank-then-filter) —
-  tracked as a follow-up; this feature fixes filter semantics, not ranking.
+- [x] Tool-loop retrieval recall under a tight geo-scope — fixed by scope-aware over-fetch + region
+  backfill (FR-100), so the feature now corrects both filter semantics *and* retrieval.

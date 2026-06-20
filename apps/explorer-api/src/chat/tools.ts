@@ -17,6 +17,12 @@ export interface BuildToolsResult {
   citedDatasetIds: Set<string>;
 }
 
+// Under a geo-scope, global ranked search rarely puts a small region's datasets in the top-10, so a
+// scope filter applied AFTER ranking starves retrieval (FR-100). Over-fetch the ranking, then backfill
+// straight from the region's datasets so a tight scope can't return empty when the region has data.
+// Shared with the RAG fallback path (run.ts).
+export const GEO_SCOPED_SEARCH_LIMIT = 200;
+
 function pointer(view: CuratedDatasetView, score: number | null) {
   return {
     datasetId: view.datasetId,
@@ -53,13 +59,33 @@ export function buildTools(bridge: ReadBridge, scope: ScopeDescriptor): BuildToo
         limit: z.number().int().min(1).max(50).optional(),
       }),
       execute: async ({ query, lang, limit }) => {
-        const hits = await bridge.search(query, lang, limit ?? 10);
-        const results = [];
-        for (const hit of hits) {
-          const view = resolveScoped(hit.datasetId);
-          if (!view) continue;
+        const want = limit ?? 10;
+        const geoScoped = (scope.geoUnitIds?.length ?? 0) > 0;
+        const results: ReturnType<typeof pointer>[] = [];
+        const seen = new Set<string>();
+        const take = (view: CuratedDatasetView | null, score: number | null): boolean => {
+          if (!view || seen.has(view.datasetId)) return false;
+          seen.add(view.datasetId);
           citedDatasetIds.add(view.datasetId);
-          results.push(pointer(view, hit.score));
+          results.push(pointer(view, score));
+          return true;
+        };
+        // Over-fetch under a geo-scope so in-region datasets that rank lower globally still surface.
+        const hits = await bridge.search(query, lang, geoScoped ? GEO_SCOPED_SEARCH_LIMIT : want);
+        for (const hit of hits) {
+          if (results.length >= want) break;
+          take(resolveScoped(hit.datasetId), hit.score);
+        }
+        // Still short under a geo-scope? Backfill straight from the region's datasets (the scope's
+        // geoUnitIds are already rolled up to oblast + municipalities) so a tight scope never starves.
+        if (geoScoped && results.length < want) {
+          for (const geoId of scope.geoUnitIds ?? []) {
+            if (results.length >= want) break;
+            for (const hit of await bridge.entityDatasets(geoId, want)) {
+              if (results.length >= want) break;
+              take(resolveScoped(hit.datasetId), hit.score);
+            }
+          }
         }
         return { results };
       },

@@ -18,7 +18,7 @@ import {
   buildCitations,
 } from './grounding.ts';
 import { inScope } from './scope.ts';
-import { buildTools } from './tools.ts';
+import { GEO_SCOPED_SEARCH_LIMIT, buildTools } from './tools.ts';
 
 export interface ChatTurnEvents {
   onToken?: (delta: string) => void;
@@ -305,10 +305,19 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
   };
   // Seed any explicitly focused datasets ("ask about this dataset") first.
   for (const id of scope.datasetIds ?? []) add(resolve(id));
-  for (const hit of await bridge.search(query, undefined, 12)) add(resolve(hit.datasetId));
-  // Scope-aware fallback: if ranked search surfaced nothing within a geo-scoped view, the relevant
-  // datasets simply didn't rank — pull the region's datasets directly so scoping narrows, not empties.
-  if (candidates.length === 0) {
+  const geoScoped = (scope.geoUnitIds?.length ?? 0) > 0;
+  // Over-fetch under a geo-scope so in-region datasets that rank lower globally still surface.
+  for (const hit of await bridge.search(
+    query,
+    undefined,
+    geoScoped ? GEO_SCOPED_SEARCH_LIMIT : 12,
+  )) {
+    add(resolve(hit.datasetId));
+  }
+  // Scope-aware backfill: ranked search under a geo-scope under-surfaces a small region's datasets, so
+  // pull the region's datasets directly (the geoUnitIds are rolled up to oblast + municipalities) to
+  // fill out the candidates — scoping should narrow, not empty.
+  if (geoScoped && candidates.length < RAG_LIMIT) {
     for (const geoId of scope.geoUnitIds ?? []) {
       for (const hit of await bridge.entityDatasets(geoId, RAG_LIMIT)) add(resolve(hit.datasetId));
     }
