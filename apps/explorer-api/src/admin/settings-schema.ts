@@ -25,6 +25,8 @@ export const togglesSchema = z
     defaultTokenLimit: z.number().int().nonnegative().optional(),
     // Weight (0–1) at which cache-hit input tokens count toward the quota; unset = 0.1.
     cachedTokenWeight: z.number().min(0).max(1).optional(),
+    // Max tokens the model may generate per answer; unset = built-in default (4096).
+    maxOutputTokens: z.number().int().positive().optional(),
   })
   .strict();
 export type Toggles = z.infer<typeof togglesSchema>;

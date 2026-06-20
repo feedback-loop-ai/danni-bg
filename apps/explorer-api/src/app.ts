@@ -124,6 +124,7 @@ export function createApp(ctx: AppContext): Hono {
   };
   const resolveDefaultTokenLimit = (): number | undefined => resolveToggles()?.defaultTokenLimit;
   const resolveCacheWeight = (): number | undefined => resolveToggles()?.cachedTokenWeight;
+  const resolveMaxOutputTokens = (): number | undefined => resolveToggles()?.maxOutputTokens;
 
   // Gated chat (spec 019): requireAuth runs before the streaming handler — anon → 401, else the
   // session's app user is resolved/created and the turn proceeds. The cast bridges the auth-typed
@@ -138,6 +139,7 @@ export function createApp(ctx: AppContext): Hono {
       ...(ctx.tokenUsage ? { usage: ctx.tokenUsage } : {}),
       defaultTokenLimit: resolveDefaultTokenLimit,
       cacheWeight: resolveCacheWeight,
+      maxOutputTokens: resolveMaxOutputTokens,
     }),
   );
 

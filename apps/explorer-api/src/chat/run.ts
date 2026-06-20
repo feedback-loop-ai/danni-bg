@@ -83,6 +83,8 @@ export interface RunChatTurnOptions {
    */
   groundingDatasetIds?: string[];
   maxSteps?: number;
+  /** Max tokens the model may generate; defaults to MAX_OUTPUT_TOKENS. */
+  maxOutputTokens?: number;
   events?: ChatTurnEvents;
 }
 
@@ -228,7 +230,7 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
     system,
     messages,
     tools,
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
+    maxOutputTokens: opts.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
     stopWhen: stepCountIs(opts.maxSteps ?? DEFAULT_MAX_STEPS),
   });
 
@@ -339,7 +341,7 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
     model,
     system,
     messages: [{ role: 'user', content: userMsg }],
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
+    maxOutputTokens: opts.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
   });
   let text = '';
   for await (const part of result.fullStream) {
