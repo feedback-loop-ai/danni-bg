@@ -21,6 +21,12 @@ capabilities each have their own spec:
 - 020 persistent & resumable chat sessions (`chat_sessions`/`chat_messages`, `/api/me/sessions`),
   mid-stream resume via the in-memory `GenerationManager` + `/api/me/generations/:id/{stream,stop}` —
   supersedes FR-019 (chat history is now persisted per user)
+- 021 per-user token metering & quotas (`token_usage`, `users.token_limit/usage_reset_at`,
+  `chat/quota.ts`; admin `/api/admin/usage` + per-user limit/reset, `/api/me/usage`; cache-hit
+  weighting + admin-configurable `defaultTokenLimit`/`cachedTokenWeight`/`maxOutputTokens`)
+- 022 account & chat-UX (avatar `UserMenu`, display name from Kratos traits, profile pictures
+  `users.avatar_url` + `/api/me/avatar`, full `/auth/settings` page, appearance in settings, header
+  GitHub link, chat input-bar layout/tooltips, removed in-chat provider override)
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->
