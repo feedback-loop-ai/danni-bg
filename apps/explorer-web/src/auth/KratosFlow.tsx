@@ -265,8 +265,8 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: 'system', label: 'Системен' },
 ];
 
-// Appearance is a purely client-side preference (localStorage + a `.dark` class on <html>), shared
-// with the header ThemeToggle via lib/theme.ts — it is not part of the Kratos flow.
+// Appearance is a purely client-side preference (localStorage + a `.dark` class on <html>) applied
+// by App via lib/theme.ts — it is not part of the Kratos flow.
 function AppearanceSection() {
   const [theme, setTheme] = useState<Theme>(() => loadTheme(localStorage));
   function choose(next: Theme) {
