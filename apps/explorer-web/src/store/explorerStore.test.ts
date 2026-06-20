@@ -6,7 +6,6 @@ describe('explorerStore', () => {
   beforeEach(() => {
     explorerStore.setState({
       filters: { ...EMPTY_FILTERS },
-      selectedRegionId: null,
       highlight: { geoEntityIds: [], datasetIds: [] },
       chatFocus: null,
     });
@@ -24,12 +23,19 @@ describe('explorerStore', () => {
     expect(explorerStore.getState().filters.tags).toEqual(['въздух']);
   });
 
-  it('selectRegion syncs the geo filter (FR-009) and clears on null', () => {
-    explorerStore.getState().selectRegion('geo:bg-oblast-ruse');
-    expect(explorerStore.getState().selectedRegionId).toBe('geo:bg-oblast-ruse');
+  it('selectRegions syncs the geo filter (FR-009) and clears on []', () => {
+    explorerStore.getState().selectRegions(['geo:bg-oblast-ruse']);
     expect(explorerStore.getState().filters.geoUnitIds).toEqual(['geo:bg-oblast-ruse']);
-    explorerStore.getState().selectRegion(null);
+    explorerStore.getState().selectRegions([]);
     expect(explorerStore.getState().filters.geoUnitIds).toEqual([]);
+  });
+
+  it('selectRegions sets a multi-region union (geoUnitIds is OR-matched downstream)', () => {
+    explorerStore.getState().selectRegions(['geo:bg-oblast-ruse', 'geo:bg-oblast-varna']);
+    expect(explorerStore.getState().filters.geoUnitIds).toEqual([
+      'geo:bg-oblast-ruse',
+      'geo:bg-oblast-varna',
+    ]);
   });
 
   it('setHighlight stores the anchor; clearFilters resets filters + highlight (FR-028)', () => {

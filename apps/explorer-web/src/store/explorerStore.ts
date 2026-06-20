@@ -25,14 +25,19 @@ export interface ReaderTarget {
 
 export interface ExplorerState {
   filters: FilterState;
-  selectedRegionId: string | null;
   highlight: MapAnchor;
   chatFocus: ChatFocus | null;
   reader: ReaderTarget | null;
   setFilters: (f: FilterState) => void;
   updateFilters: (fn: (f: FilterState) => FilterState) => void;
   clearFilters: () => void;
-  selectRegion: (entityId: string | null) => void;
+  /**
+   * Set the map's selected regions. The selection IS `filters.geoUnitIds` (single source of
+   * truth — map highlight and filter chips stay consistent). The map computes the next set
+   * (shift-click = additive union; plain click = replace; drilling refines to municipalities);
+   * pass `[]` to clear.
+   */
+  selectRegions: (entityIds: string[]) => void;
   setHighlight: (anchor: MapAnchor) => void;
   setChatFocus: (focus: ChatFocus | null) => void;
   openReader: (target: ReaderTarget) => void;
@@ -43,19 +48,17 @@ const NO_HIGHLIGHT: MapAnchor = { geoEntityIds: [], datasetIds: [] };
 
 export const explorerStore = createStore<ExplorerState>((set) => ({
   filters: { ...EMPTY_FILTERS },
-  selectedRegionId: null,
   highlight: NO_HIGHLIGHT,
   chatFocus: null,
   reader: null,
   setFilters: (filters) => set({ filters }),
   updateFilters: (fn) => set((s) => ({ filters: fn(s.filters) })),
   clearFilters: () => set({ filters: clearAll(), highlight: NO_HIGHLIGHT }),
-  // Selecting a region also constrains the geo filter so map and lists stay consistent (FR-009).
-  selectRegion: (entityId) =>
-    set((s) => ({
-      selectedRegionId: entityId,
-      filters: { ...s.filters, geoUnitIds: entityId ? [entityId] : [] },
-    })),
+  // Region selection constrains the geo filter so map and lists stay consistent (FR-009).
+  // Only geoUnitIds changes — the other filter arrays keep their refs so the choropleth layers
+  // (memoized on those refs in App.tsx) are not refetched on selection.
+  selectRegions: (entityIds) =>
+    set((s) => ({ filters: { ...s.filters, geoUnitIds: entityIds } })),
   setHighlight: (highlight) => set({ highlight }),
   setChatFocus: (chatFocus) => set({ chatFocus }),
   openReader: (reader) => set({ reader }),
