@@ -92,8 +92,9 @@ const RAG_LIMIT = 6;
 // per-turn read + prompt size stay reasonable; the rest are still listed by title as an index.
 const RAG_GROUNDING_DATASETS = 3;
 // Always reserve output room so a borderline-large input can't make the provider compute a
-// non-positive output budget (vLLM reports "requested 0 output tokens"). Grounded answers are short.
-const MAX_OUTPUT_TOKENS = 1500;
+// non-positive output budget (vLLM reports "requested 0 output tokens"). Cyrillic is token-heavy, so
+// keep this generous enough that a detailed enumerated answer isn't truncated mid-sentence.
+const MAX_OUTPUT_TOKENS = 4096;
 // A comparison-across-periods question needs one readResource per period (each a separate dataset)
 // plus the initial search/info; 6 steps ran out after reading a single year. Tool results are now
 // size-capped, so a deeper loop stays well within the context window.
