@@ -18,6 +18,7 @@ import json
 
 from cases import CASES, NO_DATA_REPLY, Case
 from chat_client import chat, dataset_detail, dataset_rows_sample
+from guards import grounding_violations
 from metrics import faithfulness_metric, refusal_metric, tool_correctness_metric
 
 # Per-dataset row sample size fed to the judge as ground truth (bounded so the judge
@@ -103,6 +104,16 @@ def case_run(request):
 def test_no_provider_error(case_run):
     case, result = case_run
     assert result.error is None, f"[{case.id}] chat returned error: {result.error}"
+
+
+def test_grounding_invariants(case_run):
+    """Judge-independent anti-fabrication guard (deterministic). Catches the chat's
+    one real failure mode — inventing dataset ids or inflating a 'над N набора' count
+    beyond what was grounded — without depending on the (weak) LLM judge. See guards.py.
+    """
+    case, result = case_run
+    violations = grounding_violations(result.text, result.grounding_text)
+    assert not violations, f"[{case.id}] grounding violations: " + "; ".join(violations)
 
 
 def test_quality(case_run):
