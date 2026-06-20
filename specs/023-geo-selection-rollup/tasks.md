@@ -32,7 +32,17 @@ Retrospective task list (all complete). Grouped by the PR that landed them.
   municipality's datasets (28 citations, "Казанлък" in the injected grounding); 181 explorer-api
   tests + tsc + biome green.
 
+## Phase 4 — Scope-aware retrieval (recall fix, backend)
+
+- [x] T012 `mirrorSearch` tool: under a geo-scope, over-fetch the ranking (`GEO_SCOPED_SEARCH_LIMIT`)
+  and backfill from the region's datasets (`entityDatasets` over the rolled-up geoUnitIds) so a tight
+  scope never starves. (`chat/tools.ts`) — FR-100
+- [x] T013 RAG path: same over-fetch + always-backfill-when-geo-scoped (not only on empty).
+  (`chat/run.ts`, sharing `GEO_SCOPED_SEARCH_LIMIT`) — FR-100
+- [x] T014 Verify: "регистри" under a Стара Загора scope 0→58 citations (was 30 floundering searches,
+  now 2); 181 explorer-api tests + tsc + biome green.
+
 ## Notes
 - No new tables/columns; reuses `entity_relations` `part_of` (specs 013/016).
-- Out of scope: tool-loop retrieval recall under a tight geo-scope (filter semantics fixed; ranking
-  unchanged).
+- The underlying index `search()` has no geo restriction; the fix lives at the chat layer
+  (over-fetch + region backfill) rather than changing the index query.
