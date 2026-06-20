@@ -79,4 +79,29 @@ describe('store.repos.users', () => {
     expect(repo.findByKratosId('missing')).toBeNull();
     expect(repo.get('missing')).toBeNull();
   });
+
+  it('refreshes display_name on login but never wipes it with a null (COALESCE)', () => {
+    repo.findOrCreateByKratosId({ kratosIdentityId: 'k5', email: 'n@example.com', displayName: 'Анна' });
+    // A later session without a name keeps the stored one...
+    expect(repo.findOrCreateByKratosId({ kratosIdentityId: 'k5', email: 'n@example.com' }).display_name).toBe('Анна');
+    // ...but a session that carries a name updates it.
+    expect(
+      repo.findOrCreateByKratosId({ kratosIdentityId: 'k5', email: 'n@example.com', displayName: 'Анна Иванова' })
+        .display_name,
+    ).toBe('Анна Иванова');
+  });
+
+  it('setTokenLimit + resetUsage update the per-user quota fields and report matches', () => {
+    const u = repo.findOrCreateByKratosId({ kratosIdentityId: 'k6', email: 'q@example.com' });
+    expect(u.token_limit).toBeNull();
+    expect(u.usage_reset_at).toBeNull();
+    expect(repo.setTokenLimit(u.id, 1000)).toBe(true);
+    expect(repo.get(u.id)?.token_limit).toBe(1000);
+    expect(repo.setTokenLimit(u.id, null)).toBe(true); // clear → platform default
+    expect(repo.get(u.id)?.token_limit).toBeNull();
+    expect(repo.resetUsage(u.id, '2026-06-20T00:00:00Z')).toBe(true);
+    expect(repo.get(u.id)?.usage_reset_at).toBe('2026-06-20T00:00:00Z');
+    expect(repo.setTokenLimit('missing', 5)).toBe(false);
+    expect(repo.resetUsage('missing')).toBe(false);
+  });
 });

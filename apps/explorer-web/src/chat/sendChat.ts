@@ -68,9 +68,13 @@ export async function sendChat(
   // A non-OK response is a JSON error envelope, not an SSE stream — surface it.
   if (!res.ok) {
     const envelope = (await res.json().catch(() => null)) as {
-      error?: { message?: string };
+      error?: { code?: string; message?: string };
     } | null;
-    cb.onError?.(envelope?.error?.message ?? `request failed (${res.status})`);
+    const msg =
+      envelope?.error?.code === 'quota_exceeded'
+        ? 'Достигнахте лимита си на токени за чата. Свържете се с администратор.'
+        : (envelope?.error?.message ?? `request failed (${res.status})`);
+    cb.onError?.(msg);
     return;
   }
   if (!res.body) {

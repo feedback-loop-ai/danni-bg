@@ -7,6 +7,9 @@ import type { LanguageModel, ModelMessage } from 'ai';
 import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
+import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts';
+import type { UserRow } from '../../../../src/store/repos/users.ts';
+import { effectiveLimit, quotaView } from '../chat/quota.ts';
 import { runChatTurn } from '../chat/run.ts';
 import { MAX_CONTEXT_DATASETS, type SessionStore, windowMessages } from '../chat/session.ts';
 import { log } from '../logging.ts';
@@ -36,6 +39,10 @@ export interface ChatRouteDeps {
   bridge: ReadBridge;
   sessions: SessionStore;
   selectModel: (provider: ProviderConfig) => LanguageModel;
+  /** Per-user token metering (optional; omitted in focused unit tests). */
+  usage?: TokenUsageRepo;
+  /** Resolve the platform default token quota (0/undefined = unlimited) per request. */
+  defaultTokenLimit?: () => number | undefined;
 }
 
 export function chatHandler(deps: ChatRouteDeps) {
@@ -48,6 +55,26 @@ export function chatHandler(deps: ChatRouteDeps) {
         { error: { code: 'bad_request', message: 'invalid chat request', details: String(e) } },
         400,
       );
+    }
+
+    // Enforce the per-user token quota up front (token metering): an over-quota user is rejected with
+    // 429 before any model work. `user` is set by requireAuth; metering is skipped if no repo is wired.
+    const user = c.get('user') as UserRow | undefined;
+    if (deps.usage && user) {
+      const limit = effectiveLimit(user.token_limit, deps.defaultTokenLimit?.());
+      const { used } = deps.usage.usageForUser(user.id, user.usage_reset_at);
+      if (quotaView(used, limit).exceeded) {
+        return c.json(
+          {
+            error: {
+              code: 'quota_exceeded',
+              message: 'token quota exceeded',
+              details: { used, limit },
+            },
+          },
+          429,
+        );
+      }
     }
 
     const conv = deps.sessions.getOrCreate(body.sessionId ?? null);
@@ -85,6 +112,8 @@ export function chatHandler(deps: ChatRouteDeps) {
         });
       });
     }
+    const modelId =
+      typeof model === 'string' ? model : ((model as { modelId?: string }).modelId ?? null);
 
     // Replay only the recent window so a long conversation can't overflow the context (grounding
     // rows live in the system prompt, not the transcript).
@@ -114,6 +143,17 @@ export function chatHandler(deps: ChatRouteDeps) {
             },
           },
         });
+        // Meter the turn's token usage against the signed-in user (token metering).
+        if (deps.usage && user && result.usage) {
+          deps.usage.record({
+            userId: user.id,
+            sessionId: conv.sessionId,
+            model: modelId,
+            inputTokens: result.usage.inputTokens,
+            outputTokens: result.usage.outputTokens,
+            totalTokens: result.usage.totalTokens,
+          });
+        }
         if (body.debug && result.groundingText) {
           await stream.writeSSE({
             event: 'grounding',

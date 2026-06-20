@@ -21,6 +21,8 @@ export const togglesSchema = z
   .object({
     freshnessSloSeconds: z.number().int().positive().optional(),
     chatEnabled: z.boolean().optional(),
+    // Default per-user chat-token quota; 0 (or unset) = unlimited. A user's own `token_limit` overrides.
+    defaultTokenLimit: z.number().int().nonnegative().optional(),
   })
   .strict();
 export type Toggles = z.infer<typeof togglesSchema>;

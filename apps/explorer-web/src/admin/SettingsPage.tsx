@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { type AdminSettings, type SettingsPut, getSettings, putSettings } from '../lib/adminApi.ts';
+import { AdminUsage } from './AdminUsage.tsx';
 
 const INPUT =
   'w-full rounded border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring';
@@ -16,6 +17,7 @@ export function SettingsPage() {
   const [apiKey, setApiKey] = useState('');
   const [chatEnabled, setChatEnabled] = useState(true);
   const [sloSeconds, setSloSeconds] = useState('');
+  const [defaultTokenLimit, setDefaultTokenLimit] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +29,7 @@ export function SettingsPage() {
     setApiKey('');
     setChatEnabled(s.toggles.chatEnabled ?? true);
     setSloSeconds(s.toggles.freshnessSloSeconds ? String(s.toggles.freshnessSloSeconds) : '');
+    setDefaultTokenLimit(s.toggles.defaultTokenLimit ? String(s.toggles.defaultTokenLimit) : '');
   }
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export function SettingsPage() {
       toggles: {
         chatEnabled,
         ...(sloSeconds ? { freshnessSloSeconds: Number.parseInt(sloSeconds, 10) } : {}),
+        ...(defaultTokenLimit ? { defaultTokenLimit: Number.parseInt(defaultTokenLimit, 10) } : {}),
       },
     };
     try {
@@ -55,7 +59,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto mt-10 w-full max-w-lg space-y-5 px-4">
+    <div className="mx-auto mt-10 w-full max-w-3xl space-y-6 px-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Настройки на платформата</h1>
         <Link to="/" className="text-sm text-primary hover:underline">
@@ -122,6 +126,17 @@ export function SettingsPage() {
               onChange={(e) => setSloSeconds(e.target.value)}
             />
           </label>
+          <label className="block space-y-1">
+            <span className="text-sm text-muted-foreground">
+              Лимит токени по подразбиране (0 = без лимит)
+            </span>
+            <input
+              className={INPUT}
+              type="number"
+              value={defaultTokenLimit}
+              onChange={(e) => setDefaultTokenLimit(e.target.value)}
+            />
+          </label>
         </fieldset>
 
         <div className="flex items-center gap-3">
@@ -138,6 +153,8 @@ export function SettingsPage() {
           ) : null}
         </div>
       </form>
+
+      <AdminUsage />
     </div>
   );
 }

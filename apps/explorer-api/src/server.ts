@@ -10,6 +10,7 @@ import { loadConfig } from '../../../src/config/loader.ts';
 import { buildEmbedder } from '../../../src/index/embedders/factory.ts';
 import { openDb } from '../../../src/store/db.ts';
 import { PlatformSettingsRepo } from '../../../src/store/repos/platform-settings.ts';
+import { TokenUsageRepo } from '../../../src/store/repos/token-usage.ts';
 import { UsersRepo } from '../../../src/store/repos/users.ts';
 import { resolveServerDefault } from './admin/resolve-default.ts';
 import { LLM_SETTING_KEY } from './admin/settings-schema.ts';
@@ -69,6 +70,7 @@ export function main(): void {
     crosswalk: new Crosswalk(loadCrosswalk()),
     health: () => buildHealth(db, slo, settings),
     users: new UsersRepo(db),
+    tokenUsage: new TokenUsageRepo(db),
     settings,
     kratosPublicUrl: kratosUrl,
     // Single-port mode: validate the Kratos session ourselves so the app works without Oathkeeper

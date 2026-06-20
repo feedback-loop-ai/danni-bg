@@ -25,6 +25,12 @@ export interface ChatTurnEvents {
   onTool?: (name: string, status: 'start' | 'done') => void;
 }
 
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
 export interface ChatTurnResult {
   text: string;
   citations: Citation[];
@@ -35,6 +41,22 @@ export interface ChatTurnResult {
    * offline faithfulness evals — emitted to clients only on explicit debug request.
    */
   groundingText?: string | undefined;
+  /** Token usage for the turn (summed across tool steps), for per-user metering. */
+  usage?: TokenUsage | undefined;
+}
+
+/** Read token usage off a streamText result; tolerates providers that omit fields. */
+async function readUsage(result: { totalUsage: PromiseLike<unknown> }): Promise<TokenUsage> {
+  try {
+    const u = (await result.totalUsage) as
+      | { inputTokens?: number; outputTokens?: number; totalTokens?: number }
+      | undefined;
+    const inputTokens = u?.inputTokens ?? 0;
+    const outputTokens = u?.outputTokens ?? 0;
+    return { inputTokens, outputTokens, totalTokens: u?.totalTokens ?? inputTokens + outputTokens };
+  } catch {
+    return { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+  }
 }
 
 export interface RunChatTurnOptions {
@@ -224,8 +246,9 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
     }
   }
 
+  const usage = await readUsage(result);
   if (text.trim() === '') {
-    return { text: NO_DATA_REPLY, citations: [], anchors: EMPTY_ANCHOR };
+    return { text: NO_DATA_REPLY, citations: [], anchors: EMPTY_ANCHOR, usage };
   }
   // Cite the focused datasets (their rows were the ground truth) plus any the model read via tools.
   const citations = buildCitations([...(focus?.ids ?? []), ...citedDatasetIds], resolve, (v) =>
@@ -236,6 +259,7 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
     text,
     citations,
     anchors: buildAnchors(citations, resolve),
+    usage,
     ...(groundingText ? { groundingText } : {}),
   };
 }
@@ -314,8 +338,9 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
     }
   }
 
+  const usage = await readUsage(result);
   if (text.trim() === '') {
-    return { text: NO_DATA_REPLY, citations: [], anchors: EMPTY_ANCHOR };
+    return { text: NO_DATA_REPLY, citations: [], anchors: EMPTY_ANCHOR, usage };
   }
   // Cite the candidates the answer actually referenced (by id or title); fall back to the top hit so a
   // substantive answer always carries ≥1 citation (SC-004). All are retrieved + in-scope (SC-005/008).
@@ -332,6 +357,7 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
     text,
     citations,
     anchors: buildAnchors(citations, resolve),
+    usage,
     ...(grounding ? { groundingText: grounding.text } : {}),
   };
 }
