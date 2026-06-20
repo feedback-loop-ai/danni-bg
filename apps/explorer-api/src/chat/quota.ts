@@ -8,6 +8,22 @@ export interface QuotaView {
   exceeded: boolean;
 }
 
+/** Cache-hit input tokens count toward the quota at this weight (they're far cheaper). */
+export const CACHE_WEIGHT = 0.1;
+
+/**
+ * Tokens that count toward the quota. Cache-hit input tokens are discounted to CACHE_WEIGHT of their
+ * raw count (the rest of `total` counts in full): billable = total − (1 − weight)·cached.
+ */
+export function billableTokens(
+  total: number,
+  cached: number,
+  weight: number = CACHE_WEIGHT,
+): number {
+  const capped = Math.min(Math.max(0, cached), Math.max(0, total));
+  return Math.max(0, Math.round(total - (1 - weight) * capped));
+}
+
 /** A user's own `token_limit` overrides (including an explicit 0 = unlimited for them); else the
  * platform default; else 0 = unlimited. */
 export function effectiveLimit(userLimit: number | null, defaultLimit?: number): number {

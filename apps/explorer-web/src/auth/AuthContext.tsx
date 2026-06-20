@@ -11,6 +11,7 @@ export interface AuthUser {
   email: string;
   displayName: string | null;
   role: 'admin' | 'user';
+  avatarUrl: string | null;
 }
 
 export interface AuthState {

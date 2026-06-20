@@ -109,9 +109,13 @@ export function UserMenu({
         aria-haspopup="true"
         aria-expanded={open}
         aria-label="Профил меню"
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/15 text-xs font-semibold text-primary-foreground ring-1 ring-primary-foreground/30 transition hover:bg-primary-foreground/25"
+        className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary-foreground/15 text-xs font-semibold text-primary-foreground ring-1 ring-primary-foreground/30 transition hover:bg-primary-foreground/25"
       >
-        {initials(user)}
+        {user.avatarUrl ? (
+          <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          initials(user)
+        )}
       </button>
       {open ? (
         <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg">

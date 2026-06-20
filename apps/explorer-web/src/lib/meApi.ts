@@ -17,3 +17,13 @@ export async function getMyUsage(): Promise<MyUsage> {
   if (!res.ok) throw new Error(`usage request failed: ${res.status}`);
   return (await res.json()) as MyUsage;
 }
+
+export async function setMyAvatar(avatarUrl: string | null): Promise<void> {
+  const res = await fetch('/api/me/avatar', {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ avatarUrl }),
+  });
+  if (!res.ok) throw new Error(`avatar update failed: ${res.status}`);
+}

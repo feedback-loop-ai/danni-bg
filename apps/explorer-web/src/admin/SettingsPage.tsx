@@ -18,6 +18,7 @@ export function SettingsPage() {
   const [chatEnabled, setChatEnabled] = useState(true);
   const [sloSeconds, setSloSeconds] = useState('');
   const [defaultTokenLimit, setDefaultTokenLimit] = useState('');
+  const [cachedTokenWeight, setCachedTokenWeight] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +31,9 @@ export function SettingsPage() {
     setChatEnabled(s.toggles.chatEnabled ?? true);
     setSloSeconds(s.toggles.freshnessSloSeconds ? String(s.toggles.freshnessSloSeconds) : '');
     setDefaultTokenLimit(s.toggles.defaultTokenLimit ? String(s.toggles.defaultTokenLimit) : '');
+    setCachedTokenWeight(
+      s.toggles.cachedTokenWeight != null ? String(s.toggles.cachedTokenWeight) : '',
+    );
   }
 
   useEffect(() => {
@@ -48,6 +52,7 @@ export function SettingsPage() {
         chatEnabled,
         ...(sloSeconds ? { freshnessSloSeconds: Number.parseInt(sloSeconds, 10) } : {}),
         ...(defaultTokenLimit ? { defaultTokenLimit: Number.parseInt(defaultTokenLimit, 10) } : {}),
+        ...(cachedTokenWeight ? { cachedTokenWeight: Number.parseFloat(cachedTokenWeight) } : {}),
       },
     };
     try {
@@ -135,6 +140,20 @@ export function SettingsPage() {
               type="number"
               value={defaultTokenLimit}
               onChange={(e) => setDefaultTokenLimit(e.target.value)}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm text-muted-foreground">
+              Тегло на кеширани токени (0–1; празно = 0.1)
+            </span>
+            <input
+              className={INPUT}
+              type="number"
+              step="0.05"
+              min="0"
+              max="1"
+              value={cachedTokenWeight}
+              onChange={(e) => setCachedTokenWeight(e.target.value)}
             />
           </label>
         </fieldset>

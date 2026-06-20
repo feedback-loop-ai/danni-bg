@@ -210,7 +210,13 @@ export async function stubAuth(page: Page, user?: E2EUser): Promise<void> {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            user: { id: user.id, email: user.email, displayName: null, role: user.role },
+            user: {
+              id: user.id,
+              email: user.email,
+              displayName: null,
+              role: user.role,
+              avatarUrl: null,
+            },
             isAdmin: user.role === 'admin',
           }),
         })

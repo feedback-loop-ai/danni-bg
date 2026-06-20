@@ -20,7 +20,13 @@ export function authRoutes(
   app.post('/callback', (c) => {
     const u = c.get('user');
     return c.json({
-      user: { id: u.id, email: u.email, displayName: u.display_name, role: u.role },
+      user: {
+        id: u.id,
+        email: u.email,
+        displayName: u.display_name,
+        role: u.role,
+        avatarUrl: u.avatar_url,
+      },
       isAdmin: u.role === 'admin',
     });
   });

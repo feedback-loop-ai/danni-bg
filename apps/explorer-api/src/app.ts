@@ -115,12 +115,15 @@ export function createApp(ctx: AppContext): Hono {
   const resolveDefault = () =>
     ctx.settings ? resolveServerDefault(ctx.settings, process.env) : chat.serverDefault;
 
-  // The platform default token quota (0/undefined = unlimited), resolved per request from settings.
-  const resolveDefaultTokenLimit = (): number | undefined => {
+  // The platform default token quota (0/undefined = unlimited) + the cache-hit weight, resolved per
+  // request from settings so an admin edit applies without a restart.
+  const resolveToggles = () => {
     if (!ctx.settings) return undefined;
     const raw = ctx.settings.get(TOGGLES_SETTING_KEY);
-    return raw != null ? togglesSchema.parse(raw).defaultTokenLimit : undefined;
+    return raw != null ? togglesSchema.parse(raw) : undefined;
   };
+  const resolveDefaultTokenLimit = (): number | undefined => resolveToggles()?.defaultTokenLimit;
+  const resolveCacheWeight = (): number | undefined => resolveToggles()?.cachedTokenWeight;
 
   // Gated chat (spec 019): requireAuth runs before the streaming handler — anon → 401, else the
   // session's app user is resolved/created and the turn proceeds. The cast bridges the auth-typed
@@ -134,6 +137,7 @@ export function createApp(ctx: AppContext): Hono {
       selectModel: chat.selectModel ?? ((p) => selectModel(p, resolveDefault())),
       ...(ctx.tokenUsage ? { usage: ctx.tokenUsage } : {}),
       defaultTokenLimit: resolveDefaultTokenLimit,
+      cacheWeight: resolveCacheWeight,
     }),
   );
 
@@ -141,7 +145,11 @@ export function createApp(ctx: AppContext): Hono {
   if (ctx.tokenUsage) {
     app.route(
       '/api/me',
-      meRoutes(ctx.users, ctx.tokenUsage, resolveDefaultTokenLimit, ctx.sessionResolver),
+      meRoutes(ctx.users, ctx.tokenUsage, {
+        defaultTokenLimit: resolveDefaultTokenLimit,
+        cacheWeight: resolveCacheWeight,
+        sessionResolver: ctx.sessionResolver,
+      }),
     );
   }
 
@@ -161,6 +169,7 @@ export function createApp(ctx: AppContext): Hono {
         sessionResolver: ctx.sessionResolver,
         tokenUsage: ctx.tokenUsage,
         defaultTokenLimit: resolveDefaultTokenLimit,
+        cacheWeight: resolveCacheWeight,
       }),
     );
   }

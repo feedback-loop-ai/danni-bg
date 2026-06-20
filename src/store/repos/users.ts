@@ -15,6 +15,7 @@ export interface UserRow {
   last_login_at: string | null;
   token_limit: number | null; // per-user chat-token quota override (null = platform default)
   usage_reset_at: string | null; // start of the current usage window (null = all time)
+  avatar_url: string | null; // optional profile picture (data: URL); null = initials
 }
 
 export interface FindOrCreateInput {
@@ -115,6 +116,14 @@ export class UsersRepo {
     const res = this.db
       .query('UPDATE users SET usage_reset_at = ?, updated_at = ? WHERE id = ?')
       .run(now, now, userId);
+    return res.changes > 0;
+  }
+
+  /** Set (or clear, with null) a user's profile picture. Returns true if a row matched. */
+  setAvatar(userId: string, avatarUrl: string | null, now: string = nowIso()): boolean {
+    const res = this.db
+      .query('UPDATE users SET avatar_url = ?, updated_at = ? WHERE id = ?')
+      .run(avatarUrl, now, userId);
     return res.changes > 0;
   }
 }

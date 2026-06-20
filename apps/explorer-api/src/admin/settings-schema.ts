@@ -23,6 +23,8 @@ export const togglesSchema = z
     chatEnabled: z.boolean().optional(),
     // Default per-user chat-token quota; 0 (or unset) = unlimited. A user's own `token_limit` overrides.
     defaultTokenLimit: z.number().int().nonnegative().optional(),
+    // Weight (0–1) at which cache-hit input tokens count toward the quota; unset = 0.1.
+    cachedTokenWeight: z.number().min(0).max(1).optional(),
   })
   .strict();
 export type Toggles = z.infer<typeof togglesSchema>;

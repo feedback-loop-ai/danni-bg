@@ -1,7 +1,22 @@
 // Per-user token quota math (token metering) — pure unit tests.
 
 import { describe, expect, it } from 'bun:test';
-import { effectiveLimit, quotaView } from '../src/chat/quota.ts';
+import { CACHE_WEIGHT, billableTokens, effectiveLimit, quotaView } from '../src/chat/quota.ts';
+
+describe('billableTokens', () => {
+  it('discounts cache-hit tokens to the default weight (0.1)', () => {
+    expect(CACHE_WEIGHT).toBe(0.1);
+    expect(billableTokens(150, 20)).toBe(132); // 150 − 0.9·20
+    expect(billableTokens(30, 5)).toBe(26); // 25.5 → 26
+    expect(billableTokens(100, 0)).toBe(100); // no cache → full
+  });
+  it('honors an explicit weight and never goes negative or exceeds total', () => {
+    expect(billableTokens(100, 100, 0.5)).toBe(50);
+    expect(billableTokens(100, 100, 0)).toBe(0);
+    expect(billableTokens(100, 100, 1)).toBe(100);
+    expect(billableTokens(50, 999)).toBe(5); // cached capped at total → 50 − 0.9·50
+  });
+});
 
 describe('effectiveLimit', () => {
   it('prefers the per-user override (including an explicit 0 = unlimited)', () => {
