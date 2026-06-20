@@ -33,8 +33,7 @@ function usePrefersDark(): boolean {
 export function App() {
   const filters = useExplorer((s) => s.filters);
   const highlight = useExplorer((s) => s.highlight);
-  const selectRegion = useExplorer((s) => s.selectRegion);
-  const selectedRegionId = useExplorer((s) => s.selectedRegionId);
+  const selectRegions = useExplorer((s) => s.selectRegions);
 
   // The theme is chosen in user settings (Облик); here we only apply the saved preference (re-read on
   // mount, so returning from settings reflects a change) and keep it live with the OS in `system` mode.
@@ -201,8 +200,8 @@ export function App() {
               municipalities={muniBoundaries}
               municipalityRegions={muniRegions}
               highlightGeoIds={highlight.geoEntityIds}
-              selectedGeoId={selectedRegionId}
-              onSelect={selectRegion}
+              selectedGeoIds={filters.geoUnitIds}
+              onSelect={selectRegions}
               isDark={resolved === 'dark'}
             />
           </MapErrorBoundary>

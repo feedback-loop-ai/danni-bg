@@ -25,8 +25,9 @@ interface MapViewProps {
   municipalities: BoundaryCollection;
   municipalityRegions: RegionSummary[];
   highlightGeoIds: string[];
-  selectedGeoId?: string | null;
-  onSelect: (entityId: string | null) => void;
+  selectedGeoIds?: string[];
+  /** Replace the selected-region set (the map computes it from clicks + drill context). */
+  onSelect: (entityIds: string[]) => void;
   isDark?: boolean;
 }
 
@@ -42,7 +43,7 @@ export function MapView({
   municipalities,
   municipalityRegions,
   highlightGeoIds,
-  selectedGeoId = null,
+  selectedGeoIds = [],
   onSelect,
   isDark = false,
 }: MapViewProps) {
@@ -107,9 +108,12 @@ export function MapView({
     ? fitTransform(focusedOblastFeature.bounds, W, H)
     : IDENTITY;
 
-  const selectedBoundary = selectedGeoId
-    ? (focus ? muniEntityToBoundary : oblastEntityToBoundary).get(selectedGeoId)
-    : undefined;
+  // Selected regions (multi-select). Resolve each id against the active layer's entity→boundary
+  // map; ids from the other layer simply don't render here, which is what we want.
+  const activeEntityToBoundary = focus ? muniEntityToBoundary : oblastEntityToBoundary;
+  const selectedBoundaries = new Set(
+    selectedGeoIds.map((id) => activeEntityToBoundary.get(id)).filter((b): b is string => !!b),
+  );
   const highlightBoundaries = new Set(
     highlightGeoIds
       .map((id) => oblastEntityToBoundary.get(id) ?? muniEntityToBoundary.get(id))
@@ -124,28 +128,45 @@ export function MapView({
     const rect = container.current?.getBoundingClientRect();
     setHover({ id, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) });
   };
-  const activate = (boundaryId: string) => {
+  const toggle = (base: string[], entity: string) =>
+    base.includes(entity) ? base.filter((g) => g !== entity) : [...base, entity];
+
+  const activate = (boundaryId: string, additive: boolean) => {
     const region = activeByBoundary.get(boundaryId);
     const entity = region?.entityId ?? null;
+    if (!entity) return;
     if (!focus) {
-      // Country view: drill into the oblast (and scope the list to it).
-      if (entity) {
+      // Country view. Shift = toggle the oblast into the multi-region union (no drill);
+      // plain = drill into the oblast and scope the list to just it.
+      if (additive) {
+        onSelect(toggle(selectedGeoIds, entity));
+      } else {
         setFocus(entity);
-        onSelect(entity);
+        onSelect([entity]);
       }
       return;
     }
-    // Drill-down view: toggle-select the municipality.
-    onSelect(entity && entity === selectedGeoId ? null : entity);
+    // Drill-down. Selection here is municipality-level, so drop the parent oblast id first
+    // (otherwise oblast ⊇ municipality would mask the narrowing). Shift = union; plain =
+    // single-select, re-clicking the sole municipality clears it.
+    const base = selectedGeoIds.filter((g) => g !== focus);
+    if (additive) {
+      onSelect(toggle(base, entity));
+    } else {
+      const isSole = base.length === 1 && base[0] === entity;
+      onSelect(isSole ? [] : [entity]);
+    }
   };
   const back = () => {
     setFocus(null);
-    onSelect(null);
+    onSelect([]);
     setHover(null);
   };
 
   const hoverRegion = hover ? activeByBoundary.get(hover.id) : undefined;
-  const selectedRegion = selectedBoundary ? activeByBoundary.get(selectedBoundary) : undefined;
+  const selectedRegions = [...selectedBoundaries]
+    .map((b) => activeByBoundary.get(b))
+    .filter((r): r is RegionSummary => !!r);
   // Labels: every oblast in country view; only the larger municipalities when zoomed (avoid clutter).
   const labelFeatures = focus
     ? activeFeatures.filter((f) => {
@@ -184,11 +205,11 @@ export function MapView({
                 aria-label={region ? `${region.labelBg}: ${region.datasetCount} набора` : undefined}
                 onMouseMove={(e) => move(f.boundaryFeatureId, e)}
                 onMouseEnter={(e) => move(f.boundaryFeatureId, e)}
-                onClick={() => activate(f.boundaryFeatureId)}
+                onClick={(e) => activate(f.boundaryFeatureId, e.shiftKey)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    activate(f.boundaryFeatureId);
+                    activate(f.boundaryFeatureId, e.shiftKey);
                   }
                 }}
               />
@@ -197,7 +218,7 @@ export function MapView({
           {/* Outline overlays drawn on top (selected / chat-highlight / hover). */}
           {activeFeatures.map((f) => {
             const isHi = highlightBoundaries.has(f.boundaryFeatureId);
-            const isSel = f.boundaryFeatureId === selectedBoundary;
+            const isSel = selectedBoundaries.has(f.boundaryFeatureId);
             const isHov = hover?.id === f.boundaryFeatureId;
             if (!isHi && !isSel && !isHov) return null;
             const stroke = isSel
@@ -288,20 +309,34 @@ export function MapView({
         </div>
       </div>
 
-      {/* Selected-region info card */}
-      {selectedRegion && (
+      {/* Selected-region info card (single or multi-select) */}
+      {selectedRegions.length > 0 && (
         <div className="absolute top-3 right-3 max-w-56 rounded-md border bg-card/95 px-3 py-2 shadow-sm backdrop-blur">
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="font-medium leading-tight">{selectedRegion.labelBg}</div>
-              <div className="text-xs text-muted-foreground">
-                {selectedRegion.datasetCount} набора
+            {selectedRegions.length === 1 && selectedRegions[0] ? (
+              <div>
+                <div className="font-medium leading-tight">{selectedRegions[0].labelBg}</div>
+                <div className="text-xs text-muted-foreground">
+                  {selectedRegions[0].datasetCount} набора
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="min-w-0">
+                <div className="font-medium leading-tight">
+                  {selectedRegions.length} {focus ? 'общини' : 'области'} избрани
+                </div>
+                <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                  {selectedRegions.map((r) => r.labelBg).join(', ')}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {selectedRegions.reduce((n, r) => n + r.datasetCount, 0)} набора общо
+                </div>
+              </div>
+            )}
             <button
               type="button"
               aria-label="Изчисти избора"
-              onClick={() => onSelect(null)}
+              onClick={() => onSelect([])}
               className="shrink-0 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             >
               ×
@@ -309,6 +344,11 @@ export function MapView({
           </div>
         </div>
       )}
+
+      {/* Shift-to-multiselect hint */}
+      <div className="pointer-events-none absolute right-3 bottom-3 rounded-md bg-card/80 px-2 py-1 text-[10px] text-muted-foreground shadow-sm backdrop-blur">
+        Shift+клик за избор на няколко {focus ? 'общини' : 'области'}
+      </div>
     </div>
   );
 }
