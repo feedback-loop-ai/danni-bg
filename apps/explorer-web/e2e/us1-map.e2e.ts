@@ -10,7 +10,8 @@ test('renders the shell, dataset list, and dataset detail with a source link', a
   await page.goto('/');
 
   await expect(page.getByRole('heading', { name: 'Филтри' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Чат' })).toBeVisible();
+  // Chat panel rendered (gated for the anonymous visitor behind the sign-in prompt).
+  await expect(page.getByText(/използвате чата/)).toBeVisible();
   await expect(page.getByLabel('Карта на България')).toBeAttached();
 
   // Dataset list loaded from the (stubbed) mirror.
