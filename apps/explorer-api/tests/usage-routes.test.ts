@@ -88,13 +88,14 @@ describe('GET /api/admin/usage', () => {
     };
     expect(body.defaultLimit).toBe(0);
     const row = body.users.find((u) => u.email === 'user@example.com');
+    // used is the billable total: 150 − (1−0.1)·20 cache = 132. Breakdown stays raw.
     expect(row).toMatchObject({
-      used: 150,
+      used: 132,
       input: 100,
       output: 50,
       cached: 20,
       limit: 1000,
-      remaining: 850,
+      remaining: 868,
       exceeded: false,
       tokenLimit: 1000,
     });
@@ -178,16 +179,57 @@ describe('GET /api/me/usage', () => {
     });
     const res = await s.app.request('/api/me/usage', { headers: USER });
     expect(res.status).toBe(200);
+    // used is billable: 30 − 0.9·5 cache = 25.5 → 26. Breakdown stays raw.
     expect(await res.json()).toMatchObject({
-      used: 30,
+      used: 26,
       input: 10,
       output: 20,
       cached: 5,
       limit: 100,
-      remaining: 70,
+      remaining: 74,
       exceeded: false,
       requests: 1,
     });
+  });
+
+  it('honors an admin-configured cache weight', async () => {
+    s.settings.set(TOGGLES_SETTING_KEY, { defaultTokenLimit: 100, cachedTokenWeight: 0.5 }, 'test');
+    s.tokenUsage.record({
+      userId: s.user.id,
+      inputTokens: 20,
+      outputTokens: 10,
+      totalTokens: 30,
+      cachedInputTokens: 10,
+    });
+    const res = await s.app.request('/api/me/usage', { headers: USER });
+    // billable = 30 − (1−0.5)·10 = 25
+    expect(await res.json()).toMatchObject({ used: 25, cached: 10, limit: 100, remaining: 75 });
+  });
+});
+
+describe('PUT /api/me/avatar', () => {
+  let s: ReturnType<typeof setup>;
+  beforeEach(() => {
+    s = setup();
+  });
+  afterEach(() => s.db.close());
+
+  const put = (body: unknown) =>
+    s.app.request('/api/me/avatar', { method: 'PUT', headers: USER, body: JSON.stringify(body) });
+
+  it('stores and clears a valid data: image URL', async () => {
+    expect((await put({ avatarUrl: 'data:image/webp;base64,AAAA' })).status).toBe(200);
+    expect(s.users.get(s.user.id)?.avatar_url).toBe('data:image/webp;base64,AAAA');
+    expect((await put({ avatarUrl: null })).status).toBe(200);
+    expect(s.users.get(s.user.id)?.avatar_url).toBeNull();
+  });
+
+  it('rejects a non-image / oversized payload (400) and anon (401)', async () => {
+    expect((await put({ avatarUrl: 'https://evil.example/x.png' })).status).toBe(400);
+    expect((await put({ avatarUrl: `data:image/png;base64,${'A'.repeat(700_000)}` })).status).toBe(
+      400,
+    );
+    expect((await s.app.request('/api/me/avatar', { method: 'PUT', body: '{}' })).status).toBe(401);
   });
 });
 

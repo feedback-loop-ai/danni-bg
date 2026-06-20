@@ -16,6 +16,7 @@ import type {
 } from '@ory/client';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { AvatarUpload } from '../account/AvatarUpload.tsx';
 import { SelfUsage } from '../account/SelfUsage.tsx';
 import { Card } from '../components/ui/card.tsx';
 import { type FlowKind, flowMessages, kratos } from '../lib/kratos.ts';
@@ -433,6 +434,7 @@ export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
         <Card className="w-full max-w-md space-y-6 p-8">
           <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
           {fatal ? <p className="text-sm text-destructive">{fatal}</p> : null}
+          <AvatarUpload />
           <AppearanceSection />
           <SelfUsage />
           {flow ? (

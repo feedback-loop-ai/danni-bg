@@ -104,4 +104,14 @@ describe('store.repos.users', () => {
     expect(repo.setTokenLimit('missing', 5)).toBe(false);
     expect(repo.resetUsage('missing')).toBe(false);
   });
+
+  it('setAvatar stores and clears the profile picture', () => {
+    const u = repo.findOrCreateByKratosId({ kratosIdentityId: 'k7', email: 'p@example.com' });
+    expect(u.avatar_url).toBeNull();
+    expect(repo.setAvatar(u.id, 'data:image/webp;base64,AAAA')).toBe(true);
+    expect(repo.get(u.id)?.avatar_url).toBe('data:image/webp;base64,AAAA');
+    expect(repo.setAvatar(u.id, null)).toBe(true);
+    expect(repo.get(u.id)?.avatar_url).toBeNull();
+    expect(repo.setAvatar('missing', 'data:image/png;base64,AAAA')).toBe(false);
+  });
 });

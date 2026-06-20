@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'bun:test';
-import { DEFAULT_PROVIDER } from './providerStorage.ts';
+import type { ProviderConfig } from '../types.ts';
 import type { ChatCallbacks, ChatRequestBody } from './sendChat.ts';
 import { dispatchSSEEvent, sendChat } from './sendChat.ts';
+
+const DEFAULT_PROVIDER: ProviderConfig = {
+  kind: 'openai-compatible',
+  baseUrl: null,
+  model: 'server-default',
+  apiKey: null,
+  useServerDefault: true,
+};
 
 function streamingFetch(sseText: string): typeof fetch {
   return (async () => {

@@ -9,7 +9,7 @@ import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts';
 import type { UserRow } from '../../../../src/store/repos/users.ts';
-import { effectiveLimit, quotaView } from '../chat/quota.ts';
+import { billableTokens, effectiveLimit, quotaView } from '../chat/quota.ts';
 import { runChatTurn } from '../chat/run.ts';
 import { MAX_CONTEXT_DATASETS, type SessionStore, windowMessages } from '../chat/session.ts';
 import { log } from '../logging.ts';
@@ -43,6 +43,8 @@ export interface ChatRouteDeps {
   usage?: TokenUsageRepo;
   /** Resolve the platform default token quota (0/undefined = unlimited) per request. */
   defaultTokenLimit?: () => number | undefined;
+  /** Resolve the cache-hit token weight (0–1) per request; undefined = default. */
+  cacheWeight?: () => number | undefined;
 }
 
 export function chatHandler(deps: ChatRouteDeps) {
@@ -62,14 +64,15 @@ export function chatHandler(deps: ChatRouteDeps) {
     const user = c.get('user') as UserRow | undefined;
     if (deps.usage && user) {
       const limit = effectiveLimit(user.token_limit, deps.defaultTokenLimit?.());
-      const { used } = deps.usage.usageForUser(user.id, user.usage_reset_at);
-      if (quotaView(used, limit).exceeded) {
+      const { used, cached } = deps.usage.usageForUser(user.id, user.usage_reset_at);
+      const billable = billableTokens(used, cached, deps.cacheWeight?.());
+      if (quotaView(billable, limit).exceeded) {
         return c.json(
           {
             error: {
               code: 'quota_exceeded',
               message: 'token quota exceeded',
-              details: { used, limit },
+              details: { used: billable, limit },
             },
           },
           429,

@@ -1,4 +1,4 @@
-import { ArrowUp, Cog, Square, SquarePen, X } from 'lucide-react';
+import { ArrowUp, Square, SquarePen, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import { Link } from 'react-router-dom';
@@ -8,9 +8,18 @@ import { completePartialMarkdown } from '../lib/markdown.ts';
 import { filterStateToScope } from '../lib/scope.ts';
 import { useExplorer } from '../store/explorerStore.ts';
 import type { Citation, ProviderConfig } from '../types.ts';
-import { ProviderSettings } from './ProviderSettings.tsx';
-import { loadProvider, saveProvider } from './providerStorage.ts';
 import { sendChat } from './sendChat.ts';
+
+// The chat always uses the admin-configured server default — there's no per-user provider override
+// (it would bypass the platform LLM config + token metering). A non-empty model satisfies the
+// request schema; the server ignores it when useServerDefault is set.
+const SERVER_DEFAULT_PROVIDER: ProviderConfig = {
+  kind: 'openai-compatible',
+  baseUrl: null,
+  model: 'server-default',
+  apiKey: null,
+  useServerDefault: true,
+};
 
 interface ChatMessage {
   id: number;
@@ -37,13 +46,11 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const reader = useExplorer((s) => s.reader);
   const { user } = useAuth();
 
-  const [provider, setProvider] = useState<ProviderConfig>(() => loadProvider(localStorage));
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
   const idRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -58,11 +65,6 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
-
-  function updateProvider(next: ProviderConfig) {
-    setProvider(next);
-    saveProvider(localStorage, next);
-  }
 
   function patchAssistant(content: string, citations?: Citation[]) {
     setMessages((prev) => {
@@ -104,7 +106,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
           message: question,
           scope,
           ...(reader ? { groundingDatasetIds: [reader.datasetId] } : {}),
-          provider,
+          provider: SERVER_DEFAULT_PROVIDER,
         },
         {
           onSession: setSessionId,
@@ -177,18 +179,8 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             >
               <SquarePen className="size-4" />
             </button>
-            <button
-              type="button"
-              aria-label="Настройки на доставчика"
-              aria-pressed={showSettings}
-              onClick={() => setShowSettings((v) => !v)}
-              className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            >
-              <Cog className="size-4" />
-            </button>
           </div>
         </div>
-        {showSettings && <ProviderSettings provider={provider} onChange={updateProvider} />}
         <div ref={scrollRef} aria-label="Разговор" className="flex-1 space-y-4 overflow-y-auto">
           {empty && (
             <div className="flex h-full flex-col items-center justify-center gap-4 px-2 text-center">

@@ -19,7 +19,7 @@ import {
 } from '../admin/settings-schema.ts';
 import type { SessionResolver } from '../auth/kratos-session.ts';
 import { serverDefaultFromEnv } from '../chat/providers.ts';
-import { effectiveLimit, quotaView } from '../chat/quota.ts';
+import { billableTokens, effectiveLimit, quotaView } from '../chat/quota.ts';
 import { type AuthEnv, requireAdmin, requireAuth } from '../middleware/require-auth.ts';
 
 function maskedLlm(settings: PlatformSettingsRepo): {
@@ -64,6 +64,7 @@ export interface AdminRoutesOpts {
   sessionResolver?: SessionResolver | undefined;
   tokenUsage?: TokenUsageRepo | undefined;
   defaultTokenLimit?: (() => number | undefined) | undefined;
+  cacheWeight?: (() => number | undefined) | undefined;
 }
 
 export function adminRoutes(
@@ -120,9 +121,14 @@ export function adminRoutes(
   if (usage) {
     app.get('/usage', (c) => {
       const defaultLimit = opts.defaultTokenLimit?.() ?? 0;
+      const weight = opts.cacheWeight?.();
       const rows = usage.summaryByUser().map((r) => ({
         ...r,
-        ...quotaView(r.used, effectiveLimit(r.tokenLimit, defaultLimit)),
+        // `used` becomes the billable total (cache hits discounted); raw input/output/cached kept.
+        ...quotaView(
+          billableTokens(r.used, r.cached, weight),
+          effectiveLimit(r.tokenLimit, defaultLimit),
+        ),
       }));
       return c.json({ users: rows, defaultLimit });
     });
