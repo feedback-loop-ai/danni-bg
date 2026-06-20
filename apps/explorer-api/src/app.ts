@@ -25,6 +25,7 @@ import {
 import { type ConversationStore, SessionStore } from './chat/session.ts';
 import type { PersistentSessionStore } from './chat/sessions-repo.ts';
 import { type DatasetLite, hasGeo, liteToPointer, matchesFiltersLite } from './dataset-lite.ts';
+import { expandGeoUnitIds } from './geo-rollup.ts';
 import { requireAuth } from './middleware/require-auth.ts';
 import type { ReadBridge } from './read-bridge.ts';
 import { viewToPointer } from './read-bridge.ts';
@@ -202,8 +203,23 @@ export function createApp(ctx: AppContext): Hono {
   // All in-scope datasets, honoring the structured filters (used by list / regions / national /
   // facets). Bulk lite projection (see ReadBridge.listLite) — not a per-dataset view fan-out — so
   // these whole-catalog endpoints scale to the full ~11k-dataset mirror.
-  const scopedLites = (f: FilterState) =>
-    ctx.bridge.listLite().filter((l) => matchesFiltersLite(l, f));
+  // Oblast geo filters expand to include their municipalities so the filtered list matches the
+  // choropleth roll-up (spec 013): selecting Стара Загора must count its municipalities' datasets
+  // too, not just oblast-level ones. The part_of graph is static at runtime, so memoize it.
+  let childrenOfCache: Map<string, string[]> | null = null;
+  const childrenOf = () => {
+    childrenOfCache ??= ctx.bridge.partOfChildren();
+    return childrenOfCache;
+  };
+  const expandGeo = (f: FilterState): FilterState =>
+    f.geoUnitIds.length === 0
+      ? f
+      : { ...f, geoUnitIds: expandGeoUnitIds(f.geoUnitIds, childrenOf()) };
+
+  const scopedLites = (f: FilterState) => {
+    const ef = expandGeo(f);
+    return ctx.bridge.listLite().filter((l) => matchesFiltersLite(l, ef));
+  };
 
   // Maps a dataset's geo-link entity id to the region ids (at `level`) it should count toward.
   // Municipalities roll up into their parent oblast via the `part_of` knowledge-graph edges
@@ -232,6 +248,7 @@ export function createApp(ctx: AppContext): Hono {
 
     let pointers: DatasetPointer[];
     if (f.query.trim() !== '') {
+      const ef = expandGeo(f);
       const hits = await ctx.bridge.search(f.query, undefined, 200);
       const seen = new Set<string>();
       pointers = [];
@@ -239,7 +256,7 @@ export function createApp(ctx: AppContext): Hono {
         if (seen.has(hit.datasetId)) continue;
         seen.add(hit.datasetId);
         const view = ctx.bridge.view(hit.datasetId);
-        if (matchesFilters(view, f)) pointers.push(viewToPointer(view, hit.score));
+        if (matchesFilters(view, ef)) pointers.push(viewToPointer(view, hit.score));
       }
     } else {
       pointers = scopedLites(f).map((l) => liteToPointer(l));
