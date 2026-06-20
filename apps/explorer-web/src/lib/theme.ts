@@ -1,5 +1,5 @@
 // Theme preference: light / dark / system (follows OS). Pure helpers (resolve/cycle/load/save/apply)
-// so the logic is unit-tested; the React wiring lives in App + ThemeToggle.
+// so the logic is unit-tested; App applies the saved theme and the settings page (Облик) selects it.
 
 export type Theme = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';

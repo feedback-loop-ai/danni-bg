@@ -4,7 +4,6 @@ import municipalitiesRaw from '../../../packages/geo-boundaries/data/municipalit
 import oblastsRaw from '../../../packages/geo-boundaries/data/oblasts.geojson?raw';
 import { AuthWidget } from './auth/AuthWidget.tsx';
 import { ChatPanel } from './chat/ChatPanel.tsx';
-import { ThemeToggle } from './components/ThemeToggle.tsx';
 import { Button } from './components/ui/button.tsx';
 import { DatasetDetail } from './datasets/DatasetDetail.tsx';
 import { DatasetList } from './datasets/DatasetList.tsx';
@@ -14,7 +13,7 @@ import { SearchBar } from './filters/SearchBar.tsx';
 import { fetchDatasets, fetchNational, fetchRegions } from './lib/api.ts';
 import type { BoundaryCollection } from './lib/choropleth.ts';
 import { hasMore, mergePage } from './lib/pagination.ts';
-import { type Theme, applyResolvedTheme, loadTheme, resolveTheme, saveTheme } from './lib/theme.ts';
+import { type Theme, applyResolvedTheme, loadTheme, resolveTheme } from './lib/theme.ts';
 import { MapErrorBoundary } from './map/MapErrorBoundary.tsx';
 import { MapView } from './map/MapView.tsx';
 import { useExplorer } from './store/explorerStore.ts';
@@ -37,16 +36,14 @@ export function App() {
   const selectRegion = useExplorer((s) => s.selectRegion);
   const selectedRegionId = useExplorer((s) => s.selectedRegionId);
 
-  const [theme, setThemeState] = useState<Theme>(() => loadTheme(localStorage));
+  // The theme is chosen in user settings (Облик); here we only apply the saved preference (re-read on
+  // mount, so returning from settings reflects a change) and keep it live with the OS in `system` mode.
+  const [theme] = useState<Theme>(() => loadTheme(localStorage));
   const prefersDark = usePrefersDark();
   const resolved = resolveTheme(theme, prefersDark);
   useEffect(() => {
     applyResolvedTheme(document.documentElement, resolved);
   }, [resolved]);
-  function setTheme(next: Theme) {
-    setThemeState(next);
-    saveTheme(localStorage, next);
-  }
 
   const [regions, setRegions] = useState<RegionSummary[]>([]);
   const [muniRegions, setMuniRegions] = useState<RegionSummary[]>([]);
@@ -136,7 +133,6 @@ export function App() {
         </span>
         <div className="ml-auto flex items-center gap-4">
           <AuthWidget />
-          <ThemeToggle theme={theme} onChange={setTheme} />
         </div>
       </header>
       <div className="flex min-h-0">
