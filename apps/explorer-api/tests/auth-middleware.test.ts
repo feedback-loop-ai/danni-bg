@@ -95,13 +95,15 @@ describe('requireAuth session-resolver fallback (single-port, no Oathkeeper)', (
   it('resolves the session from the cookie when no X-User-* headers are present', async () => {
     const resolver: SessionResolver = async (cookie) =>
       cookie === 'ory_kratos_session=ok'
-        ? { userId: 'k9', email: 'cookie@example.com', verified: true }
+        ? { userId: 'k9', email: 'cookie@example.com', verified: true, displayName: 'Cookie User' }
         : null;
     const { db, users, app } = appWith(resolver);
     const res = await app.request('/me', { headers: { cookie: 'ory_kratos_session=ok' } });
     expect(res.status).toBe(200);
     expect(((await res.json()) as { email: string }).email).toBe('cookie@example.com');
-    expect(users.findByKratosId('k9')?.role).toBe('user');
+    const row = users.findByKratosId('k9');
+    expect(row?.role).toBe('user');
+    expect(row?.display_name).toBe('Cookie User'); // the resolved name is persisted
     db.close();
   });
 

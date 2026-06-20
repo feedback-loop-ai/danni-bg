@@ -32,9 +32,19 @@ export function requireAuth(
 ): MiddlewareHandler<AuthEnv> {
   return async (c, next) => {
     const header = readAuth(c);
-    let identity: { userId: string; email: string; verified: boolean } | null =
+    let identity: {
+      userId: string;
+      email: string;
+      verified: boolean;
+      displayName: string | null;
+    } | null =
       header.isAuthenticated && header.userId && header.email
-        ? { userId: header.userId, email: header.email, verified: header.verified }
+        ? {
+            userId: header.userId,
+            email: header.email,
+            verified: header.verified,
+            displayName: header.displayName,
+          }
         : null;
     if (!identity && resolveSession) identity = await resolveSession(c.req.header('cookie'));
     if (!identity) {
@@ -45,6 +55,7 @@ export function requireAuth(
       kratosIdentityId: identity.userId,
       email: identity.email,
       emailVerified: identity.verified,
+      displayName: identity.displayName,
       createRole,
     });
     c.set('user', user);

@@ -11,6 +11,7 @@ export interface ResolvedIdentity {
   userId: string;
   email: string;
   verified: boolean;
+  displayName: string | null;
 }
 
 export type SessionResolver = (cookie: string | undefined) => Promise<ResolvedIdentity | null>;
@@ -19,9 +20,17 @@ interface WhoamiResponse {
   active?: boolean;
   identity?: {
     id: string;
-    traits?: { email?: string };
+    traits?: { email?: string; name?: { first?: string; last?: string } };
     verifiable_addresses?: { verified: boolean }[];
   };
+}
+
+/** Join the `name.{first,last}` traits into a display name; null when both are empty. */
+export function displayNameFromTraits(traits?: {
+  name?: { first?: string; last?: string };
+}): string | null {
+  const full = `${traits?.name?.first?.trim() ?? ''} ${traits?.name?.last?.trim() ?? ''}`.trim();
+  return full || null;
 }
 
 /** Resolve the app identity from a Kratos session cookie via /sessions/whoami; null when invalid. */
@@ -43,6 +52,7 @@ export function kratosSessionResolver(
         userId: id,
         email,
         verified: s.identity?.verifiable_addresses?.[0]?.verified ?? false,
+        displayName: displayNameFromTraits(s.identity?.traits),
       };
     } catch {
       return null;
