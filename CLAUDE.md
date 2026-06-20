@@ -27,6 +27,9 @@ capabilities each have their own spec:
 - 022 account & chat-UX (avatar `UserMenu`, display name from Kratos traits, profile pictures
   `users.avatar_url` + `/api/me/avatar`, full `/auth/settings` page, appearance in settings, header
   GitHub link, chat input-bar layout/tooltips, removed in-chat provider override)
+- 023 region multi-select (Shift+click union on the map) + hierarchical geo-filter roll-up
+  (`geo-rollup.ts` `expandGeoUnitIds` + `ReadBridge.partOfChildren`): an oblast geo filter expands to
+  its municipalities so the list/facets/chat scope match the choropleth count (Стара Загора 638≠128)
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->
