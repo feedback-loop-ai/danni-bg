@@ -1,5 +1,4 @@
-"""Thin-slice eval set (6 cases) across the three quality axes that matter for
-the danni grounded chat:
+"""Eval set across the quality axes that matter for the danni grounded chat:
 
   * grounded     — relevant real data exists; answer must be grounded + cite it
   * nodata       — no relevant public data; must return the exact no-data reply
@@ -7,7 +6,14 @@ the danni grounded chat:
 
 These run against the REAL store, so `expect_tool` / `expect_grounded` are the
 robust invariants; exact cited ids are intentionally NOT pinned (they drift with
-the data). Curate/expand after the first run — this is the seed, not the corpus.
+the data).
+
+**Enumeration cases** (`enum: True`): broad topics that legitimately retrieve many
+datasets (registers, municipalities, a whole oblast, …). These are where the chat
+historically drifts — inflating a count ("над 40 набора") or inventing dataset
+ids/rows beyond the grounding. They're picked from the corpus's largest facet
+buckets (регистър ~4000, община ~3300, пуп ~160) so they reliably enumerate, and
+they're the primary load for the judge-independent guards in guards.py.
 """
 
 from __future__ import annotations
@@ -28,6 +34,9 @@ class Case:
     # Known model limitation: grounding is correct but the model still fabricates.
     # Recorded as xfail so the suite stays green and the finding auto-flips when fixed.
     known_model_fabrication: bool = False
+    # Enumeration case: a broad topic that retrieves many datasets — the load that
+    # stresses count-inflation / ghost-id drift (see guards.py + the module docstring).
+    enum: bool = False
 
 
 CASES: list[Case] = [
@@ -36,6 +45,7 @@ CASES: list[Case] = [
         kind="grounded",
         question="Кои набори от данни описват качеството на въздуха?",
         expect_tool="mirrorSearch",
+        enum=True,
     ),
     Case(
         id="varna-geo",
@@ -45,6 +55,7 @@ CASES: list[Case] = [
         # the region graph) is an opinionated routing check worth adding later.
         question="Какви данни има за област Варна?",
         note="Geo-scoped recall — grounded answer about a region.",
+        enum=True,
     ),
     Case(
         id="pancharevo-kindergartens",
@@ -79,5 +90,51 @@ CASES: list[Case] = [
         # Same model-fabrication family as pancharevo (milder) — tracked so it can't flake the suite.
         note="Grounded budget query; gemma occasionally drifts and lists non-grounded municipalities.",
         known_model_fabrication=True,
+        enum=True,
+    ),
+    # --- Enumeration cases -----------------------------------------------------------
+    # Broad topics that retrieve many datasets — the load that stresses count inflation
+    # and ghost-id drift. Backed by the corpus's largest facet buckets so they reliably
+    # enumerate; graded for faithfulness + the deterministic guards (guards.py).
+    Case(
+        id="registers-enum",
+        kind="grounded",
+        question="Какви публични регистри има в портала?",
+        expect_tool="mirrorSearch",
+        note="Largest facet bucket (регистър ~4000): a long, multi-publisher enumeration.",
+        enum=True,
+    ),
+    Case(
+        id="municipalities-enum",
+        kind="grounded",
+        question="Какви данни публикуват общините?",
+        expect_tool="mirrorSearch",
+        note="общ* ~3300 datasets: must enumerate without inventing municipality entries.",
+        enum=True,
+    ),
+    Case(
+        id="plovdiv-geo-enum",
+        kind="grounded",
+        # Geo enumeration over a second large oblast (cf. varna-geo) — either mirror tool is valid.
+        question="Какви данни има за област Пловдив?",
+        note="Second-oblast geo recall; broad list across publishers and municipalities.",
+        enum=True,
+    ),
+    Case(
+        id="pup-enum",
+        kind="grounded",
+        question="Има ли данни за подробни устройствени планове (ПУП)?",
+        expect_tool="mirrorSearch",
+        note="пуп ~160: domain-specific enumeration (urban-planning registers).",
+        enum=True,
+    ),
+    Case(
+        id="population-enum",
+        kind="grounded",
+        # НСИ population datasets reliably surface (they appear in varna-geo's grounding too).
+        question="Какви демографски данни за населението в България има?",
+        expect_tool="mirrorSearch",
+        note="NSI demographics: national statistical massives, several per query.",
+        enum=True,
     ),
 ]
