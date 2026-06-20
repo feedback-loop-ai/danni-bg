@@ -45,6 +45,8 @@ export interface ChatRouteDeps {
   defaultTokenLimit?: () => number | undefined;
   /** Resolve the cache-hit token weight (0–1) per request; undefined = default. */
   cacheWeight?: () => number | undefined;
+  /** Resolve the max output tokens per answer; undefined = built-in default. */
+  maxOutputTokens?: () => number | undefined;
 }
 
 export function chatHandler(deps: ChatRouteDeps) {
@@ -117,6 +119,7 @@ export function chatHandler(deps: ChatRouteDeps) {
     }
     const modelId =
       typeof model === 'string' ? model : ((model as { modelId?: string }).modelId ?? null);
+    const maxOut = deps.maxOutputTokens?.();
 
     // Replay only the recent window so a long conversation can't overflow the context (grounding
     // rows live in the system prompt, not the transcript).
@@ -137,6 +140,7 @@ export function chatHandler(deps: ChatRouteDeps) {
           scope,
           messages,
           groundingDatasetIds,
+          ...(maxOut ? { maxOutputTokens: maxOut } : {}),
           events: {
             onToken: (delta) => {
               void stream.writeSSE({ event: 'token', data: JSON.stringify({ delta }) });

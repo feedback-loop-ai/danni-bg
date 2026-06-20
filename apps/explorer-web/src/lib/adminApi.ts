@@ -13,6 +13,7 @@ export interface AdminToggles {
   chatEnabled?: boolean;
   defaultTokenLimit?: number;
   cachedTokenWeight?: number;
+  maxOutputTokens?: number;
 }
 
 export interface AdminSettings {

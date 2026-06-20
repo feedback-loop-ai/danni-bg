@@ -21,6 +21,10 @@ const SERVER_DEFAULT_PROVIDER: ProviderConfig = {
   useServerDefault: true,
 };
 
+// Styled hover tooltip (appears above the button); shown via group-hover so it matches the theme.
+const TOOLTIP =
+  'pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-xs text-popover-foreground opacity-0 shadow-md ring-1 ring-border transition-opacity group-hover:opacity-100';
+
 interface ChatMessage {
   id: number;
   role: 'user' | 'assistant';
@@ -268,21 +272,22 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
           <button
             type="button"
             aria-label="Нов разговор"
-            title="Нов разговор"
             disabled={empty && !streaming && !chatFocus && !error}
             onClick={newChat}
-            className="absolute bottom-2 left-2 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-all hover:scale-110 hover:bg-accent hover:text-accent-foreground active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-transparent"
+            className="group absolute bottom-2 left-2 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-all hover:scale-110 hover:bg-accent hover:text-accent-foreground active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-transparent"
           >
             <Plus className="size-4" />
+            <span className={TOOLTIP}>Нов разговор</span>
           </button>
           {streaming ? (
             <button
               type="button"
               aria-label="Спри генерирането"
               onClick={stop}
-              className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:scale-110 hover:bg-primary/90 active:scale-95"
+              className="group absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:scale-110 hover:bg-primary/90 active:scale-95"
             >
               <Square className="size-3.5" fill="currentColor" />
+              <span className={TOOLTIP}>Спри</span>
             </button>
           ) : (
             <button
@@ -290,9 +295,10 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
               aria-label="Изпрати"
               disabled={input.trim() === ''}
               onClick={() => void send()}
-              className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:scale-110 hover:bg-primary/90 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
+              className="group absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:scale-110 hover:bg-primary/90 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
             >
               <ArrowUp className="size-4" />
+              <span className={TOOLTIP}>Изпрати</span>
             </button>
           )}
         </div>

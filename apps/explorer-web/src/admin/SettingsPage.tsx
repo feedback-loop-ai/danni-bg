@@ -19,6 +19,7 @@ export function SettingsPage() {
   const [sloSeconds, setSloSeconds] = useState('');
   const [defaultTokenLimit, setDefaultTokenLimit] = useState('');
   const [cachedTokenWeight, setCachedTokenWeight] = useState('');
+  const [maxOutputTokens, setMaxOutputTokens] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +35,7 @@ export function SettingsPage() {
     setCachedTokenWeight(
       s.toggles.cachedTokenWeight != null ? String(s.toggles.cachedTokenWeight) : '',
     );
+    setMaxOutputTokens(s.toggles.maxOutputTokens ? String(s.toggles.maxOutputTokens) : '');
   }
 
   useEffect(() => {
@@ -53,6 +55,7 @@ export function SettingsPage() {
         ...(sloSeconds ? { freshnessSloSeconds: Number.parseInt(sloSeconds, 10) } : {}),
         ...(defaultTokenLimit ? { defaultTokenLimit: Number.parseInt(defaultTokenLimit, 10) } : {}),
         ...(cachedTokenWeight ? { cachedTokenWeight: Number.parseFloat(cachedTokenWeight) } : {}),
+        ...(maxOutputTokens ? { maxOutputTokens: Number.parseInt(maxOutputTokens, 10) } : {}),
       },
     };
     try {
@@ -154,6 +157,17 @@ export function SettingsPage() {
               max="1"
               value={cachedTokenWeight}
               onChange={(e) => setCachedTokenWeight(e.target.value)}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm text-muted-foreground">
+              Макс. изходни токени на отговор (празно = 4096)
+            </span>
+            <input
+              className={INPUT}
+              type="number"
+              value={maxOutputTokens}
+              onChange={(e) => setMaxOutputTokens(e.target.value)}
             />
           </label>
         </fieldset>
