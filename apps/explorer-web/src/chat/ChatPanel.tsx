@@ -1,4 +1,4 @@
-import { ArrowUp, Square, SquarePen, X } from 'lucide-react';
+import { ArrowUp, Plus, Square, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import { Link } from 'react-router-dom';
@@ -164,23 +164,6 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             : 'pointer-events-none flex h-full min-h-0 select-none flex-col gap-3 blur-sm'
         }
       >
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Чат
-          </h2>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="Нов разговор"
-              title="Нов разговор"
-              disabled={empty && !streaming && !chatFocus && !error}
-              onClick={newChat}
-              className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-40 disabled:hover:bg-transparent"
-            >
-              <SquarePen className="size-4" />
-            </button>
-          </div>
-        </div>
         <div ref={scrollRef} aria-label="Разговор" className="flex-1 space-y-4 overflow-y-auto">
           {empty && (
             <div className="flex h-full flex-col items-center justify-center gap-4 px-2 text-center">
@@ -280,14 +263,24 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
               }
             }}
             placeholder="Попитайте за публичните данни…"
-            className="max-h-40 w-full resize-none bg-transparent py-3 pr-12 pl-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none"
+            className="max-h-40 w-full resize-none bg-transparent py-3 pr-12 pl-12 text-sm placeholder:text-muted-foreground focus-visible:outline-none"
           />
+          <button
+            type="button"
+            aria-label="Нов разговор"
+            title="Нов разговор"
+            disabled={empty && !streaming && !chatFocus && !error}
+            onClick={newChat}
+            className="absolute bottom-2 left-2 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-all hover:scale-110 hover:bg-accent hover:text-accent-foreground active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-transparent"
+          >
+            <Plus className="size-4" />
+          </button>
           {streaming ? (
             <button
               type="button"
               aria-label="Спри генерирането"
               onClick={stop}
-              className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+              className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:scale-110 hover:bg-primary/90 active:scale-95"
             >
               <Square className="size-3.5" fill="currentColor" />
             </button>
@@ -297,7 +290,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
               aria-label="Изпрати"
               disabled={input.trim() === ''}
               onClick={() => void send()}
-              className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:bg-primary/90 disabled:opacity-40"
+              className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:scale-110 hover:bg-primary/90 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
             >
               <ArrowUp className="size-4" />
             </button>
