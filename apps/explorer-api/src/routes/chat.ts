@@ -13,6 +13,7 @@ import type { GenEvent, GenSnapshot, GenerationManager } from '../chat/generatio
 import { billableTokens, effectiveLimit, quotaView } from '../chat/quota.ts';
 import { runChatTurn } from '../chat/run.ts';
 import { type ConversationStore, MAX_CONTEXT_DATASETS, windowMessages } from '../chat/session.ts';
+import { expandGeoUnitIds } from '../geo-rollup.ts';
 import type { ReadBridge } from '../read-bridge.ts';
 import { scopeDescriptorSchema } from '../schemas.ts';
 import { type ProviderConfig, ProviderError, providerConfigSchema } from './../chat/providers.ts';
@@ -90,7 +91,17 @@ export function chatHandler(deps: ChatRouteDeps) {
     // message list from prior history + the new question explicitly.
     const priorMessages = [...conv.messages];
     deps.sessions.append(conv.sessionId, { role: 'user', content: body.message });
-    const scope = body.scope ?? {};
+    const rawScope = body.scope ?? {};
+    // Expand an oblast geo-scope to its municipalities (mirrors the explorer list + the choropleth
+    // roll-up, spec 013): scoping chat to Стара Загора must see its municipalities' datasets too,
+    // both for the hard scope filter (inScope) and the geo fallback that pulls a region's datasets.
+    const scope =
+      rawScope.geoUnitIds && rawScope.geoUnitIds.length > 0
+        ? {
+            ...rawScope,
+            geoUnitIds: expandGeoUnitIds(rawScope.geoUnitIds, deps.bridge.partOfChildren()),
+          }
+        : rawScope;
     // Grounding precedence (row injection only — never narrows tool scope): an explicit hard focus
     // (scope.datasetIds) > the dataset open in the reader (body.groundingDatasetIds) > whatever the
     // conversation was already about (sticky session context from the previous turn).
