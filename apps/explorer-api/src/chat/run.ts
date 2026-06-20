@@ -85,6 +85,8 @@ export interface RunChatTurnOptions {
   maxSteps?: number;
   /** Max tokens the model may generate; defaults to MAX_OUTPUT_TOKENS. */
   maxOutputTokens?: number;
+  /** Abort the generation (e.g. a server-side stop). Forwarded to streamText. */
+  abortSignal?: AbortSignal;
   events?: ChatTurnEvents;
 }
 
@@ -232,6 +234,7 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
     tools,
     maxOutputTokens: opts.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
     stopWhen: stepCountIs(opts.maxSteps ?? DEFAULT_MAX_STEPS),
+    ...(opts.abortSignal ? { abortSignal: opts.abortSignal } : {}),
   });
 
   let text = '';
@@ -342,6 +345,7 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
     system,
     messages: [{ role: 'user', content: userMsg }],
     maxOutputTokens: opts.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
+    ...(opts.abortSignal ? { abortSignal: opts.abortSignal } : {}),
   });
   let text = '';
   for await (const part of result.fullStream) {

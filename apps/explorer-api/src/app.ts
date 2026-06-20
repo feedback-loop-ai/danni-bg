@@ -15,6 +15,7 @@ import { resolveServerDefault } from './admin/resolve-default.ts';
 import { TOGGLES_SETTING_KEY, togglesSchema } from './admin/settings-schema.ts';
 import type { SessionResolver } from './auth/kratos-session.ts';
 import { capDatasetDetail } from './chat/cap.ts';
+import { GenerationManager } from './chat/generation-manager.ts';
 import {
   type ProviderConfig,
   type ServerDefault,
@@ -66,6 +67,8 @@ export interface AppContext {
   tokenUsage?: TokenUsageRepo;
   /** Persistent per-user chat history — when wired, conversations are saved + resumable. */
   chatSessions?: PersistentSessionStore;
+  /** In-flight generation registry (mid-stream resume). Injectable for tests; else created here. */
+  generations?: GenerationManager;
   /** Platform settings repo — backs /api/admin/settings + the chat's default provider (spec 019). */
   settings?: PlatformSettingsRepo;
   /** Kratos public base URL (for the logout flow URL). */
@@ -112,6 +115,8 @@ export function createApp(ctx: AppContext): Hono {
     sessions: new SessionStore(),
     serverDefault: serverDefaultFromEnv(),
   };
+  // In-flight generations run here (detached from the request) so reload/disconnect can re-attach.
+  const generations = ctx.generations ?? new GenerationManager();
   // The chat's default provider is resolved PER REQUEST so an admin's settings edit takes effect
   // without a restart: settings store wins, else the env seed (spec 019). Falls back to the configured
   // ChatConfig.serverDefault when no settings repo is wired (e.g. focused unit tests).
@@ -139,6 +144,7 @@ export function createApp(ctx: AppContext): Hono {
       bridge: ctx.bridge,
       // Persistent store when wired (conversations survive + resume), else the in-memory one.
       sessions: ctx.chatSessions ?? chat.sessions,
+      generations,
       selectModel: chat.selectModel ?? ((p) => selectModel(p, resolveDefault())),
       ...(ctx.tokenUsage ? { usage: ctx.tokenUsage } : {}),
       defaultTokenLimit: resolveDefaultTokenLimit,
@@ -156,6 +162,7 @@ export function createApp(ctx: AppContext): Hono {
         cacheWeight: resolveCacheWeight,
         sessionResolver: ctx.sessionResolver,
         chatSessions: ctx.chatSessions,
+        generations,
       }),
     );
   }

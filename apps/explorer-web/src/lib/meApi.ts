@@ -45,6 +45,8 @@ export interface ResumedSession {
   sessionId: string;
   messages: SessionMessage[];
   contextDatasetIds: string[];
+  /** Present when a generation is still running for this session (re-attach via resumeChat). */
+  streaming?: { messageId: string };
 }
 
 export async function listSessions(): Promise<SessionSummary[]> {
@@ -62,4 +64,12 @@ export async function getSession(id: string): Promise<ResumedSession> {
 export async function deleteSession(id: string): Promise<void> {
   const res = await fetch(`/api/me/sessions/${id}`, { method: 'DELETE', credentials: 'include' });
   if (!res.ok) throw new Error(`session delete failed: ${res.status}`);
+}
+
+/** Ask the server to stop an in-flight generation (mid-stream resume). Best-effort. */
+export async function stopGeneration(messageId: string): Promise<void> {
+  await fetch(`/api/me/generations/${messageId}/stop`, {
+    method: 'POST',
+    credentials: 'include',
+  }).catch(() => {});
 }
