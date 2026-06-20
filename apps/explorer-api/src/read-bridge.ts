@@ -164,6 +164,21 @@ export class ReadBridge {
     );
   }
 
+  /**
+   * The inverse hierarchy: `parent oblast entity id -> child municipality entity ids`. Used to
+   * expand an oblast geo filter to its municipalities so the filtered list matches the choropleth
+   * roll-up (see geo-rollup.ts). Empty until a curate pass materialises the `part_of` edges.
+   */
+  partOfChildren(): Map<string, string[]> {
+    const children = new Map<string, string[]>();
+    for (const [child, parent] of this.partOfParents()) {
+      const list = children.get(parent);
+      if (list) list.push(child);
+      else children.set(parent, [child]);
+    }
+    return children;
+  }
+
   rows(
     datasetId: string,
     resourceId: string,
