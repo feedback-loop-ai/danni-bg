@@ -31,6 +31,15 @@ See that file for all `EVAL_*` keys.
 - **Judge** = the G-Eval grader. Using gemma to judge gemma is convenient but
   correlated — point `EVAL_JUDGE_*` at a stronger/different endpoint for rigour.
 
+> **Judge reliability.** The local `gemma-4-26b` is **not a trustworthy judge** for the
+> long-enumeration cases (questions that legitimately list 20–30 datasets): it can't track
+> a 16–32K-char grounding context and false-flags grounded datasets as "fabricated".
+> Verified by hand-adjudicating its failures against the exact injected grounding — its
+> verdicts didn't hold up. **Use a frontier judge** for any verdict you act on. Qwen via
+> **Alibaba Model Studio** is OpenAI-compatible and needs no code change — see the
+> `EVAL_JUDGE_*` Qwen block in `.env.example`. The deterministic guards below need no judge
+> at all, so a weak judge can't fool them.
+
 The judge constrains its output with `response_format=json_schema` (falling back
 to `json_object`) so a local model returns schema-valid scores — note that vLLM
 `guided_json` via `extra_body` is silently ignored by some servers, which is why
@@ -40,6 +49,11 @@ we use `response_format`. Set `EVAL_JUDGE_STRUCTURED=0` to force `json_object` o
 
 - **Deterministic** (no judge): no-data answers match the exact reply and cite
   nothing; fabricated ids never reach citations; grounded answers cite ≥1 dataset.
+- **Grounding invariants** (`guards.py`, no judge): every dataset id stated in the
+  answer must appear in the injected grounding (no ghost ids), and a "над N набора" /
+  "over N datasets" claim must not exceed the number of datasets grounded (no count
+  inflation). This catches the chat's one real, intermittent failure mode mechanically —
+  independent of the LLM judge, which on a weak model both misses and over-flags it.
 - **Tool correctness** (`ToolCorrectnessMetric`): the right mirror tool was called.
 - **Judge-graded** (`G-Eval`): faithfulness (claims traceable to cited rows) and
   refusal quality (honest "no data" vs improvisation).
