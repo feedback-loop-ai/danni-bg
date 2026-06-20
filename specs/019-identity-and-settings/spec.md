@@ -2,7 +2,10 @@
 
 **Feature Branch**: `019-identity-and-settings`  
 **Created**: 2026-06-19  
-**Status**: In progress (phased A→D; Phase A — Ory infra — shipped first). Forward-looking spec.  
+**Status**: Implemented. Phases A–D shipped in PRs #39–#48; **PR #49** added Ory v26.2.0, single-port
+magic links, link-mode recovery, Mailpit, and **passkeys** (see the FR-091…FR-093 amendments below).
+Later refined by spec 021 (token metering) + spec 022 (account & chat UX, which removed the in-chat
+provider override). Verified by the suite green + live runs on `:8790`.  
 **Input**: The app has no authentication and its LLM provider is fixed in `.env`. Add Ory-based
 identity with an admin + normal-user tier, and an admin settings area to configure platform behavior
 (starting with the LLM endpoint) at runtime.
@@ -142,9 +145,11 @@ lives in `infra/ory/`. Ports use a 14xxx/15xxx band to avoid colliding with loop
   Kratos session.
 - **FR-054**: Registration MUST be open self-service (email + password via Kratos), defaulting new
   identities to the `user` tier, auto-login on registration; email verification available, not required.
-- **FR-055**: Oathkeeper MUST validate the Kratos session (`cookie_session` → `/sessions/whoami`) and
-  inject `X-User-{ID,Email,Verified,Session-ID}`. The backend MUST trust only these headers (no
-  in-process whoami) and MUST return 401 on gated routes when they are absent.
+- **FR-055**: The backend MUST authenticate a gated request from the Kratos session. **Amended (PR #45,
+  single-port):** the Hono server reverse-proxies `/kratos/*` and **validates the session itself**
+  (`/sessions/whoami`) so it stands alone on one port; Oathkeeper's injected
+  `X-User-{ID,Email,Name,Verified,Session-ID}` headers are still honored (and take precedence) when it
+  fronts the stack. Gated routes MUST 401 when neither yields an identity.
 - **FR-056**: The app MUST keep a `users` table keyed by `kratos_identity_id` with `role ∈ {admin,user}`
   (default `user`). A user row MUST be found-or-created on first authenticated request; admin access
   MUST be enforced in-app (`requireAdmin` → 403 for non-admin).
@@ -161,7 +166,23 @@ lives in `infra/ory/`. Ports use a 14xxx/15xxx band to avoid colliding with loop
   self-service flows, gate the chat UI behind auth, expose an admin-only settings page, and send
   credentials on gated API calls.
 - **FR-062**: The per-request BYO provider override (017/018) MUST continue to work; admin sets the
-  platform default used when `useServerDefault`.
+  platform default used when `useServerDefault`. **Superseded by spec 022 (FR-090):** the in-chat
+  per-user provider override was removed (it would bypass the platform LLM config + metering); the
+  chat always uses the admin-configured server default.
+
+#### Amendments (Session 2026-06-20 — shipped in PR #49)
+
+- **FR-091**: The identity stack MUST support **passwordless passkeys (WebAuthn)** in addition to
+  passwords: register or log in with a passkey, and add/remove passkeys from the account settings.
+  Implemented via Kratos's `passkey` method (relying-party id `localhost`, origins for the
+  single-port app + the optional Vite-dev origin); the custom flow UI injects Kratos's `webauthn.js`
+  and submits the credential natively. Registration stays single-screen (`enable_legacy_one_step`)
+  so traits + password + passkey appear together.
+- **FR-092**: Recovery + email verification MUST use **link (magic-link)** flows with danni-branded
+  emails; in dev they MUST be caught by **Mailpit**. Links MUST resolve through the single-port
+  `/kratos` proxy and complete on the app origin (`serve.public.base_url = http://localhost:8790/kratos/`).
+- **FR-093**: The Ory stack MUST run **Kratos + Oathkeeper v26.2.0** (Ory's unified CalVer) with
+  Mailpit for dev mail (replacing Mailslurper, whose shared web UI showed another instance's inbox).
 
 ### Key Entities *(include if feature involves data)*
 
