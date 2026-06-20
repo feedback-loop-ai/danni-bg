@@ -9,8 +9,10 @@ import type { MiddlewareHandler } from 'hono';
 import type { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
 import { MUNICIPALITIES, OBLASTS } from '../../../src/enrich/gazetteer/bg-admin.ts';
 import type { PlatformSettingsRepo } from '../../../src/store/repos/platform-settings.ts';
+import type { TokenUsageRepo } from '../../../src/store/repos/token-usage.ts';
 import type { UsersRepo } from '../../../src/store/repos/users.ts';
 import { resolveServerDefault } from './admin/resolve-default.ts';
+import { TOGGLES_SETTING_KEY, togglesSchema } from './admin/settings-schema.ts';
 import type { SessionResolver } from './auth/kratos-session.ts';
 import { capDatasetDetail } from './chat/cap.ts';
 import {
@@ -28,6 +30,7 @@ import { aggregateRegions } from './regions-aggregate.ts';
 import { adminRoutes } from './routes/admin.ts';
 import { authRoutes } from './routes/auth.ts';
 import { chatHandler } from './routes/chat.ts';
+import { meRoutes } from './routes/me.ts';
 import {
   type DatasetPointer,
   type ErrorCode,
@@ -58,6 +61,8 @@ export interface AppContext {
   chat?: ChatConfig;
   /** App users repo — gates /api/chat + backs /api/auth (spec 019). */
   users: UsersRepo;
+  /** Per-user token metering — records chat usage + backs the quota gate and usage views. */
+  tokenUsage?: TokenUsageRepo;
   /** Platform settings repo — backs /api/admin/settings + the chat's default provider (spec 019). */
   settings?: PlatformSettingsRepo;
   /** Kratos public base URL (for the logout flow URL). */
@@ -110,6 +115,13 @@ export function createApp(ctx: AppContext): Hono {
   const resolveDefault = () =>
     ctx.settings ? resolveServerDefault(ctx.settings, process.env) : chat.serverDefault;
 
+  // The platform default token quota (0/undefined = unlimited), resolved per request from settings.
+  const resolveDefaultTokenLimit = (): number | undefined => {
+    if (!ctx.settings) return undefined;
+    const raw = ctx.settings.get(TOGGLES_SETTING_KEY);
+    return raw != null ? togglesSchema.parse(raw).defaultTokenLimit : undefined;
+  };
+
   // Gated chat (spec 019): requireAuth runs before the streaming handler — anon → 401, else the
   // session's app user is resolved/created and the turn proceeds. The cast bridges the auth-typed
   // middleware onto the app's default env (it only gates + sets `user`, which chatHandler ignores).
@@ -120,8 +132,18 @@ export function createApp(ctx: AppContext): Hono {
       bridge: ctx.bridge,
       sessions: chat.sessions,
       selectModel: chat.selectModel ?? ((p) => selectModel(p, resolveDefault())),
+      ...(ctx.tokenUsage ? { usage: ctx.tokenUsage } : {}),
+      defaultTokenLimit: resolveDefaultTokenLimit,
     }),
   );
+
+  // Per-user self view of token usage/quota (token metering) — any signed-in user.
+  if (ctx.tokenUsage) {
+    app.route(
+      '/api/me',
+      meRoutes(ctx.users, ctx.tokenUsage, resolveDefaultTokenLimit, ctx.sessionResolver),
+    );
+  }
 
   // Backend auth endpoints (find-or-create app user + tier; logout URL). Self-service login/register
   // are Kratos flows driven by the SPA via the /kratos proxy.
@@ -130,9 +152,17 @@ export function createApp(ctx: AppContext): Hono {
     authRoutes(ctx.users, ctx.kratosPublicUrl ?? 'http://localhost:14433', ctx.sessionResolver),
   );
 
-  // Admin platform settings (spec 019) — mounted only when a settings repo is wired (always in prod).
+  // Admin platform settings (spec 019) + per-user token usage/quota admin (token metering) — mounted
+  // only when a settings repo is wired (always in prod).
   if (ctx.settings) {
-    app.route('/api/admin', adminRoutes(ctx.users, ctx.settings, ctx.sessionResolver));
+    app.route(
+      '/api/admin',
+      adminRoutes(ctx.users, ctx.settings, {
+        sessionResolver: ctx.sessionResolver,
+        tokenUsage: ctx.tokenUsage,
+        defaultTokenLimit: resolveDefaultTokenLimit,
+      }),
+    );
   }
 
   app.get('/healthz', (c) => {

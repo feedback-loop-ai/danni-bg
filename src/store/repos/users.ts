@@ -13,6 +13,8 @@ export interface UserRow {
   created_at: string;
   updated_at: string;
   last_login_at: string | null;
+  token_limit: number | null; // per-user chat-token quota override (null = platform default)
+  usage_reset_at: string | null; // start of the current usage window (null = all time)
 }
 
 export interface FindOrCreateInput {
@@ -98,5 +100,21 @@ export class UsersRepo {
 
   listAll(): UserRow[] {
     return this.db.query<UserRow, []>('SELECT * FROM users ORDER BY created_at').all();
+  }
+
+  /** Set (or clear, with null) a user's per-user token-quota override. Returns true if a row matched. */
+  setTokenLimit(userId: string, limit: number | null, now: string = nowIso()): boolean {
+    const res = this.db
+      .query('UPDATE users SET token_limit = ?, updated_at = ? WHERE id = ?')
+      .run(limit, now, userId);
+    return res.changes > 0;
+  }
+
+  /** Reset a user's usage window to `now`, so their counted usage restarts. Returns true if matched. */
+  resetUsage(userId: string, now: string = nowIso()): boolean {
+    const res = this.db
+      .query('UPDATE users SET usage_reset_at = ?, updated_at = ? WHERE id = ?')
+      .run(now, now, userId);
+    return res.changes > 0;
   }
 }
