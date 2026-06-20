@@ -1,14 +1,17 @@
-import { ArrowUp, Plus, Square, X } from 'lucide-react';
+import { ArrowUp, ChevronDown, ChevronRight, Plus, Square, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 import { useAuth } from '../auth/AuthContext.tsx';
 import { completePartialMarkdown } from '../lib/markdown.ts';
+import { type SessionSummary, deleteSession, getSession, listSessions } from '../lib/meApi.ts';
 import { filterStateToScope } from '../lib/scope.ts';
 import { useExplorer } from '../store/explorerStore.ts';
 import type { Citation, ProviderConfig } from '../types.ts';
 import { sendChat } from './sendChat.ts';
+
+const SESSION_KEY = 'danni.chat.session';
 
 // The chat always uses the admin-configured server default — there's no per-user provider override
 // (it would bypass the platform LLM config + token metering). A non-empty model satisfies the
@@ -55,6 +58,8 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const idRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -63,6 +68,42 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   useEffect(() => {
     if (chatFocus) setInput(`Какво съдържа наборът „${chatFocus.titleBg}"?`);
   }, [chatFocus]);
+
+  // On sign-in: load the conversation list and restore the last open conversation (persisted id).
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    listSessions()
+      .then((s) => active && setSessions(s))
+      .catch(() => {});
+    const stored = localStorage.getItem(SESSION_KEY);
+    if (stored) {
+      getSession(stored)
+        .then((conv) => {
+          if (!active) return;
+          setSessionId(conv.sessionId);
+          setMessages(
+            conv.messages.map((m) => ({
+              id: ++idRef.current,
+              role: m.role,
+              content: m.content,
+              ...(m.citations ? { citations: m.citations } : {}),
+            })),
+          );
+        })
+        .catch(() => localStorage.removeItem(SESSION_KEY));
+    }
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  // Remember the open conversation across reloads.
+  useEffect(() => {
+    if (!user) return;
+    if (sessionId) localStorage.setItem(SESSION_KEY, sessionId);
+    else localStorage.removeItem(SESSION_KEY);
+  }, [sessionId, user]);
 
   // Keep the latest message in view as the answer streams.
   useEffect(() => {
@@ -124,7 +165,13 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
           },
           onAnchors: (anchor) => setHighlight(anchor),
           onError: (message) => setError(message),
-          onDone: () => setStreaming(false),
+          onDone: () => {
+            setStreaming(false);
+            // The turn was persisted server-side — refresh the history so a new conversation shows.
+            listSessions()
+              .then(setSessions)
+              .catch(() => {});
+          },
         },
         undefined,
         controller.signal,
@@ -156,6 +203,39 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     setHighlight({ geoEntityIds: [], datasetIds: [] });
   }
 
+  /** Open a saved conversation and load its transcript. */
+  async function openSession(id: string) {
+    abortRef.current?.abort();
+    setStreaming(false);
+    try {
+      const conv = await getSession(id);
+      setSessionId(conv.sessionId);
+      setMessages(
+        conv.messages.map((m) => ({
+          id: ++idRef.current,
+          role: m.role,
+          content: m.content,
+          ...(m.citations ? { citations: m.citations } : {}),
+        })),
+      );
+      setError(null);
+      setChatFocus(null);
+      setHistoryOpen(false);
+    } catch {
+      setError('Неуспешно зареждане на разговора.');
+    }
+  }
+
+  async function removeSession(id: string) {
+    try {
+      await deleteSession(id);
+      setSessions((prev) => prev.filter((x) => x.id !== id));
+      if (id === sessionId) newChat();
+    } catch {
+      setError('Неуспешно изтриване на разговора.');
+    }
+  }
+
   const empty = messages.length === 0;
 
   return (
@@ -168,6 +248,52 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             : 'pointer-events-none flex h-full min-h-0 select-none flex-col gap-3 blur-sm'
         }
       >
+        {/* Resumable history: a collapsible list of the user's past conversations. */}
+        <div className="rounded-lg border border-border">
+          <button
+            type="button"
+            aria-expanded={historyOpen}
+            onClick={() => setHistoryOpen((o) => !o)}
+            className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition hover:text-foreground"
+          >
+            <span className="flex items-center gap-1">
+              {historyOpen ? (
+                <ChevronDown className="size-3.5" />
+              ) : (
+                <ChevronRight className="size-3.5" />
+              )}
+              Разговори
+            </span>
+            {sessions.length > 0 ? <span>{sessions.length}</span> : null}
+          </button>
+          {historyOpen ? (
+            <div className="max-h-44 overflow-y-auto border-border border-t">
+              {sessions.length === 0 ? (
+                <p className="px-3 py-2 text-xs text-muted-foreground">Няма запазени разговори.</p>
+              ) : (
+                sessions.map((s) => (
+                  <div key={s.id} className="group flex items-center gap-1 px-2 hover:bg-accent">
+                    <button
+                      type="button"
+                      onClick={() => void openSession(s.id)}
+                      className={`flex-1 truncate py-1.5 text-left text-sm ${s.id === sessionId ? 'font-medium text-primary' : ''}`}
+                    >
+                      {s.title || 'Нов разговор'}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Изтрий разговора"
+                      onClick={() => void removeSession(s.id)}
+                      className="shrink-0 rounded p-1 text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : null}
+        </div>
         <div ref={scrollRef} aria-label="Разговор" className="flex-1 space-y-4 overflow-y-auto">
           {empty && (
             <div className="flex h-full flex-col items-center justify-center gap-4 px-2 text-center">

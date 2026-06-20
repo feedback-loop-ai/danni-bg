@@ -8,6 +8,7 @@ import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts'
 import type { UsersRepo } from '../../../../src/store/repos/users.ts';
 import type { SessionResolver } from '../auth/kratos-session.ts';
 import { billableTokens, effectiveLimit, quotaView } from '../chat/quota.ts';
+import type { PersistentSessionStore } from '../chat/sessions-repo.ts';
 import { type AuthEnv, requireAuth } from '../middleware/require-auth.ts';
 
 // Profile picture: a small data: image URL (the client resizes first). Cap the size so a base64 blob
@@ -25,6 +26,7 @@ export interface MeRoutesOpts {
   defaultTokenLimit: () => number | undefined;
   cacheWeight: () => number | undefined;
   sessionResolver?: SessionResolver | undefined;
+  chatSessions?: PersistentSessionStore | undefined;
 }
 
 export function meRoutes(
@@ -65,6 +67,25 @@ export function meRoutes(
     users.setAvatar(c.get('user').id, parsed.data.avatarUrl);
     return c.json({ avatarUrl: parsed.data.avatarUrl });
   });
+
+  // Resumable chat history (only when a persistent store is wired). All scoped to the caller.
+  const sessions = opts.chatSessions;
+  if (sessions) {
+    app.get('/sessions', (c) => c.json({ sessions: sessions.listForUser(c.get('user').id) }));
+
+    app.get('/sessions/:id', (c) => {
+      const conv = sessions.getForUser(c.req.param('id'), c.get('user').id);
+      if (!conv) return c.json({ error: { code: 'not_found', message: 'no such session' } }, 404);
+      return c.json(conv);
+    });
+
+    app.delete('/sessions/:id', (c) => {
+      if (!sessions.deleteForUser(c.req.param('id'), c.get('user').id)) {
+        return c.json({ error: { code: 'not_found', message: 'no such session' } }, 404);
+      }
+      return c.json({ ok: true });
+    });
+  }
 
   return app;
 }

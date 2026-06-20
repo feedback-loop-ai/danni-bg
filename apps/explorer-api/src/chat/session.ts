@@ -21,19 +21,30 @@ export interface Conversation {
   contextDatasetIds: string[];
 }
 
+/**
+ * What the chat route needs from a conversation store, so the in-memory `SessionStore` (focused
+ * tests) and the persistent `PersistentSessionStore` (real app) are interchangeable.
+ */
+export interface ConversationStore {
+  getOrCreate(sessionId: string | null, userId: string): Conversation;
+  append(sessionId: string, message: ChatMessage): void;
+  setContext(sessionId: string, datasetIds: string[]): void;
+}
+
 /** Cap on sticky-context datasets (their rows are re-read every turn — keep it small). */
 export const MAX_CONTEXT_DATASETS = 2;
 /** History window replayed to the model: keep the most recent turns within a char budget. */
 export const MAX_HISTORY_MESSAGES = 10;
 export const MAX_HISTORY_CHARS = 24_000;
 
-export class SessionStore {
+export class SessionStore implements ConversationStore {
   private readonly sessions = new Map<string, Conversation>();
 
   constructor(private readonly newId: () => string = () => crypto.randomUUID()) {}
 
-  /** Return the existing conversation for `sessionId`, or create a fresh one (new id when null). */
-  getOrCreate(sessionId: string | null): Conversation {
+  /** Return the existing conversation for `sessionId`, or create a fresh one (new id when null). The
+   * `userId` is part of the shared store interface but unused here (in-memory, single-process). */
+  getOrCreate(sessionId: string | null, _userId?: string): Conversation {
     if (sessionId !== null) {
       const existing = this.sessions.get(sessionId);
       if (existing) return existing;

@@ -123,6 +123,7 @@ export async function stubApi(page: Page): Promise<ApiStub> {
     const json = (body: unknown) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 
+    if (path === '/api/me/sessions') return json({ sessions: [] });
     if (path === '/api/regions') return json(REGIONS);
     if (path === '/api/facets')
       return json({
