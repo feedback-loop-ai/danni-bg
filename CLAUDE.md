@@ -18,6 +18,9 @@ capabilities each have their own spec:
   completeness (RAG row injection) & transparency (opt-in `grounding` SSE event)
 - 019 identity (Ory Kratos+Oathkeeper, `infra/ory` + `docker-compose.yml`), tiered users
   (admin/user in app `users` table), gated chat, admin platform settings (runtime LLM config) — phased
+- 020 persistent & resumable chat sessions (`chat_sessions`/`chat_messages`, `/api/me/sessions`),
+  mid-stream resume via the in-memory `GenerationManager` + `/api/me/generations/:id/{stream,stop}` —
+  supersedes FR-019 (chat history is now persisted per user)
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->
