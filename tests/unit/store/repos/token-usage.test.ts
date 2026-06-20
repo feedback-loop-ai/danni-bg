@@ -26,14 +26,12 @@ describe('TokenUsageRepo', () => {
   });
   afterEach(() => db.close());
 
-  it('records usage and totals it for a user', () => {
+  it('records usage and totals it (incl. input/output/cache breakdown) for a user', () => {
     const u = seedUser(users, 'k1', 'a@example.com');
-    usage.record({ userId: u.id, inputTokens: 10, outputTokens: 5, totalTokens: 15, now: '2026-01-01T00:00:00Z' });
-    usage.record({ userId: u.id, inputTokens: 20, outputTokens: 10, totalTokens: 30, now: '2026-01-02T00:00:00Z' });
+    usage.record({ userId: u.id, inputTokens: 10, outputTokens: 5, totalTokens: 15, cachedInputTokens: 3, now: '2026-01-01T00:00:00Z' });
+    usage.record({ userId: u.id, inputTokens: 20, outputTokens: 10, totalTokens: 30, cachedInputTokens: 7, now: '2026-01-02T00:00:00Z' });
     const got = usage.usageForUser(u.id, null);
-    expect(got.used).toBe(45);
-    expect(got.requests).toBe(2);
-    expect(got.lastUsedAt).toBe('2026-01-02T00:00:00Z');
+    expect(got).toMatchObject({ used: 45, input: 30, output: 15, cached: 10, requests: 2, lastUsedAt: '2026-01-02T00:00:00Z' });
   });
 
   it('counts only usage at/after the reset window', () => {

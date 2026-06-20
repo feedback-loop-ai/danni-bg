@@ -32,6 +32,9 @@ export interface AdminUsageRow {
   role: 'admin' | 'user';
   tokenLimit: number | null; // per-user override
   used: number;
+  input: number;
+  output: number;
+  cached: number; // cache-hit input tokens (a subset of input)
   limit: number; // effective (0 = unlimited)
   remaining: number | null;
   exceeded: boolean;

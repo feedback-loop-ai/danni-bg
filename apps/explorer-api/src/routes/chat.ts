@@ -152,6 +152,7 @@ export function chatHandler(deps: ChatRouteDeps) {
             inputTokens: result.usage.inputTokens,
             outputTokens: result.usage.outputTokens,
             totalTokens: result.usage.totalTokens,
+            cachedInputTokens: result.usage.cachedInputTokens,
           });
         }
         if (body.debug && result.groundingText) {

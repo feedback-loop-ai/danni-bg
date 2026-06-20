@@ -19,9 +19,16 @@ export function meRoutes(
 
   app.get('/usage', (c) => {
     const user = c.get('user');
-    const { used, requests, lastUsedAt } = tokenUsage.usageForUser(user.id, user.usage_reset_at);
+    const u = tokenUsage.usageForUser(user.id, user.usage_reset_at);
     const limit = effectiveLimit(user.token_limit, defaultTokenLimit());
-    return c.json({ ...quotaView(used, limit), requests, lastUsedAt });
+    return c.json({
+      ...quotaView(u.used, limit),
+      input: u.input,
+      output: u.output,
+      cached: u.cached,
+      requests: u.requests,
+      lastUsedAt: u.lastUsedAt,
+    });
   });
 
   return app;
