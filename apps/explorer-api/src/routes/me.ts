@@ -3,13 +3,16 @@
 // (any tier) — no admin required.
 
 import { Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts';
 import type { UsersRepo } from '../../../../src/store/repos/users.ts';
 import type { SessionResolver } from '../auth/kratos-session.ts';
+import type { GenerationManager } from '../chat/generation-manager.ts';
 import { billableTokens, effectiveLimit, quotaView } from '../chat/quota.ts';
 import type { PersistentSessionStore } from '../chat/sessions-repo.ts';
 import { type AuthEnv, requireAuth } from '../middleware/require-auth.ts';
+import { streamGeneration } from './chat.ts';
 
 // Profile picture: a small data: image URL (the client resizes first). Cap the size so a base64 blob
 // can't bloat the row / the session callback payload.
@@ -27,6 +30,7 @@ export interface MeRoutesOpts {
   cacheWeight: () => number | undefined;
   sessionResolver?: SessionResolver | undefined;
   chatSessions?: PersistentSessionStore | undefined;
+  generations?: GenerationManager | undefined;
 }
 
 export function meRoutes(
@@ -74,15 +78,51 @@ export function meRoutes(
     app.get('/sessions', (c) => c.json({ sessions: sessions.listForUser(c.get('user').id) }));
 
     app.get('/sessions/:id', (c) => {
-      const conv = sessions.getForUser(c.req.param('id'), c.get('user').id);
+      const id = c.req.param('id');
+      const conv = sessions.getForUser(id, c.get('user').id);
       if (!conv) return c.json({ error: { code: 'not_found', message: 'no such session' } }, 404);
-      return c.json(conv);
+      // If a generation is still running for this conversation, tell the client so it can re-attach.
+      const activeId = opts.generations?.activeForSession(id);
+      return c.json({ ...conv, ...(activeId ? { streaming: { messageId: activeId } } : {}) });
     });
 
     app.delete('/sessions/:id', (c) => {
       if (!sessions.deleteForUser(c.req.param('id'), c.get('user').id)) {
         return c.json({ error: { code: 'not_found', message: 'no such session' } }, 404);
       }
+      return c.json({ ok: true });
+    });
+  }
+
+  // Mid-stream resume: re-attach to an in-flight generation's live token stream, or replay its result
+  // if it just finished. Stop aborts it server-side. Both are ownership-checked via the generation's
+  // recorded userId.
+  const generations = opts.generations;
+  if (generations) {
+    app.get('/generations/:id/stream', (c) => {
+      const snap = generations.snapshot(c.req.param('id'));
+      if (!snap || snap.userId !== c.get('user').id) {
+        return c.json({ error: { code: 'not_found', message: 'no such generation' } }, 404);
+      }
+      return streamSSE(c, async (stream) => {
+        await stream.writeSSE({
+          event: 'session',
+          data: JSON.stringify({ sessionId: snap.sessionId }),
+        });
+        await stream.writeSSE({
+          event: 'message',
+          data: JSON.stringify({ messageId: snap.messageId }),
+        });
+        await streamGeneration(stream, generations, snap.messageId);
+      });
+    });
+
+    app.post('/generations/:id/stop', (c) => {
+      const snap = generations.snapshot(c.req.param('id'));
+      if (!snap || snap.userId !== c.get('user').id) {
+        return c.json({ error: { code: 'not_found', message: 'no such generation' } }, 404);
+      }
+      generations.stop(snap.messageId);
       return c.json({ ok: true });
     });
   }

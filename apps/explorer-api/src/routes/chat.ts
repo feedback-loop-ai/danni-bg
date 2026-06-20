@@ -9,10 +9,10 @@ import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts';
 import type { UserRow } from '../../../../src/store/repos/users.ts';
+import type { GenEvent, GenSnapshot, GenerationManager } from '../chat/generation-manager.ts';
 import { billableTokens, effectiveLimit, quotaView } from '../chat/quota.ts';
 import { runChatTurn } from '../chat/run.ts';
 import { type ConversationStore, MAX_CONTEXT_DATASETS, windowMessages } from '../chat/session.ts';
-import { log } from '../logging.ts';
 import type { ReadBridge } from '../read-bridge.ts';
 import { scopeDescriptorSchema } from '../schemas.ts';
 import { type ProviderConfig, ProviderError, providerConfigSchema } from './../chat/providers.ts';
@@ -38,6 +38,8 @@ export const chatRequestSchema = z
 export interface ChatRouteDeps {
   bridge: ReadBridge;
   sessions: ConversationStore;
+  /** Runs turns detached so they survive a client disconnect (mid-stream resume). */
+  generations: GenerationManager;
   selectModel: (provider: ProviderConfig) => LanguageModel;
   /** Per-user token metering (optional; omitted in focused unit tests). */
   usage?: TokenUsageRepo;
@@ -132,29 +134,35 @@ export function chatHandler(deps: ChatRouteDeps) {
       { role: 'user', content: body.message },
     ]).map((m) => ({ role: m.role, content: m.content }));
 
-    return streamSSE(c, async (stream) => {
-      await stream.writeSSE({
-        event: 'session',
-        data: JSON.stringify({ sessionId: conv.sessionId }),
-      });
-      try {
+    // Run the turn DETACHED via the generation manager so a client disconnect/reload doesn't kill it
+    // (mid-stream resume). The SSE below just subscribes to the live generation.
+    const messageId = crypto.randomUUID();
+    deps.generations.start({
+      messageId,
+      sessionId: conv.sessionId,
+      userId: user?.id ?? '',
+      run: async (h, signal) => {
         const result = await runChatTurn({
           model,
           bridge: deps.bridge,
           scope,
           messages,
           groundingDatasetIds,
+          abortSignal: signal,
           ...(maxOut ? { maxOutputTokens: maxOut } : {}),
-          events: {
-            onToken: (delta) => {
-              void stream.writeSSE({ event: 'token', data: JSON.stringify({ delta }) });
-            },
-            onTool: (name, status) => {
-              void stream.writeSSE({ event: 'tool', data: JSON.stringify({ name, status }) });
-            },
-          },
+          events: { onToken: h.onToken, onTool: h.onTool },
         });
-        // Meter the turn's token usage against the signed-in user (token metering).
+        if (body.debug && result.groundingText) h.onGrounding(result.groundingText);
+        h.onCitations(result.citations);
+        h.onAnchors(result.anchors);
+        // Persist the reply, meter usage, and carry grounding forward — all before 'done' fires, so a
+        // reload immediately after completion finds the saved assistant message.
+        deps.sessions.append(conv.sessionId, {
+          role: 'assistant',
+          content: result.text,
+          citations: result.citations,
+          anchors: result.anchors,
+        });
         if (deps.usage && user && result.usage) {
           deps.usage.record({
             userId: user.id,
@@ -166,27 +174,6 @@ export function chatHandler(deps: ChatRouteDeps) {
             cachedInputTokens: result.usage.cachedInputTokens,
           });
         }
-        if (body.debug && result.groundingText) {
-          await stream.writeSSE({
-            event: 'grounding',
-            data: JSON.stringify({ text: result.groundingText }),
-          });
-        }
-        await stream.writeSSE({
-          event: 'citations',
-          data: JSON.stringify({ citations: result.citations }),
-        });
-        await stream.writeSSE({ event: 'anchors', data: JSON.stringify(result.anchors) });
-        await stream.writeSSE({ event: 'done', data: '{}' });
-        deps.sessions.append(conv.sessionId, {
-          role: 'assistant',
-          content: result.text,
-          citations: result.citations,
-          anchors: result.anchors,
-        });
-        // Carry grounding forward: the conversation is now "about" the hard-focused dataset(s) if any,
-        // else the dataset open in the reader, else whatever this answer cited — so the next
-        // follow-up re-injects their rows.
         const nextContext =
           explicitFocus.length > 0
             ? explicitFocus
@@ -196,16 +183,94 @@ export function chatHandler(deps: ChatRouteDeps) {
         if (nextContext.length > 0) {
           deps.sessions.setContext(conv.sessionId, nextContext.slice(0, MAX_CONTEXT_DATASETS));
         }
-      } catch (e) {
-        log.error('chat_turn_failed', { sessionId: conv.sessionId });
-        await stream.writeSSE({
-          event: 'error',
-          data: JSON.stringify({
-            code: 'provider_error',
-            message: e instanceof Error ? e.message : 'chat failed',
-          }),
-        });
-      }
+      },
+    });
+
+    return streamSSE(c, async (stream) => {
+      await stream.writeSSE({
+        event: 'session',
+        data: JSON.stringify({ sessionId: conv.sessionId }),
+      });
+      await stream.writeSSE({ event: 'message', data: JSON.stringify({ messageId }) });
+      await streamGeneration(stream, deps.generations, messageId);
     });
   };
+}
+
+/** Forward a generation's events (snapshot replay + live) to an SSE stream until it ends. Shared by
+ * the initial POST and the reconnect endpoint. */
+export async function streamGeneration(
+  stream: { writeSSE: (m: { event: string; data: string }) => unknown },
+  generations: GenerationStream,
+  messageId: string,
+): Promise<void> {
+  await new Promise<void>((resolve) => {
+    const sub = generations.subscribe(messageId, (e) => {
+      forwardEvent(stream, e);
+      if (e.type === 'done' || e.type === 'error') {
+        sub?.unsubscribe();
+        resolve();
+      }
+    });
+    if (!sub) {
+      // Generation already evicted — nothing live to attach to.
+      void stream.writeSSE({ event: 'done', data: '{}' });
+      resolve();
+      return;
+    }
+    // Replay what's already been produced (for reconnects), then live events flow via the listener.
+    const s = sub.snapshot;
+    if (s.text) void stream.writeSSE({ event: 'token', data: JSON.stringify({ delta: s.text }) });
+    if (s.citations)
+      void stream.writeSSE({
+        event: 'citations',
+        data: JSON.stringify({ citations: s.citations }),
+      });
+    if (s.anchors) void stream.writeSSE({ event: 'anchors', data: JSON.stringify(s.anchors) });
+    if (s.status === 'done') {
+      void stream.writeSSE({ event: 'done', data: '{}' });
+      sub.unsubscribe();
+      resolve();
+    } else if (s.status === 'error') {
+      void stream.writeSSE({
+        event: 'error',
+        data: JSON.stringify({ code: 'provider_error', message: s.error ?? 'chat failed' }),
+      });
+      sub.unsubscribe();
+      resolve();
+    }
+  });
+}
+
+/** Minimal view of the manager that streamGeneration needs (eases testing). */
+export interface GenerationStream {
+  subscribe(
+    messageId: string,
+    listener: (e: GenEvent) => void,
+  ): { snapshot: GenSnapshot; unsubscribe: () => void } | null;
+}
+
+function forwardEvent(
+  stream: { writeSSE: (m: { event: string; data: string }) => unknown },
+  e: GenEvent,
+): void {
+  if (e.type === 'token')
+    void stream.writeSSE({ event: 'token', data: JSON.stringify({ delta: e.delta }) });
+  else if (e.type === 'tool')
+    void stream.writeSSE({
+      event: 'tool',
+      data: JSON.stringify({ name: e.name, status: e.status }),
+    });
+  else if (e.type === 'citations')
+    void stream.writeSSE({ event: 'citations', data: JSON.stringify({ citations: e.citations }) });
+  else if (e.type === 'anchors')
+    void stream.writeSSE({ event: 'anchors', data: JSON.stringify(e.anchors) });
+  else if (e.type === 'grounding')
+    void stream.writeSSE({ event: 'grounding', data: JSON.stringify({ text: e.text }) });
+  else if (e.type === 'done') void stream.writeSSE({ event: 'done', data: '{}' });
+  else if (e.type === 'error')
+    void stream.writeSSE({
+      event: 'error',
+      data: JSON.stringify({ code: 'provider_error', message: e.message }),
+    });
 }

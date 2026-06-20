@@ -6,6 +6,8 @@ import { type SSEEvent, createSSEDecoder, parseEventData } from './sse.ts';
 
 export interface ChatCallbacks {
   onSession?: (sessionId: string) => void;
+  /** The server's generation id for this turn — used to re-attach (resume) or stop server-side. */
+  onMessage?: (messageId: string) => void;
   onToken?: (delta: string) => void;
   onTool?: (name: string, status: string) => void;
   onCitations?: (citations: Citation[]) => void;
@@ -28,6 +30,9 @@ export function dispatchSSEEvent(ev: SSEEvent, cb: ChatCallbacks): void {
   switch (ev.event) {
     case 'session':
       cb.onSession?.(parseEventData<{ sessionId: string }>(ev).sessionId);
+      return;
+    case 'message':
+      cb.onMessage?.(parseEventData<{ messageId: string }>(ev).messageId);
       return;
     case 'token':
       cb.onToken?.(parseEventData<{ delta: string }>(ev).delta);
@@ -77,6 +82,31 @@ export async function sendChat(
     cb.onError?.(msg);
     return;
   }
+  await readSSEStream(res, cb);
+}
+
+/** Re-attach to an in-flight (or just-finished) generation's stream (mid-stream resume). Replays
+ * what's been produced so far, then continues live, ending with done/error. */
+export async function resumeChat(
+  messageId: string,
+  cb: ChatCallbacks,
+  fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetchImpl(`/api/me/generations/${messageId}/stream`, {
+    credentials: 'include',
+    ...(signal ? { signal } : {}),
+  });
+  if (!res.ok) {
+    // The generation is gone (server restart / evicted) — nothing to resume; not an error to surface.
+    cb.onDone?.();
+    return;
+  }
+  await readSSEStream(res, cb);
+}
+
+/** Read an SSE response body and dispatch each event to the callbacks. */
+async function readSSEStream(res: Response, cb: ChatCallbacks): Promise<void> {
   if (!res.body) {
     cb.onError?.('no response stream');
     return;

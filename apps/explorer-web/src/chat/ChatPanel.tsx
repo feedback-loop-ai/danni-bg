@@ -5,11 +5,17 @@ import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 import { useAuth } from '../auth/AuthContext.tsx';
 import { completePartialMarkdown } from '../lib/markdown.ts';
-import { type SessionSummary, deleteSession, getSession, listSessions } from '../lib/meApi.ts';
+import {
+  type SessionSummary,
+  deleteSession,
+  getSession,
+  listSessions,
+  stopGeneration,
+} from '../lib/meApi.ts';
 import { filterStateToScope } from '../lib/scope.ts';
 import { useExplorer } from '../store/explorerStore.ts';
 import type { Citation, ProviderConfig } from '../types.ts';
-import { sendChat } from './sendChat.ts';
+import { type ChatCallbacks, resumeChat, sendChat } from './sendChat.ts';
 
 const SESSION_KEY = 'danni.chat.session';
 
@@ -62,6 +68,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const idRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  const msgIdRef = useRef<string | null>(null); // server generation id of the in-flight turn
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // When a dataset focus is set ("ask about this dataset"), prefill a question about it.
@@ -82,14 +89,57 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
         .then((conv) => {
           if (!active) return;
           setSessionId(conv.sessionId);
-          setMessages(
-            conv.messages.map((m) => ({
-              id: ++idRef.current,
-              role: m.role,
-              content: m.content,
-              ...(m.citations ? { citations: m.citations } : {}),
-            })),
-          );
+          const loaded = conv.messages.map((m) => ({
+            id: ++idRef.current,
+            role: m.role,
+            content: m.content,
+            ...(m.citations ? { citations: m.citations } : {}),
+          }));
+          // If a generation was still running when we reloaded, re-attach to its live stream
+          // (mid-stream resume) — append a live assistant bubble and stream into it.
+          if (conv.streaming) {
+            const aid = ++idRef.current;
+            setMessages([...loaded, { id: aid, role: 'assistant', content: '' }]);
+            msgIdRef.current = conv.streaming.messageId;
+            setStreaming(true);
+            const controller = new AbortController();
+            abortRef.current = controller;
+            let text = '';
+            let cites: Citation[] = [];
+            const patch = () =>
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === aid
+                    ? { ...m, content: text, ...(cites.length ? { citations: cites } : {}) }
+                    : m,
+                ),
+              );
+            void resumeChat(
+              conv.streaming.messageId,
+              {
+                onToken: (d) => {
+                  text += d;
+                  patch();
+                },
+                onCitations: (c) => {
+                  cites = c;
+                  patch();
+                },
+                onAnchors: setHighlight,
+                onError: setError,
+                onDone: () => {
+                  setStreaming(false);
+                  listSessions()
+                    .then(setSessions)
+                    .catch(() => {});
+                },
+              },
+              undefined,
+              controller.signal,
+            ).finally(() => setStreaming(false));
+          } else {
+            setMessages(loaded);
+          }
         })
         .catch(() => localStorage.removeItem(SESSION_KEY));
     }
@@ -122,39 +172,22 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     });
   }
 
-  async function send(text?: string) {
-    const question = (text ?? input).trim();
-    if (!question || streaming) return;
-    setInput('');
-    setError(null);
-    setStreaming(true);
-    setMessages((prev) => [
-      ...prev,
-      { id: ++idRef.current, role: 'user', content: question },
-      { id: ++idRef.current, role: 'assistant', content: '' },
-    ]);
-
+  /** Stream into the trailing assistant bubble, whether starting a turn (sendChat) or re-attaching to
+   * an in-flight one (resumeChat). Shared callbacks + lifecycle. */
+  async function attachStream(run: (cb: ChatCallbacks, signal: AbortSignal) => Promise<void>) {
     const controller = new AbortController();
     abortRef.current = controller;
+    setStreaming(true);
+    setError(null);
     let assistant = '';
     let cites: Citation[] = [];
     try {
-      const scope = {
-        ...filterStateToScope(filters),
-        ...(chatFocus ? { datasetIds: [chatFocus.datasetId] } : {}),
-      };
-      // Auto-focus the dataset open in the reader: ground the answer in its rows without narrowing
-      // scope. A deliberate chatFocus (scope.datasetIds) takes precedence on the backend.
-      await sendChat(
-        {
-          sessionId,
-          message: question,
-          scope,
-          ...(reader ? { groundingDatasetIds: [reader.datasetId] } : {}),
-          provider: SERVER_DEFAULT_PROVIDER,
-        },
+      await run(
         {
           onSession: setSessionId,
+          onMessage: (id) => {
+            msgIdRef.current = id;
+          },
           onToken: (delta) => {
             assistant += delta;
             patchAssistant(assistant, cites.length > 0 ? cites : undefined);
@@ -167,13 +200,11 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
           onError: (message) => setError(message),
           onDone: () => {
             setStreaming(false);
-            // The turn was persisted server-side — refresh the history so a new conversation shows.
             listSessions()
               .then(setSessions)
               .catch(() => {});
           },
         },
-        undefined,
         controller.signal,
       );
     } catch {
@@ -185,8 +216,40 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     }
   }
 
+  async function send(text?: string) {
+    const question = (text ?? input).trim();
+    if (!question || streaming) return;
+    setInput('');
+    setMessages((prev) => [
+      ...prev,
+      { id: ++idRef.current, role: 'user', content: question },
+      { id: ++idRef.current, role: 'assistant', content: '' },
+    ]);
+    // Auto-focus the dataset open in the reader: ground the answer in its rows without narrowing
+    // scope. A deliberate chatFocus (scope.datasetIds) takes precedence on the backend.
+    const scope = {
+      ...filterStateToScope(filters),
+      ...(chatFocus ? { datasetIds: [chatFocus.datasetId] } : {}),
+    };
+    await attachStream((cb, signal) =>
+      sendChat(
+        {
+          sessionId,
+          message: question,
+          scope,
+          ...(reader ? { groundingDatasetIds: [reader.datasetId] } : {}),
+          provider: SERVER_DEFAULT_PROVIDER,
+        },
+        cb,
+        undefined,
+        signal,
+      ),
+    );
+  }
+
   function stop() {
-    abortRef.current?.abort();
+    abortRef.current?.abort(); // stop reading locally
+    if (msgIdRef.current) void stopGeneration(msgIdRef.current); // and stop it server-side
     setStreaming(false);
   }
 
@@ -203,24 +266,30 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     setHighlight({ geoEntityIds: [], datasetIds: [] });
   }
 
-  /** Open a saved conversation and load its transcript. */
+  /** Open a saved conversation and load its transcript; re-attach if it's still generating. */
   async function openSession(id: string) {
     abortRef.current?.abort();
     setStreaming(false);
     try {
       const conv = await getSession(id);
       setSessionId(conv.sessionId);
-      setMessages(
-        conv.messages.map((m) => ({
-          id: ++idRef.current,
-          role: m.role,
-          content: m.content,
-          ...(m.citations ? { citations: m.citations } : {}),
-        })),
-      );
-      setError(null);
       setChatFocus(null);
       setHistoryOpen(false);
+      const loaded = conv.messages.map((m) => ({
+        id: ++idRef.current,
+        role: m.role,
+        content: m.content,
+        ...(m.citations ? { citations: m.citations } : {}),
+      }));
+      if (conv.streaming) {
+        setMessages([...loaded, { id: ++idRef.current, role: 'assistant', content: '' }]);
+        msgIdRef.current = conv.streaming.messageId;
+        const mid = conv.streaming.messageId;
+        await attachStream((cb, signal) => resumeChat(mid, cb, undefined, signal));
+      } else {
+        setMessages(loaded);
+        setError(null);
+      }
     } catch {
       setError('Неуспешно зареждане на разговора.');
     }
