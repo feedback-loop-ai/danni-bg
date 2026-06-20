@@ -56,6 +56,9 @@ export function AdminUsage() {
             <tr>
               <th className="px-3 py-2 font-medium">Потребител</th>
               <th className="px-3 py-2 text-right font-medium">Употреба</th>
+              <th className="px-3 py-2 text-right font-medium">Вход</th>
+              <th className="px-3 py-2 text-right font-medium">Изход</th>
+              <th className="px-3 py-2 text-right font-medium">Кеш</th>
               <th className="px-3 py-2 text-right font-medium">Заявки</th>
               <th className="px-3 py-2 font-medium">Личен лимит</th>
               <th className="px-3 py-2" />
@@ -76,6 +79,13 @@ export function AdminUsage() {
                     {nf.format(r.used)}
                   </span>
                   <span className="text-muted-foreground"> / {fmtLimit(r.limit)}</span>
+                </td>
+                <td className="px-3 py-2 text-right text-muted-foreground">{nf.format(r.input)}</td>
+                <td className="px-3 py-2 text-right text-muted-foreground">
+                  {nf.format(r.output)}
+                </td>
+                <td className="px-3 py-2 text-right text-muted-foreground">
+                  {nf.format(r.cached)}
                 </td>
                 <td className="px-3 py-2 text-right">{nf.format(r.requests)}</td>
                 <td className="px-3 py-2">

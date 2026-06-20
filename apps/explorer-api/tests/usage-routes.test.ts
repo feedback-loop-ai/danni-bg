@@ -68,6 +68,7 @@ describe('GET /api/admin/usage', () => {
       inputTokens: 100,
       outputTokens: 50,
       totalTokens: 150,
+      cachedInputTokens: 20,
     });
     const res = await s.app.request('/api/admin/usage', { headers: ADMIN });
     expect(res.status).toBe(200);
@@ -76,6 +77,9 @@ describe('GET /api/admin/usage', () => {
       users: {
         email: string;
         used: number;
+        input: number;
+        output: number;
+        cached: number;
         limit: number;
         remaining: number;
         exceeded: boolean;
@@ -86,6 +90,9 @@ describe('GET /api/admin/usage', () => {
     const row = body.users.find((u) => u.email === 'user@example.com');
     expect(row).toMatchObject({
       used: 150,
+      input: 100,
+      output: 50,
+      cached: 20,
       limit: 1000,
       remaining: 850,
       exceeded: false,
@@ -162,11 +169,20 @@ describe('GET /api/me/usage', () => {
 
   it("reports the caller's own usage against the platform default limit", async () => {
     s.settings.set(TOGGLES_SETTING_KEY, { defaultTokenLimit: 100 }, 'test');
-    s.tokenUsage.record({ userId: s.user.id, inputTokens: 10, outputTokens: 20, totalTokens: 30 });
+    s.tokenUsage.record({
+      userId: s.user.id,
+      inputTokens: 10,
+      outputTokens: 20,
+      totalTokens: 30,
+      cachedInputTokens: 5,
+    });
     const res = await s.app.request('/api/me/usage', { headers: USER });
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({
       used: 30,
+      input: 10,
+      output: 20,
+      cached: 5,
       limit: 100,
       remaining: 70,
       exceeded: false,

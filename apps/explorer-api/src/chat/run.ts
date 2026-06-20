@@ -29,6 +29,8 @@ export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  /** Portion of inputTokens served from the provider's prompt cache. */
+  cachedInputTokens: number;
 }
 
 export interface ChatTurnResult {
@@ -49,13 +51,23 @@ export interface ChatTurnResult {
 async function readUsage(result: { totalUsage: PromiseLike<unknown> }): Promise<TokenUsage> {
   try {
     const u = (await result.totalUsage) as
-      | { inputTokens?: number; outputTokens?: number; totalTokens?: number }
+      | {
+          inputTokens?: number;
+          outputTokens?: number;
+          totalTokens?: number;
+          cachedInputTokens?: number;
+        }
       | undefined;
     const inputTokens = u?.inputTokens ?? 0;
     const outputTokens = u?.outputTokens ?? 0;
-    return { inputTokens, outputTokens, totalTokens: u?.totalTokens ?? inputTokens + outputTokens };
+    return {
+      inputTokens,
+      outputTokens,
+      totalTokens: u?.totalTokens ?? inputTokens + outputTokens,
+      cachedInputTokens: u?.cachedInputTokens ?? 0,
+    };
   } catch {
-    return { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+    return { inputTokens: 0, outputTokens: 0, totalTokens: 0, cachedInputTokens: 0 };
   }
 }
 

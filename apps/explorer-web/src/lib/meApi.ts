@@ -2,6 +2,9 @@
 
 export interface MyUsage {
   used: number;
+  input: number;
+  output: number;
+  cached: number; // cache-hit input tokens (a subset of input)
   limit: number; // 0 = unlimited
   remaining: number | null; // null = unlimited
   exceeded: boolean;
