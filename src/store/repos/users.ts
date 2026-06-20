@@ -59,11 +59,13 @@ export class UsersRepo {
     const verified = input.emailVerified ? 1 : 0;
     const existing = this.findByKratosId(input.kratosIdentityId);
     if (existing) {
+      // `display_name` is COALESCEd so a session carrying a name (the Kratos whoami path) keeps it
+      // current after a profile edit, while one without (e.g. header-only) leaves the name intact.
       this.db
         .query(
-          'UPDATE users SET email = ?, email_verified = ?, last_login_at = ?, updated_at = ? WHERE id = ?',
+          'UPDATE users SET email = ?, email_verified = ?, display_name = COALESCE(?, display_name), last_login_at = ?, updated_at = ? WHERE id = ?',
         )
-        .run(input.email, verified, now, now, existing.id);
+        .run(input.email, verified, input.displayName ?? null, now, now, existing.id);
       return this.get(existing.id) as UserRow;
     }
     const id = crypto.randomUUID();

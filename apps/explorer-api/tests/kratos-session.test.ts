@@ -27,7 +27,7 @@ describe('kratosSessionResolver', () => {
       active: true,
       identity: {
         id: 'k-1',
-        traits: { email: 'u@example.com' },
+        traits: { email: 'u@example.com', name: { first: 'Иван', last: 'Петров' } },
         verifiable_addresses: [{ verified: true }],
       },
     });
@@ -36,9 +36,23 @@ describe('kratosSessionResolver', () => {
       userId: 'k-1',
       email: 'u@example.com',
       verified: true,
+      displayName: 'Иван Петров',
     });
     expect(calls[0]?.url).toBe('http://kratos:4433/sessions/whoami');
     expect(calls[0]?.cookie).toBe('ory_kratos_session=abc');
+  });
+
+  it('resolves displayName to null when the name traits are absent', async () => {
+    const { impl } = fetchReturning(200, {
+      active: true,
+      identity: { id: 'k-2', traits: { email: 'u@example.com' }, verifiable_addresses: [] },
+    });
+    expect(await kratosSessionResolver('http://k', impl)('c')).toEqual({
+      userId: 'k-2',
+      email: 'u@example.com',
+      verified: false,
+      displayName: null,
+    });
   });
 
   it('returns null without a cookie (no request made)', async () => {

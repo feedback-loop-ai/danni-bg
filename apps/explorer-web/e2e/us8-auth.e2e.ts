@@ -37,9 +37,11 @@ test('a signed-in user sees the chat input and their email in the header', async
   await page.goto('/');
 
   await expect(page.getByLabel('Въпрос')).toBeVisible();
-  await expect(page.getByText('user@example.com')).toBeVisible();
   // Signed in → no blur overlay prompt.
   await expect(page.getByText(/използвате чата/)).toHaveCount(0);
+  // Identity + links live behind the avatar dropdown.
+  await page.getByRole('button', { name: 'Профил меню' }).click();
+  await expect(page.getByText('user@example.com')).toBeVisible();
   // A normal user has their own settings link but not the admin platform one.
   await expect(page.getByRole('link', { name: 'Настройки' })).toHaveCount(1);
   await expect(page.getByRole('link', { name: 'Платформа' })).toHaveCount(0);
@@ -64,6 +66,7 @@ test('logout runs the Kratos logout flow (same-origin)', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByLabel('Въпрос')).toBeVisible(); // signed in
 
+  await page.getByRole('button', { name: 'Профил меню' }).click(); // open the avatar menu
   const logoutFlow = page.waitForRequest('**/kratos/self-service/logout/browser');
   await page.getByRole('button', { name: 'Изход' }).click();
   await logoutFlow; // the logout flow was initiated against the same-origin /kratos proxy
