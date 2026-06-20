@@ -63,7 +63,15 @@ credentials over an unencrypted connection, and Mailpit accepts unauthenticated 
 - Secrets in `kratos.yaml` (`cookie`, `cipher`) are placeholders — **rotate for any non-local deploy**.
 - Identity schema is minimal (email + name). Roles/tiers live in the danni app DB
   (`users.role`), not in Kratos — see the spec.
-- First admin: register + log in once, then `danni admin-grant <email>`.
+- **Passkeys (WebAuthn).** The `passkey` method is enabled (rp id `localhost`, origins `:8790` +
+  `:5173`) for passwordless register/login + per-user passkey management in settings. The SPA's custom
+  flow UI injects Kratos's `webauthn.js` and submits the credential natively; registration stays
+  single-screen via `enable_legacy_one_step`. WebAuthn needs a secure context — `localhost` counts, so
+  it works in dev without HTTPS.
+- **Recovery/verification use link mode** (magic links, danni-branded templates) — the link resolves
+  through the single-port `/kratos` proxy and lands on `:8790/auth/settings`. Kratos + Oathkeeper are
+  pinned to **v26.2.0**.
+- First admin: register + log in once, then `danni admin grant <email>`.
 - Email templates live in `infra/ory/templates/<template>/valid/email.{subject,body}.gotmpl`
   (mounted at `/etc/config/kratos/templates`, set via `courier.template_override_path`). If you add
   templates and they don't take effect, recreate the container so the bind mount is fresh:

@@ -40,6 +40,12 @@ sync  →  curate  →  enrich  →  index  →  search
   sort + per-column filters over the whole resource). On top sits a **grounded chat assistant**:
   grounded by construction — the focused / open dataset's real rows are injected as ground-truth
   context, kept sticky across follow-ups, and hardened against fabrication.
+- **Authenticated chat platform** (specs 019–022) — public browsing stays open; **chat + admin are
+  gated** behind an Ory identity stack (email+password **or passkeys**, link-mode recovery). Tiered
+  users (admin/user); an admin **platform-settings** page configures the LLM endpoint + quota policy at
+  runtime. **Per-user token metering with enforced quotas** (cache-discounted), an **account page**
+  (appearance, profile, password, passkeys, usage, avatar), and **persistent, resumable chat
+  sessions** — conversations survive reloads and a turn keeps streaming across a disconnect (re-attach).
 
 The store on disk is the source of truth; every stage is re-runnable and every result carries a
 `sourceUrl` (back to data.egov.bg) + a curated-artifact path for one-hop traceability.
@@ -49,6 +55,7 @@ The store on disk is the source of truth; every stage is re-runnable and every r
 - **Mirror the portal**: [`specs/001-egov-data-sync/quickstart.md`](specs/001-egov-data-sync/quickstart.md)
   — the 5-minute clone-to-mirror walkthrough.
 - **Run the explorer**: [`specs/008-map-data-explorer/quickstart.md`](specs/008-map-data-explorer/quickstart.md).
+- **Run the identity stack** (Kratos + Mailpit; for gated chat / accounts): [`infra/ory/README.md`](infra/ory/README.md).
 - **Wire a real embedder / LLM**: [`docs/semantic-search.md`](docs/semantic-search.md).
 
 ## Documentation
@@ -59,6 +66,8 @@ The store on disk is the source of truth; every stage is re-runnable and every r
 | [docs/CONSUMERS.md](docs/CONSUMERS.md) | Reading the mirror: MCP server, direct-off-disk, machine-readable contracts |
 | [docs/semantic-search.md](docs/semantic-search.md) | Configuring a real embedder for genuine semantic + cross-lingual recall |
 | [specs/008-map-data-explorer/contracts/](specs/008-map-data-explorer/contracts/) | The explorer HTTP API + chat-tool contracts |
+| [infra/ory/README.md](infra/ory/README.md) | The Ory identity stack (Kratos + Mailpit), single-port mode, passkeys |
+| [specs/019-022-*/](specs/) | Identity + admin settings + passkeys (019), persistent/resumable chat (020), token metering (021), account & chat-UX (022) |
 
 ## License
 

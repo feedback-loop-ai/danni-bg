@@ -211,6 +211,12 @@ Migrations are applied in numeric order by a checksum-guarded runner (`src/store
 | `005_index_state` | `index_state` (incremental fingerprints) | incremental indexing |
 | `006_crawl_checkpoint` | `crawl_checkpoint` | resumable crawl |
 | `007_entity_relations` | `entity_relations` (typed `(subject, predicate, object)` triples + confidence/provenance) | entity knowledge graph |
+| `008_users` | `users` (`kratos_identity_id`, `email`, `display_name`, `role`, …) | identity / tiers (spec 019) |
+| `009_platform_settings` | `platform_settings` (k/v `value_json`) | runtime admin settings (spec 019) |
+| `010_token_usage` | `token_usage` (per-turn tokens) + `users.token_limit` / `usage_reset_at` | token metering (spec 021) |
+| `011_token_usage_cached` | `token_usage.cached_input_tokens` | usage breakdown (spec 021) |
+| `012_user_avatar` | `users.avatar_url` | profile pictures (spec 022) |
+| `013_chat_sessions` | `chat_sessions` + `chat_messages` | persistent/resumable chat (spec 020) |
 
 Vectors are stored as plain BLOBs; similarity search is in-process cosine + Reciprocal-Rank-Fusion with FTS5 (the `sqlite-vec` virtual-table path is a future upgrade for large corpora).
 
@@ -356,10 +362,44 @@ stating any specific value not present verbatim in a tool result or the injected
 
 ---
 
-## 7. Caveats worth knowing
+## 7. Identity, accounts & the chat platform
+
+On top of the read substrate sits an authenticated chat platform (specs 019–022). Public browsing
+(map, datasets, search, regions) stays anonymous; **chat and `/api/admin/*` are gated**.
+
+- **Identity (spec 019).** danni owns an Ory stack (Kratos + Oathkeeper **v26.2.0** + Postgres +
+  Mailpit) via `docker-compose.yml` + `infra/ory/`. Self-service email+password signup; **passkeys
+  (WebAuthn)** for passwordless register/login; **link-mode** recovery/verification (danni-branded
+  emails, Mailpit in dev). **Single-port:** the Hono server reverse-proxies `/kratos/*` and validates
+  the session itself (`/sessions/whoami`), so `:8790` stands alone (Oathkeeper optional; its
+  `X-User-*` headers still honored when present). Tiers live in the app `users` table
+  (`role ∈ {admin,user}`, keyed by `kratos_identity_id`), not Kratos; first admin via `danni admin grant`.
+- **Admin settings (spec 019).** Runtime, admin-editable `platform_settings` (k/v): the chat's LLM
+  provider (kind/model/baseUrl/apiKey, API key masked) + toggles — resolved per request, so edits
+  apply without a restart.
+- **Token metering & quotas (spec 021).** Every chat turn records per-user token usage
+  (`token_usage`: input/output/total + cache hits). The chat gate enforces an effective per-user
+  quota (per-user override → platform default → unlimited) and 429s when exceeded; cache hits count at
+  an admin-set weight. Admins see a per-user table + set limits/reset; users see their own usage.
+  `defaultTokenLimit` / `cachedTokenWeight` / `maxOutputTokens` are admin-configurable toggles.
+- **Persistent & resumable chat (spec 020).** Conversations (questions + replies) persist per user
+  (`chat_sessions` / `chat_messages`) and are reopenable from a history list. A turn runs **detached**
+  via an in-memory `GenerationManager`, so a disconnect doesn't lose the answer: a reconnecting client
+  re-attaches to the live token stream (`/api/me/generations/:id/{stream,stop}`). Supersedes the old
+  in-memory-only FR-019.
+- **Account & chat UX (spec 022).** Avatar dropdown (name from Kratos traits, role, logout), a full
+  `/auth/settings` account page (appearance / profile / password / passkeys / usage), profile pictures
+  (`users.avatar_url`), and a header link to the repo.
+
+The backend pieces live under `apps/explorer-api/src/{auth,chat,middleware,routes}` + `src/store/repos`;
+the SPA account/chat UI under `apps/explorer-web/src/{auth,account,admin,chat}`.
+
+---
+
+## 8. Caveats worth knowing
 
 - **The semantic half is opt-in.** `local-onnx` (embedder) and `local-marianmt` (translator) ship as **deterministic placeholders** — the FTS/keyword half of search is always real, but real *semantic* vectors and EN translations need a real model wired via `provider: "hosted-api"` (see [semantic-search.md](./semantic-search.md)). The reference deployment points the embedder at a vLLM **Qwen3-Embedding-8B** (4096-dim) on the LAN and the chat at an OpenAI-compatible model; `batch-embed` makes a real-model re-index practical at corpus scale.
-- **The explorer needs `apps/explorer-api` running, and chat needs a provider.** The web app reads the same store live (no rebuild to see new sync/curate/index results — just refresh). Chat uses the server-default provider from `EXPLORER_DEFAULT_*` env, or a per-request user config; a provider without function-calling automatically uses the RAG fallback. To run unsandboxed for LAN access to the embedder/LLM, see the project memory + `specs/008-map-data-explorer/quickstart.md`.
+- **The explorer needs `apps/explorer-api` running, and chat needs a provider + sign-in.** The web app reads the same store live (no rebuild to see new sync/curate/index results — just refresh). Chat is gated behind login and uses the **admin-configured** server-default provider (the old per-request user override was removed — spec 022); a provider without function-calling automatically uses the RAG fallback. The dev server is run non-hot (`--hot` EMFILE-chokes on the large `store/`), so a backend change needs a restart. To run unsandboxed for LAN access to the embedder/LLM, see the project memory + `specs/008-map-data-explorer/quickstart.md`.
 - **The live data.egov.bg crawl needs the egov adapter + a robots opt-out.** The portal does **not** serve the CKAN API at `/api/3/action/` (every method returns "Непознат метод"); use `portal.api: "egov-bg"` with `baseUrl: "https://data.egov.bg/api/"`. The site's `robots.txt` is `Disallow: /`, so an authorized crawl of its public API requires `crawler.robots.obey: false` (or `allowHosts: ["data.egov.bg"]`). The egov datastore serves resources as JSON rows, captured as CSV → curated as tabular.
 - **The store is the source of truth.** Any stage can be re-run; the raw archive remains usable read-only even if the portal is unreachable.
 
@@ -372,4 +412,6 @@ map explorer + chat. The explorer has since evolved across `specs/009-017-*/`: d
 (009), grid filters + facets (010), new-conversation chat (011), SVG map drill-down (012), hierarchical
 region roll-up (013), publisher-derived geo recall (014), entities-only curate (015), the entity
 knowledge graph (016), and grounded-chat hardening (017) — each with its clarified spec, plan, contracts,
-and task list.*
+and task list. The authenticated platform layer is `specs/018-022-*/`: agentic evals (018), identity +
+admin settings + passkeys (019), persistent & resumable chat sessions (020), token metering & quotas
+(021), and account & chat-UX (022).*

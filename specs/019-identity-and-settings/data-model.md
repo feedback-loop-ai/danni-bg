@@ -6,6 +6,14 @@ Minimal schema (`infra/ory/identity.schema.json`): `traits.email` (password iden
 verification) and optional `traits.name.{first,last}`. **No role.** danni never writes identities
 directly except via the admin API during bootstrap/management (out of scope for the first cut).
 
+**Amended (PR #49 — passkeys):** the `email` trait also carries `credentials.webauthn` (identifier) +
+`credentials.passkey` (display_name), enabling the Kratos `passkey` method for passwordless
+register/login + per-user passkey management in settings. Recovery/verification use **link** mode
+(magic links, danni-branded, caught by Mailpit in dev). The Ory stack runs Kratos + Oathkeeper
+**v26.2.0**, and the app is single-port (`serve.public.base_url = http://localhost:8790/kratos/`).
+`users.display_name` is populated from `traits.name` (resolver → callback); `users.avatar_url` (spec
+022) holds an optional profile picture.
+
 ## `users` (danni SQLite — migration `008_users.sql`)
 
 The application mirror of an identity, plus the tier. Found-or-created on first authenticated request.
