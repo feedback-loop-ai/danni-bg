@@ -21,7 +21,8 @@ import {
   selectModel,
   serverDefaultFromEnv,
 } from './chat/providers.ts';
-import { SessionStore } from './chat/session.ts';
+import { type ConversationStore, SessionStore } from './chat/session.ts';
+import type { PersistentSessionStore } from './chat/sessions-repo.ts';
 import { type DatasetLite, hasGeo, liteToPointer, matchesFiltersLite } from './dataset-lite.ts';
 import { requireAuth } from './middleware/require-auth.ts';
 import type { ReadBridge } from './read-bridge.ts';
@@ -48,7 +49,7 @@ export interface HealthInfo {
 }
 
 export interface ChatConfig {
-  sessions: SessionStore;
+  sessions: ConversationStore;
   serverDefault: ServerDefault | null;
   /** Test override; when absent the real provider seam is used. */
   selectModel?: (provider: ProviderConfig) => LanguageModel;
@@ -63,6 +64,8 @@ export interface AppContext {
   users: UsersRepo;
   /** Per-user token metering — records chat usage + backs the quota gate and usage views. */
   tokenUsage?: TokenUsageRepo;
+  /** Persistent per-user chat history — when wired, conversations are saved + resumable. */
+  chatSessions?: PersistentSessionStore;
   /** Platform settings repo — backs /api/admin/settings + the chat's default provider (spec 019). */
   settings?: PlatformSettingsRepo;
   /** Kratos public base URL (for the logout flow URL). */
@@ -134,7 +137,8 @@ export function createApp(ctx: AppContext): Hono {
     requireAuth(ctx.users, ctx.sessionResolver) as MiddlewareHandler,
     chatHandler({
       bridge: ctx.bridge,
-      sessions: chat.sessions,
+      // Persistent store when wired (conversations survive + resume), else the in-memory one.
+      sessions: ctx.chatSessions ?? chat.sessions,
       selectModel: chat.selectModel ?? ((p) => selectModel(p, resolveDefault())),
       ...(ctx.tokenUsage ? { usage: ctx.tokenUsage } : {}),
       defaultTokenLimit: resolveDefaultTokenLimit,
@@ -151,6 +155,7 @@ export function createApp(ctx: AppContext): Hono {
         defaultTokenLimit: resolveDefaultTokenLimit,
         cacheWeight: resolveCacheWeight,
         sessionResolver: ctx.sessionResolver,
+        chatSessions: ctx.chatSessions,
       }),
     );
   }

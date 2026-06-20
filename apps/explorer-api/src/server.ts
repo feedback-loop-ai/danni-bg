@@ -17,6 +17,7 @@ import { LLM_SETTING_KEY } from './admin/settings-schema.ts';
 import { type AppContext, type HealthInfo, createApp } from './app.ts';
 import { kratosProxy, kratosSessionResolver } from './auth/kratos-session.ts';
 import { serverDefaultFromEnv } from './chat/providers.ts';
+import { PersistentSessionStore } from './chat/sessions-repo.ts';
 import { log } from './logging.ts';
 import { ReadBridge } from './read-bridge.ts';
 
@@ -71,6 +72,7 @@ export function main(): void {
     health: () => buildHealth(db, slo, settings),
     users: new UsersRepo(db),
     tokenUsage: new TokenUsageRepo(db),
+    chatSessions: new PersistentSessionStore(db),
     settings,
     kratosPublicUrl: kratosUrl,
     // Single-port mode: validate the Kratos session ourselves so the app works without Oathkeeper

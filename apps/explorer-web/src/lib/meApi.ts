@@ -27,3 +27,39 @@ export async function setMyAvatar(avatarUrl: string | null): Promise<void> {
   });
   if (!res.ok) throw new Error(`avatar update failed: ${res.status}`);
 }
+
+// Resumable chat history (token persistence).
+export interface SessionSummary {
+  id: string;
+  title: string | null;
+  updatedAt: string;
+}
+
+export interface SessionMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  citations?: import('../types.ts').Citation[];
+}
+
+export interface ResumedSession {
+  sessionId: string;
+  messages: SessionMessage[];
+  contextDatasetIds: string[];
+}
+
+export async function listSessions(): Promise<SessionSummary[]> {
+  const res = await fetch('/api/me/sessions', { credentials: 'include' });
+  if (!res.ok) throw new Error(`sessions request failed: ${res.status}`);
+  return ((await res.json()) as { sessions: SessionSummary[] }).sessions;
+}
+
+export async function getSession(id: string): Promise<ResumedSession> {
+  const res = await fetch(`/api/me/sessions/${id}`, { credentials: 'include' });
+  if (!res.ok) throw new Error(`session request failed: ${res.status}`);
+  return (await res.json()) as ResumedSession;
+}
+
+export async function deleteSession(id: string): Promise<void> {
+  const res = await fetch(`/api/me/sessions/${id}`, { method: 'DELETE', credentials: 'include' });
+  if (!res.ok) throw new Error(`session delete failed: ${res.status}`);
+}

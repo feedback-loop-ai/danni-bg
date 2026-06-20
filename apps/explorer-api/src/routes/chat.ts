@@ -11,7 +11,7 @@ import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts'
 import type { UserRow } from '../../../../src/store/repos/users.ts';
 import { billableTokens, effectiveLimit, quotaView } from '../chat/quota.ts';
 import { runChatTurn } from '../chat/run.ts';
-import { MAX_CONTEXT_DATASETS, type SessionStore, windowMessages } from '../chat/session.ts';
+import { type ConversationStore, MAX_CONTEXT_DATASETS, windowMessages } from '../chat/session.ts';
 import { log } from '../logging.ts';
 import type { ReadBridge } from '../read-bridge.ts';
 import { scopeDescriptorSchema } from '../schemas.ts';
@@ -37,7 +37,7 @@ export const chatRequestSchema = z
 
 export interface ChatRouteDeps {
   bridge: ReadBridge;
-  sessions: SessionStore;
+  sessions: ConversationStore;
   selectModel: (provider: ProviderConfig) => LanguageModel;
   /** Per-user token metering (optional; omitted in focused unit tests). */
   usage?: TokenUsageRepo;
@@ -82,7 +82,11 @@ export function chatHandler(deps: ChatRouteDeps) {
       }
     }
 
-    const conv = deps.sessions.getOrCreate(body.sessionId ?? null);
+    const conv = deps.sessions.getOrCreate(body.sessionId ?? null, user?.id ?? '');
+    // Snapshot the prior transcript BEFORE appending this turn's question: the persistent store's
+    // `append` doesn't mutate the returned snapshot (unlike the in-memory one), so build the model's
+    // message list from prior history + the new question explicitly.
+    const priorMessages = [...conv.messages];
     deps.sessions.append(conv.sessionId, { role: 'user', content: body.message });
     const scope = body.scope ?? {};
     // Grounding precedence (row injection only — never narrows tool scope): an explicit hard focus
@@ -123,10 +127,10 @@ export function chatHandler(deps: ChatRouteDeps) {
 
     // Replay only the recent window so a long conversation can't overflow the context (grounding
     // rows live in the system prompt, not the transcript).
-    const messages: ModelMessage[] = windowMessages(conv.messages).map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    const messages: ModelMessage[] = windowMessages([
+      ...priorMessages,
+      { role: 'user', content: body.message },
+    ]).map((m) => ({ role: m.role, content: m.content }));
 
     return streamSSE(c, async (stream) => {
       await stream.writeSSE({
