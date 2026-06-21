@@ -62,6 +62,13 @@ available as links (from the citations the UI renders).
   enforced via a clause in the shared `SYSTEM_PROMPT` so it applies to BOTH the tool-loop and RAG
   paths; identifiers remain available to the model for its tool calls, and the `citations` event still
   carries each dataset's id + source URL for the UI to link.
+- **FR-110**: When listing/enumerating, the chat MUST treat the tool results as the complete, closed
+  set — listing only datasets/entities present in them and never "rounding out" the list with datasets,
+  publishers, municipalities, regions, or institutions known from training but not retrieved. This
+  generalizes the geo-scope guardrail (spec 023 FR-101) to ALL enumerations, scoped or not, via a
+  `SYSTEM_PROMPT` clause. Fixes the `registers-enum` eval fabrication (an unscoped register list padded
+  with municipalities — Столична община, Русе, Добрич — absent from the grounding). Verified live:
+  every municipality named in the answer now appears in the injected grounding.
 
 ## Success Criteria *(mandatory)*
 
