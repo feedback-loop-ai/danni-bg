@@ -36,6 +36,10 @@ capabilities each have their own spec:
 - 025 chat answer presentation (signal-to-noise): the shared `SYSTEM_PROMPT` tells the chat to
   reference datasets by Bulgarian title and never print raw ids/UUIDs in the answer (the `citations`
   event still carries each dataset's id + source URL for the UI to link)
+- 026 chat UX + live usage telemetry: favicon + Claude-style typing animation; a live ↑input/↓output
+  token meter via a new `usage` SSE event (per-step + final, billing unchanged); per-turn tokens +
+  reply duration kept per message (migration 014 `usage_json`/`duration_ms`, restored on reload); one
+  `UsageFooter` with identical live (ticking ⏱) and completed styling
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->
