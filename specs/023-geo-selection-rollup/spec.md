@@ -130,6 +130,12 @@ able to ground on that municipality's datasets.
   the system prompt on both the tool-loop and RAG paths) to list/describe ONLY datasets present in the
   in-scope tool results and NOT to supplement from out-of-region institutions it knows from priors —
   preventing cross-region fabrication on scoped enumerations.
+- **FR-107**: A chat answer's grounded regions (the turn's `anchors.geoEntityIds`) MUST become the map
+  **selection** (`filters.geoUnitIds`, replacing the prior set when non-empty), so they appear as
+  selector chips, scope the dataset list, and scope the next turn — identical to a manual selection.
+  An empty geo anchor leaves the selection untouched (a non-geo follow-up must not clear it). Starting
+  a new conversation clears the selection; **reopening a conversation re-selects the regions it last
+  grounded on** (read from the persisted assistant-message anchors — no new storage needed).
 
 ## Success Criteria *(mandatory)*
 

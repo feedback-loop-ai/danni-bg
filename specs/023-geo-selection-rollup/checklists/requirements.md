@@ -20,6 +20,10 @@ Retrospective verification for spec 023 (all items met on `main`).
   *(live: "регистри" under an oblast scope 0→58 citations)*
 - [x] FR-101 — `GEO_SCOPE_NOTE` guardrail: under a geo-scope the model lists only in-region datasets,
   no cross-region padding. *(live: previously-fabricating case now clean + Qwen judge pass)*
+- [x] FR-107 — Chat-grounded regions become the map selection (chips + list + next-turn scope);
+  new chat clears it; reopening a conversation re-selects its last grounded regions. *(headless: a
+  Стара-Загора answer drove a geoUnitIds list refetch + selection chips; resume reads persisted
+  assistant anchors)*
 
 ## Success criteria
 
