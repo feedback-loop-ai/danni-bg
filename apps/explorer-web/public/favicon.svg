@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="danni.bg">
+  <rect width="32" height="32" rx="7" fill="#1d4ed8" />
+  <!-- ascending data bars (open-data) -->
+  <g fill="#ffffff">
+    <rect x="6.5" y="18" width="4.5" height="8" rx="1.2" />
+    <rect x="13.75" y="13" width="4.5" height="13" rx="1.2" />
+    <rect x="21" y="8" width="4.5" height="18" rx="1.2" />
+  </g>
+  <!-- locator dot tying it to the map -->
+  <circle cx="23.25" cy="6.25" r="2.5" fill="#fb923c" />
+</svg>
