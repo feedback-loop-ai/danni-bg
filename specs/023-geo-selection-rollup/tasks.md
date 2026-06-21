@@ -42,6 +42,15 @@ Retrospective task list (all complete). Grouped by the PR that landed them.
 - [x] T014 Verify: "регистри" under a Стара Загора scope 0→58 citations (was 30 floundering searches,
   now 2); 181 explorer-api tests + tsc + biome green.
 
+## Phase 5 — Cross-region fabrication guardrail (backend + eval)
+
+- [x] T015 `GEO_SCOPE_NOTE` appended to the system prompt under a geo-scope, on both the tool-loop and
+  RAG paths, instructing the model to stay in-region. (`chat/grounding.ts`, `chat/run.ts`) — FR-101
+- [x] T016 Eval: geo-scoped cases (`scope` field on Case); `geo-scope-recall` now asserts faithfulness
+  (no longer xfail). (`eval/agentic/cases.py`, `test_agentic.py`)
+- [x] T017 Verify: the previously-fabricating case now lists only in-region datasets and explicitly
+  notes the regional restriction; faithfulness passes under the Qwen 3.7 Plus judge (was 0.10 / xfail).
+
 ## Notes
 - No new tables/columns; reuses `entity_relations` `part_of` (specs 013/016).
 - The underlying index `search()` has no geo restriction; the fix lives at the chat layer
