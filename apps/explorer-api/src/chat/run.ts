@@ -11,6 +11,7 @@ import type { ScopeDescriptor } from '../schemas.ts';
 import { capResourceContent } from './cap.ts';
 import {
   type Citation,
+  GEO_SCOPE_NOTE,
   type MapAnchor,
   NO_DATA_REPLY,
   SYSTEM_PROMPT,
@@ -225,7 +226,10 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
     opts.groundingDatasetIds ?? scope.datasetIds ?? [],
     resolve,
   );
-  const system = focus ? `${SYSTEM_PROMPT}\n\n${FOCUS_HEADER}\n${focus.text}` : SYSTEM_PROMPT;
+  // Under a geo-scope, reinforce that the model must not pad the list with out-of-region datasets.
+  const geoScoped = (scope.geoUnitIds?.length ?? 0) > 0;
+  const base = geoScoped ? `${SYSTEM_PROMPT}\n\n${GEO_SCOPE_NOTE}` : SYSTEM_PROMPT;
+  const system = focus ? `${base}\n\n${FOCUS_HEADER}\n${focus.text}` : base;
 
   const result = streamText({
     model,
@@ -346,7 +350,10 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
     ]),
   ];
   const grounding = buildFocusContext(bridge, groundingIds, resolve);
-  const system = `${SYSTEM_PROMPT}\nОтговаряй само въз основа на данните по-долу. Позовавай се на наборите по заглавие; НЕ показвай технически идентификатори. Не измисляй стойности (имена, ЕИК, числа) — ако данните не ги съдържат, кажи го. Ако никой не е релевантен на въпроса, отговори, че няма релевантни публични данни. Форматирай отговора с Markdown.`;
+  const geoNote = geoScoped
+    ? ' Активен е географски филтър: описвай САМО наборите по-долу за избрания регион; НЕ добавяй набори, издатели или институции от други региони (други области/общини), дори да съществуват.'
+    : '';
+  const system = `${SYSTEM_PROMPT}\nОтговаряй само въз основа на данните по-долу. Позовавай се на наборите по заглавие; НЕ показвай технически идентификатори. Не измисляй стойности (имена, ЕИК, числа) — ако данните не ги съдържат, кажи го. Ако никой не е релевантен на въпроса, отговори, че няма релевантни публични данни.${geoNote} Форматирай отговора с Markdown.`;
   const userMsg = `${grounding ? `${RAG_GROUNDING_HEADER}\n${grounding.text}\n\n` : ''}Налични набори от данни:\n${context}\n\nВъпрос: ${query}`;
 
   const result = streamText({

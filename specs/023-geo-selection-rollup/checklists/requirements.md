@@ -18,6 +18,8 @@ Retrospective verification for spec 023 (all items met on `main`).
   grounds on Казанлък municipality datasets)*
 - [x] FR-100 — Scope-aware retrieval: over-fetch + region backfill in `mirrorSearch` and the RAG path.
   *(live: "регистри" under an oblast scope 0→58 citations)*
+- [x] FR-101 — `GEO_SCOPE_NOTE` guardrail: under a geo-scope the model lists only in-region datasets,
+  no cross-region padding. *(live: previously-fabricating case now clean + Qwen judge pass)*
 
 ## Success criteria
 
@@ -27,6 +29,8 @@ Retrospective verification for spec 023 (all items met on `main`).
 - [x] SC-004 — Oblast chat-scope grounds on a municipality's datasets (28 citations).
 - [x] SC-005 — Generic query under a tight geo-scope retrieves the region (регистри + Стара Загора:
   0→58 citations, 30→2 searches).
+- [x] SC-006 — Scoped enumeration stays in-region (same case: faithfulness 0.10/xfail → clean pass
+  under the frontier judge after the guardrail).
 
 ## Quality gates
 

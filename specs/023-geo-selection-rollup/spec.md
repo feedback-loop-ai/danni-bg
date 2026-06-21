@@ -95,6 +95,8 @@ able to ground on that municipality's datasets.
 3. A **generic** question under a tight geo-scope (e.g. "регистри" scoped to one oblast) still
    retrieves the region's datasets — retrieval must not starve because the globally top-ranked hits
    fall outside the region.
+4. Under a geo-scope, the answer lists **only in-region** datasets — the model must not pad the list
+   with well-known institutions from other regions that aren't in the scoped grounding.
 
 ### Edge Cases
 - Empty selection → no geo filter (full mirror), as before.
@@ -124,6 +126,10 @@ able to ground on that municipality's datasets.
   and the RAG path MUST over-fetch the ranked results and backfill directly from the region's datasets,
   so a generic query never returns empty when the region holds matching data (filtering a global
   top-N after ranking is insufficient for a small region).
+- **FR-101**: Under an active geo-scope, the chat MUST be instructed (a `GEO_SCOPE_NOTE` appended to
+  the system prompt on both the tool-loop and RAG paths) to list/describe ONLY datasets present in the
+  in-scope tool results and NOT to supplement from out-of-region institutions it knows from priors —
+  preventing cross-region fabrication on scoped enumerations.
 
 ## Success Criteria *(mandatory)*
 
@@ -138,6 +144,9 @@ able to ground on that municipality's datasets.
 - **SC-005**: A generic query under a tight geo-scope retrieves the region's datasets instead of
   starving (verified: "регистри" scoped to Стара Загора went from 0 citations / 30 floundering
   searches to 58 citations / 2 searches after the scope-aware over-fetch + backfill).
+- **SC-006**: A scoped enumeration stays in-region — the answer adds no out-of-region institutions
+  absent from the grounding (verified: the same "регистри" + Стара Загора case went from faithfulness
+  0.10 / xfail to a clean pass under the frontier judge after the `GEO_SCOPE_NOTE` guardrail).
 
 ## Out of scope
 - Cross-level roll-up beyond municipality→oblast (e.g. region groupings of oblasts).

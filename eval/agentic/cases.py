@@ -155,12 +155,10 @@ CASES: list[Case] = [
         scope={"geoUnitIds": ["geo:bg-oblast-stara-zagora"]},
         note=(
             "Scope-aware recall: a generic query under a tight oblast scope must retrieve the region "
-            "(the citations/not-no-data asserts verify the FR-100 fix). The faithfulness judge then "
-            "catches a model habit: deepseek-v4-pro pads the register list with well-known OUT-of-region "
-            "institutions (Столична община, Община Пловдив, …) not in the scoped grounding — a "
-            "model/guardrail issue, not a retrieval one, so tracked as xfail."
+            "(FR-100) AND stay in-region — the model must not pad the list with out-of-region "
+            "institutions. The GEO_SCOPE_NOTE guardrail (FR-101) hard-stops that cross-region "
+            "fabrication; faithfulness now passes outright (was an xfail before the guardrail)."
         ),
-        known_model_fabrication=True,
         enum=True,
     ),
     Case(

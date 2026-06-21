@@ -37,6 +37,18 @@ export const SYSTEM_PROMPT = [
   'Authoritative Bulgarian fields are shown verbatim; never translate or rewrite them.',
 ].join(' ');
 
+// Appended only when the turn carries a geo-scope. The tools already restrict results to the selected
+// region, but a model asked to "list" tends to pad the answer from its priors with well-known
+// out-of-region institutions (e.g. Столична община, Община Пловдив) that aren't in the grounding.
+// This hard-stops that cross-region fabrication (spec 023, FR-101).
+export const GEO_SCOPE_NOTE = [
+  'A geographic filter is active for this turn: the tools return ONLY datasets within the selected',
+  'region. List and describe ONLY datasets that appear in the tool results / context. Do NOT add',
+  'datasets, publishers, or institutions from any other region (other oblasti or municipalities),',
+  'even if you know they exist — they are out of scope. If the in-scope results are few, say exactly',
+  'that; never supplement from outside the region.',
+].join(' ');
+
 export const NO_DATA_REPLY = 'No relevant public data was found in the mirror for this question.';
 
 /**
