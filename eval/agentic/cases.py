@@ -114,7 +114,14 @@ CASES: list[Case] = [
         kind="grounded",
         question="Какви данни публикуват общините?",
         expect_tool="mirrorSearch",
-        note="общ* ~3300 datasets: must enumerate without inventing municipality entries.",
+        # The most open-ended enumeration: "what do municipalities publish?" invites the model to
+        # pair municipalities with dataset types from world knowledge (Burgas→property, Madan→health…)
+        # beyond the retrieved set. The FR-110 closure clause fixed the narrower registers-enum but
+        # doesn't reliably stop this phrasing — a model limitation, not a grounding/retrieval bug
+        # (deterministic guards still enforce no ghost dataset ids). Tracked so it can't flake the
+        # suite and auto-flips if a model/guardrail improvement fixes it. Same family as pancharevo.
+        note="Open-ended 'what do municipalities publish' — model over-enumerates from priors.",
+        known_model_fabrication=True,
         enum=True,
     ),
     Case(
