@@ -34,11 +34,20 @@ const SERVER_DEFAULT_PROVIDER: ProviderConfig = {
 const TOOLTIP =
   'pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-xs text-popover-foreground opacity-0 shadow-md ring-1 ring-border transition-opacity group-hover:opacity-100';
 
+interface TurnUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+}
+
 interface ChatMessage {
   id: number;
   role: 'user' | 'assistant';
   content: string;
   citations?: Citation[];
+  /** Assistant turns: tokens consumed + reply duration (ms), shown after the reply + kept on reload. */
+  usage?: TurnUsage;
+  durationMs?: number;
 }
 
 interface ChatPanelProps {
@@ -136,6 +145,8 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             role: m.role,
             content: m.content,
             ...(m.citations ? { citations: m.citations } : {}),
+            ...(m.usage ? { usage: m.usage } : {}),
+            ...(m.durationMs != null ? { durationMs: m.durationMs } : {}),
           }));
           // If a generation was still running when we reloaded, re-attach to its live stream
           // (mid-stream resume) — append a live assistant bubble and stream into it.
@@ -146,8 +157,10 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             setStreaming(true);
             const controller = new AbortController();
             abortRef.current = controller;
+            const startAt = Date.now();
             let text = '';
             let cites: Citation[] = [];
+            let finalUsage: TurnUsage | null = null;
             const patch = () =>
               setMessages((prev) =>
                 prev.map((m) =>
@@ -170,13 +183,24 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
                   cites = c;
                   patch();
                 },
-                onUsage: setUsage,
+                onUsage: (u) => {
+                  finalUsage = u;
+                  setUsage(u);
+                },
                 onAnchors: (a) => {
                   if (a.geoEntityIds.length > 0) selectRegions(a.geoEntityIds);
                 },
                 onError: setError,
                 onDone: () => {
                   setStreaming(false);
+                  const dur = Date.now() - startAt;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === aid
+                        ? { ...m, ...(finalUsage ? { usage: finalUsage } : {}), durationMs: dur }
+                        : m,
+                    ),
+                  );
                   listSessions()
                     .then(setSessions)
                     .catch(() => {});
@@ -220,6 +244,18 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     });
   }
 
+  /** Attach token usage + reply duration to the finished assistant turn (the trailing bubble). */
+  function stampLastAssistant(usage: TurnUsage | null, durationMs: number) {
+    setMessages((prev) => {
+      const copy = [...prev];
+      const last = copy[copy.length - 1];
+      if (last && last.role === 'assistant') {
+        copy[copy.length - 1] = { ...last, ...(usage ? { usage } : {}), durationMs };
+      }
+      return copy;
+    });
+  }
+
   /** Stream into the trailing assistant bubble, whether starting a turn (sendChat) or re-attaching to
    * an in-flight one (resumeChat). Shared callbacks + lifecycle. */
   async function attachStream(run: (cb: ChatCallbacks, signal: AbortSignal) => Promise<void>) {
@@ -229,8 +265,10 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     setGenTokens(0);
     setUsage(null);
     setError(null);
+    const startAt = Date.now();
     let assistant = '';
     let cites: Citation[] = [];
+    let finalUsage: TurnUsage | null = null;
     try {
       await run(
         {
@@ -247,13 +285,18 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             cites = citations;
             patchAssistant(assistant, cites);
           },
-          onUsage: setUsage,
+          onUsage: (u) => {
+            finalUsage = u;
+            setUsage(u);
+          },
           onAnchors: (anchor) => {
             if (anchor.geoEntityIds.length > 0) selectRegions(anchor.geoEntityIds);
           },
           onError: (message) => setError(message),
           onDone: () => {
             setStreaming(false);
+            // Stamp the finished turn with its token usage + reply duration (kept in the bubble).
+            stampLastAssistant(finalUsage, Date.now() - startAt);
             listSessions()
               .then(setSessions)
               .catch(() => {});
@@ -338,6 +381,8 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
         role: m.role,
         content: m.content,
         ...(m.citations ? { citations: m.citations } : {}),
+        ...(m.usage ? { usage: m.usage } : {}),
+        ...(m.durationMs != null ? { durationMs: m.durationMs } : {}),
       }));
       if (conv.streaming) {
         setMessages([...loaded, { id: ++idRef.current, role: 'assistant', content: '' }]);
@@ -485,6 +530,24 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
                         </a>
                       </div>
                     ))}
+                  </div>
+                )}
+                {/* Per-turn footer: tokens consumed + reply duration, kept after the reply. */}
+                {(m.usage || m.durationMs != null) && (
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground tabular-nums">
+                    {m.usage && (
+                      <span title="Изразходвани токени (↑ вход, ↓ изход)">
+                        ↑ {m.usage.inputTokens.toLocaleString('bg-BG')} · ↓{' '}
+                        {m.usage.outputTokens.toLocaleString('bg-BG')}
+                        {m.usage.cachedInputTokens
+                          ? ` · ⚡ ${m.usage.cachedInputTokens.toLocaleString('bg-BG')}`
+                          : ''}{' '}
+                        ток.
+                      </span>
+                    )}
+                    {m.durationMs != null && (
+                      <span title="Време за отговор">⏱ {(m.durationMs / 1000).toFixed(1)} с</span>
+                    )}
                   </div>
                 )}
               </div>

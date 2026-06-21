@@ -3,11 +3,21 @@
 
 import type { Citation, MapAnchor } from './grounding.ts';
 
+/** Tokens consumed by an assistant turn, kept with the message (shown after the reply). */
+export interface MessageUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   citations?: Citation[];
   anchors?: MapAnchor;
+  /** Assistant turns only: tokens consumed + wall-clock reply time (ms). */
+  usage?: MessageUsage;
+  durationMs?: number;
 }
 
 export interface Conversation {

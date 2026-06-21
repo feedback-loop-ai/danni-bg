@@ -6,7 +6,7 @@
 import type { Database } from 'bun:sqlite';
 import { nowIso } from '../../../../src/lib/time.ts';
 import type { Citation, MapAnchor } from './grounding.ts';
-import type { ChatMessage, Conversation, ConversationStore } from './session.ts';
+import type { ChatMessage, Conversation, ConversationStore, MessageUsage } from './session.ts';
 
 const TITLE_MAX = 80;
 
@@ -22,6 +22,8 @@ interface MessageRow {
   content: string;
   citations_json: string | null;
   anchors_json: string | null;
+  usage_json: string | null;
+  duration_ms: number | null;
 }
 
 export interface SessionSummary {
@@ -45,17 +47,20 @@ export class PersistentSessionStore implements ConversationStore {
   private messages(sessionId: string): ChatMessage[] {
     return this.db
       .query<MessageRow, [string]>(
-        'SELECT role, content, citations_json, anchors_json FROM chat_messages WHERE session_id = ? ORDER BY created_at',
+        'SELECT role, content, citations_json, anchors_json, usage_json, duration_ms FROM chat_messages WHERE session_id = ? ORDER BY created_at',
       )
       .all(sessionId)
       .map((m) => {
         const citations = parse<Citation[]>(m.citations_json);
         const anchors = parse<MapAnchor>(m.anchors_json);
+        const usage = parse<MessageUsage>(m.usage_json);
         return {
           role: m.role,
           content: m.content,
           ...(citations ? { citations } : {}),
           ...(anchors ? { anchors } : {}),
+          ...(usage ? { usage } : {}),
+          ...(m.duration_ms != null ? { durationMs: m.duration_ms } : {}),
         };
       });
   }
@@ -92,7 +97,7 @@ export class PersistentSessionStore implements ConversationStore {
     const now = nowIso();
     this.db
       .query(
-        'INSERT INTO chat_messages (id, session_id, role, content, citations_json, anchors_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO chat_messages (id, session_id, role, content, citations_json, anchors_json, usage_json, duration_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       )
       .run(
         crypto.randomUUID(),
@@ -101,6 +106,8 @@ export class PersistentSessionStore implements ConversationStore {
         message.content,
         message.citations ? JSON.stringify(message.citations) : null,
         message.anchors ? JSON.stringify(message.anchors) : null,
+        message.usage ? JSON.stringify(message.usage) : null,
+        message.durationMs ?? null,
         now,
       );
     // Title the session from its first user message (COALESCE keeps an existing one); bump recency.

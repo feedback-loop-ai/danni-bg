@@ -153,6 +153,7 @@ export function chatHandler(deps: ChatRouteDeps) {
       sessionId: conv.sessionId,
       userId: user?.id ?? '',
       run: async (h, signal) => {
+        const startedAt = Date.now();
         const result = await runChatTurn({
           model,
           bridge: deps.bridge,
@@ -163,16 +164,28 @@ export function chatHandler(deps: ChatRouteDeps) {
           ...(maxOut ? { maxOutputTokens: maxOut } : {}),
           events: { onToken: h.onToken, onTool: h.onTool, onUsage: h.onUsage },
         });
+        const durationMs = Date.now() - startedAt;
         if (body.debug && result.groundingText) h.onGrounding(result.groundingText);
         h.onCitations(result.citations);
         h.onAnchors(result.anchors);
         // Persist the reply, meter usage, and carry grounding forward — all before 'done' fires, so a
-        // reload immediately after completion finds the saved assistant message.
+        // reload immediately after completion finds the saved assistant message. Keep per-message token
+        // usage + reply duration so the chat shows "tokens consumed" + "how long it took" on reload.
         deps.sessions.append(conv.sessionId, {
           role: 'assistant',
           content: result.text,
           citations: result.citations,
           anchors: result.anchors,
+          ...(result.usage
+            ? {
+                usage: {
+                  inputTokens: result.usage.inputTokens,
+                  outputTokens: result.usage.outputTokens,
+                  cachedInputTokens: result.usage.cachedInputTokens,
+                },
+              }
+            : {}),
+          durationMs,
         });
         if (deps.usage && user && result.usage) {
           deps.usage.record({
