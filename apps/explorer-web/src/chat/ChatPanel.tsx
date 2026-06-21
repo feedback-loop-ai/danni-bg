@@ -14,7 +14,7 @@ import {
 } from '../lib/meApi.ts';
 import { filterStateToScope } from '../lib/scope.ts';
 import { useExplorer } from '../store/explorerStore.ts';
-import type { Citation, ProviderConfig } from '../types.ts';
+import type { Citation, MapAnchor, ProviderConfig } from '../types.ts';
 import { type ChatCallbacks, resumeChat, sendChat } from './sendChat.ts';
 
 const SESSION_KEY = 'danni.chat.session';
@@ -51,9 +51,23 @@ const SUGGESTIONS = [
   'Кои набори са за бюджета на общините?',
 ];
 
+/** The regions an assistant turn grounded on — the latest such set, so resume re-selects them. */
+function lastGroundedRegions(messages: { role: string; anchors?: MapAnchor }[]): string[] {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m?.role === 'assistant' && m.anchors && m.anchors.geoEntityIds.length > 0) {
+      return m.anchors.geoEntityIds;
+    }
+  }
+  return [];
+}
+
 export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const filters = useExplorer((s) => s.filters);
   const setHighlight = useExplorer((s) => s.setHighlight);
+  // Chat-grounded regions become the map selection (filters.geoUnitIds) — so they show as selector
+  // chips, scope the dataset list, and scope the next turn, exactly as if picked on the map.
+  const selectRegions = useExplorer((s) => s.selectRegions);
   const chatFocus = useExplorer((s) => s.chatFocus);
   const setChatFocus = useExplorer((s) => s.setChatFocus);
   const reader = useExplorer((s) => s.reader);
@@ -89,6 +103,8 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
         .then((conv) => {
           if (!active) return;
           setSessionId(conv.sessionId);
+          // Re-select the regions the conversation last grounded on, so the map + scope match it.
+          selectRegions(lastGroundedRegions(conv.messages));
           const loaded = conv.messages.map((m) => ({
             id: ++idRef.current,
             role: m.role,
@@ -125,7 +141,9 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
                   cites = c;
                   patch();
                 },
-                onAnchors: setHighlight,
+                onAnchors: (a) => {
+                  if (a.geoEntityIds.length > 0) selectRegions(a.geoEntityIds);
+                },
                 onError: setError,
                 onDone: () => {
                   setStreaming(false);
@@ -196,7 +214,9 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             cites = citations;
             patchAssistant(assistant, cites);
           },
-          onAnchors: (anchor) => setHighlight(anchor),
+          onAnchors: (anchor) => {
+            if (anchor.geoEntityIds.length > 0) selectRegions(anchor.geoEntityIds);
+          },
           onError: (message) => setError(message),
           onDone: () => {
             setStreaming(false);
@@ -264,6 +284,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     setInput('');
     setChatFocus(null);
     setHighlight({ geoEntityIds: [], datasetIds: [] });
+    selectRegions([]); // a fresh conversation starts with no region selection/scope
   }
 
   /** Open a saved conversation and load its transcript; re-attach if it's still generating. */
@@ -275,6 +296,9 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
       setSessionId(conv.sessionId);
       setChatFocus(null);
       setHistoryOpen(false);
+      // Re-select the regions this conversation last grounded on (FR-107) — chips, list, and the
+      // next turn's scope all reflect the reopened conversation.
+      selectRegions(lastGroundedRegions(conv.messages));
       const loaded = conv.messages.map((m) => ({
         id: ++idRef.current,
         role: m.role,

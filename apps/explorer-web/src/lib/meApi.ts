@@ -39,6 +39,8 @@ export interface SessionMessage {
   role: 'user' | 'assistant';
   content: string;
   citations?: import('../types.ts').Citation[];
+  /** Grounded map anchor for an assistant turn — its geoEntityIds re-select the regions on resume. */
+  anchors?: import('../types.ts').MapAnchor;
 }
 
 export interface ResumedSession {
