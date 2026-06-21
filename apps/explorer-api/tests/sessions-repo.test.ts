@@ -49,6 +49,20 @@ describe('PersistentSessionStore', () => {
     expect(store.listForUser('u2')).toHaveLength(1); // only its own fresh one
   });
 
+  it('persists per-message token usage + reply duration (kept across resume)', () => {
+    const conv = store.getOrCreate(null, 'u1');
+    store.append(conv.sessionId, { role: 'user', content: 'въздух?' });
+    store.append(conv.sessionId, {
+      role: 'assistant',
+      content: 'Ето…',
+      usage: { inputTokens: 1293, outputTokens: 55, cachedInputTokens: 1280 },
+      durationMs: 1638,
+    });
+    const a = store.getForUser(conv.sessionId, 'u1')?.messages[1];
+    expect(a?.usage).toEqual({ inputTokens: 1293, outputTokens: 55, cachedInputTokens: 1280 });
+    expect(a?.durationMs).toBe(1638);
+  });
+
   it('persists the sticky grounding context', () => {
     const conv = store.getOrCreate(null, 'u1');
     store.setContext(conv.sessionId, ['d1', 'd2']);
