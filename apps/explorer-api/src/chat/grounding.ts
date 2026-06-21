@@ -81,15 +81,38 @@ export function buildCitations(
   return out;
 }
 
-/** Aggregate the cited datasets' geo entities + ids into a single map anchor. */
+/** The oblast an entity id belongs to: an oblast id is itself; a municipality maps via the part_of
+ * graph; anything else has no oblast. */
+function oblastOf(geoId: string, parentOf: Map<string, string>): string | undefined {
+  if (geoId.startsWith('geo:bg-oblast-')) return geoId;
+  if (geoId.startsWith('geo:bg-municipality-')) return parentOf.get(geoId);
+  return undefined;
+}
+
+/**
+ * Aggregate the cited datasets' geo into a single map anchor, rolled up to **oblast** level so the
+ * chat-driven map selection matches a manual oblast pick (spec 023, FR-107/FR-108). A cited dataset
+ * contributes its oblast ONLY if it is about a single oblast (after mapping municipalities up via
+ * `parentOf`); a dataset spanning multiple oblasti is cross-region context, not a regional focus, and
+ * is excluded — otherwise an NSI "by oblast" massive (all 28) or a multi-region thematic dataset would
+ * balloon the selection beyond the region the user asked about.
+ */
 export function buildAnchors(
   citations: Citation[],
   resolve: (id: string) => CuratedDatasetView | null,
+  parentOf: Map<string, string> = new Map(),
 ): MapAnchor {
   const geo = new Set<string>();
   for (const c of citations) {
     const view = resolve(c.datasetId);
-    if (view) for (const g of geoEntityIdsOf(view)) geo.add(g);
+    if (!view) continue;
+    const oblasti = new Set<string>();
+    for (const g of geoEntityIdsOf(view)) {
+      const o = oblastOf(g, parentOf);
+      if (o) oblasti.add(o);
+    }
+    // Single-oblast datasets define the focus; multi-oblast (cross-region) ones don't.
+    if (oblasti.size === 1) for (const o of oblasti) geo.add(o);
   }
   return { geoEntityIds: [...geo], datasetIds: citations.map((c) => c.datasetId) };
 }

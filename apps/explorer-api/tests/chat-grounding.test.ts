@@ -41,6 +41,14 @@ function view(id: string, over: Partial<CuratedDatasetView> = {}): CuratedDatase
   };
 }
 
+const geoEnt = (entityId: string) => ({
+  entityId,
+  kind: 'geographic_unit' as const,
+  label: { bg: '', en: null },
+  extractor: 'g',
+  confidence: 0.8,
+});
+
 describe('chat scope', () => {
   it('empty descriptor = full scope', () => {
     expect(inScope(view('d1'), {})).toBe(true);
@@ -114,6 +122,35 @@ describe('buildAnchors', () => {
       () => null,
     );
     expect(anchors).toEqual({ geoEntityIds: [], datasetIds: ['gone'] });
+  });
+
+  it('rolls a municipality up to its parent oblast (FR-107)', () => {
+    const store: Record<string, CuratedDatasetView> = {
+      m1: view('m1', { entities: [geoEnt('geo:bg-municipality-kazanlak')] }),
+    };
+    const resolve = (id: string) => store[id] ?? null;
+    const parentOf = new Map([['geo:bg-municipality-kazanlak', 'geo:bg-oblast-stara-zagora']]);
+    const anchors = buildAnchors(
+      buildCitations(['m1'], resolve, () => true),
+      resolve,
+      parentOf,
+    );
+    expect(anchors.geoEntityIds).toEqual(['geo:bg-oblast-stara-zagora']);
+  });
+
+  it('excludes a national dataset spanning many oblasti (FR-108)', () => {
+    const many = Array.from({ length: 8 }, (_, i) => geoEnt(`geo:bg-oblast-${i}`));
+    const store: Record<string, CuratedDatasetView> = {
+      nat: view('nat', { entities: many }),
+      reg: view('reg', { entities: [geoEnt('geo:bg-oblast-varna')] }),
+    };
+    const resolve = (id: string) => store[id] ?? null;
+    const anchors = buildAnchors(
+      buildCitations(['nat', 'reg'], resolve, () => true),
+      resolve,
+    );
+    // The national 'nat' (8 oblasti) is dropped; only the regionally-focused 'reg' drives the anchor.
+    expect(anchors.geoEntityIds).toEqual(['geo:bg-oblast-varna']);
   });
 });
 

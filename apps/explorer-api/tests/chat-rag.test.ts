@@ -151,6 +151,7 @@ describe('runChatTurn RAG fallback', () => {
         entities: [],
       }),
       rows: () => ({ rows, total: 2 }),
+      partOfParents: () => new Map<string, string>(),
     } as unknown as ReadBridge;
 
     // Capturing model: force the RAG fallback (first call errors), then record the prompt the RAG

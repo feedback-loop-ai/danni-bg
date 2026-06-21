@@ -24,6 +24,9 @@ Retrospective verification for spec 023 (all items met on `main`).
   new chat clears it; reopening a conversation re-selects its last grounded regions. *(headless: a
   Стара-Загора answer drove a geoUnitIds list refetch + selection chips; resume reads persisted
   assistant anchors)*
+- [x] FR-108 — Oblast-focused anchor (single-oblast datasets only; national excluded) + high-contrast
+  selection styling. *(live: "област Стара Загора" anchor 28→3 oblast-level; air-quality keeps its 4
+  data-bearing regions; headless: orange selection outline + accented card render)*
 
 ## Success criteria
 
