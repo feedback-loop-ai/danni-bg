@@ -78,6 +78,39 @@ function TypingDots() {
   );
 }
 
+/** Tokens (↑input / ↓output / cached) + reply time, in one styling — used both LIVE (streaming
+ * bubble, with a pulsing dot + ticking clock) and after completion (persisted on the message). */
+function UsageFooter({
+  usage,
+  durationMs,
+  live,
+}: {
+  usage: TurnUsage | null;
+  durationMs: number | null;
+  live?: boolean;
+}) {
+  if (!usage && durationMs == null) return null;
+  const fmt = (n: number) => n.toLocaleString('bg-BG');
+  return (
+    <div
+      className="flex items-center gap-3 text-[11px] text-muted-foreground tabular-nums"
+      {...(live ? { 'aria-live': 'polite' as const } : {})}
+      title="Токени (↑ вход, ↓ изход) и време за отговор"
+    >
+      {usage && (
+        <span className="inline-flex items-center gap-1">
+          {live && (
+            <span className="inline-block size-1.5 animate-pulse rounded-full bg-orange-500" />
+          )}
+          ↑ {fmt(usage.inputTokens)} · ↓ {fmt(usage.outputTokens)}
+          {usage.cachedInputTokens ? ` · ⚡ ${fmt(usage.cachedInputTokens)}` : ''} ток.
+        </span>
+      )}
+      {durationMs != null && <span>⏱ {(durationMs / 1000).toFixed(1)} с</span>}
+    </div>
+  );
+}
+
 /** The regions an assistant turn grounded on — the latest such set, so resume re-selects them. */
 function lastGroundedRegions(messages: { role: string; anchors?: MapAnchor }[]): string[] {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -113,6 +146,8 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     cachedInputTokens: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Live-ticking elapsed time for the in-flight turn (the ⏱ clock in the streaming footer).
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const idRef = useRef(0);
@@ -124,6 +159,15 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   useEffect(() => {
     if (chatFocus) setInput(`Какво съдържа наборът „${chatFocus.titleBg}"?`);
   }, [chatFocus]);
+
+  // Tick the elapsed-time clock while a turn streams; resets each turn, stops when it ends.
+  useEffect(() => {
+    if (!streaming) return;
+    const start = Date.now();
+    setElapsedMs(0);
+    const id = setInterval(() => setElapsedMs(Date.now() - start), 100);
+    return () => clearInterval(id);
+  }, [streaming]);
 
   // On sign-in: load the conversation list and restore the last open conversation (persisted id).
   useEffect(() => {
@@ -532,49 +576,25 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
                     ))}
                   </div>
                 )}
-                {/* Per-turn footer: tokens consumed + reply duration, kept after the reply. */}
-                {(m.usage || m.durationMs != null) && (
-                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground tabular-nums">
-                    {m.usage && (
-                      <span title="Изразходвани токени (↑ вход, ↓ изход)">
-                        ↑ {m.usage.inputTokens.toLocaleString('bg-BG')} · ↓{' '}
-                        {m.usage.outputTokens.toLocaleString('bg-BG')}
-                        {m.usage.cachedInputTokens
-                          ? ` · ⚡ ${m.usage.cachedInputTokens.toLocaleString('bg-BG')}`
-                          : ''}{' '}
-                        ток.
-                      </span>
-                    )}
-                    {m.durationMs != null && (
-                      <span title="Време за отговор">⏱ {(m.durationMs / 1000).toFixed(1)} с</span>
-                    )}
-                  </div>
+                {/* Per-turn footer: same styling live (streaming bubble — ↑/↓ tokens + ticking ⏱)
+                    and after completion (persisted on the message). */}
+                {streaming && m.id === messages[messages.length - 1]?.id ? (
+                  <UsageFooter
+                    usage={{
+                      inputTokens: usage?.inputTokens ?? 0,
+                      outputTokens: Math.max(genTokens, usage?.outputTokens ?? 0),
+                      cachedInputTokens: usage?.cachedInputTokens ?? 0,
+                    }}
+                    durationMs={elapsedMs}
+                    live
+                  />
+                ) : (
+                  <UsageFooter usage={m.usage ?? null} durationMs={m.durationMs ?? null} />
                 )}
               </div>
             ),
           )}
         </div>
-        {streaming &&
-          (() => {
-            // ↑ input from the server (appears once the first step reports usage); ↓ output streams
-            // live via deltas and snaps to the server's exact count when it arrives.
-            const inTok = usage?.inputTokens ?? 0;
-            const outTok = Math.max(genTokens, usage?.outputTokens ?? 0);
-            const cached = usage?.cachedInputTokens ?? 0;
-            return (
-              <div
-                className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums"
-                aria-live="polite"
-                title={`Токени на живо — ↑ вход${cached ? ` (${cached.toLocaleString('bg-BG')} от кеш)` : ''}, ↓ изход`}
-              >
-                <span className="inline-flex items-center gap-1">
-                  <span className="inline-block size-1.5 animate-pulse rounded-full bg-orange-500" />
-                  <span>↑ {inTok.toLocaleString('bg-BG')}</span>
-                </span>
-                <span>↓ {outTok.toLocaleString('bg-BG')} токена</span>
-              </div>
-            );
-          })()}
         {error && <p className="text-sm text-destructive">{error}</p>}
         {chatFocus && (
           <div className="flex items-center gap-1 text-xs">
