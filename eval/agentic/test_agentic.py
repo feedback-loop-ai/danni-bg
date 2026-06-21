@@ -98,7 +98,7 @@ def _llm_case(case: Case, result) -> LLMTestCase:
 def case_run(request):
     """Run each case's chat turn once and share the result across its assertions."""
     case: Case = request.param
-    return case, chat(case.question)
+    return case, chat(case.question, scope=case.scope)
 
 
 def test_no_provider_error(case_run):
