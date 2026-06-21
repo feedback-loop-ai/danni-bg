@@ -41,5 +41,18 @@ capabilities each have their own spec:
   reply duration kept per message (migration 014 `usage_json`/`duration_ms`, restored on reload); one
   `UsageFooter` with identical live (ticking ⏱) and completed styling
 
+**Proposed (sketches, not yet implemented)** — productization roadmap toward an API-as-a-product /
+B2G platform; single-responsibility, each builds on the prior:
+- 027 API-key authentication for machine clients (`Authorization: Bearer`, hashed `api_keys`, scopes;
+  resolved by the same `requireAuth` as a session) — the M2M auth the browser-only stack lacks
+- 028 API metering, quotas & rate limiting (per-key request metering + 429 rate limit/quota, runtime
+  admin-configurable; reuses the spec-021 usage/quota patterns) — builds on 027
+- 029 multi-tenancy (`organizations`/`org_members`, org-scoped keys/usage/sessions/config; default-org
+  backfill) — the "one deployment, many portals/customers" model; control plane only (substrate stays
+  per-deployment)
+- 030 production deployment & ops (app Dockerfile, migrate-on-release, externalized/rotated secrets,
+  CI deploy, health/observability/backups, single→multi-node path) — gates the SQLite→Postgres
+  app-tables move (see the `db-architecture-decision` memo)
+
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->
