@@ -215,26 +215,35 @@ export function MapView({
               />
             );
           })}
-          {/* Outline overlays drawn on top (selected / chat-highlight / hover). */}
+          {/* Outline overlays drawn on top (selected / chat-highlight / hover). Selection uses a
+              translucent orange fill + bold orange stroke so it stands out against the blue choropleth
+              (var(--primary) blended in and was barely visible). */}
           {activeFeatures.map((f) => {
             const isHi = highlightBoundaries.has(f.boundaryFeatureId);
             const isSel = selectedBoundaries.has(f.boundaryFeatureId);
             const isHov = hover?.id === f.boundaryFeatureId;
             if (!isHi && !isSel && !isHov) return null;
             const stroke = isSel
-              ? 'var(--primary)'
+              ? isDark
+                ? '#fb923c'
+                : '#ea580c'
               : isHi
                 ? '#f59e0b'
                 : isDark
                   ? '#e2e8f0'
                   : '#1f2937';
+            const fill = isSel
+              ? isDark
+                ? 'rgba(251,146,60,0.28)'
+                : 'rgba(234,88,12,0.20)'
+              : 'none';
             return (
               <path
                 key={`o-${f.boundaryFeatureId}`}
                 d={f.d}
-                fill="none"
+                fill={fill}
                 stroke={stroke}
-                strokeWidth={isSel ? 3 : isHi ? 2.5 : 1.5}
+                strokeWidth={isSel ? 4 : isHi ? 2.5 : 1.5}
                 vectorEffect="non-scaling-stroke"
                 strokeLinejoin="round"
                 className="pointer-events-none"
@@ -309,9 +318,9 @@ export function MapView({
         </div>
       </div>
 
-      {/* Selected-region info card (single or multi-select) */}
+      {/* Selected-region info card (single or multi-select) — orange accent matches the map outline. */}
       {selectedRegions.length > 0 && (
-        <div className="absolute top-3 right-3 max-w-56 rounded-md border bg-card/95 px-3 py-2 shadow-sm backdrop-blur">
+        <div className="absolute top-3 right-3 max-w-56 rounded-md border-2 border-orange-500 bg-card/95 px-3 py-2 shadow-md ring-1 ring-orange-500/30 backdrop-blur">
           <div className="flex items-start justify-between gap-2">
             {selectedRegions.length === 1 && selectedRegions[0] ? (
               <div>

@@ -136,6 +136,12 @@ able to ground on that municipality's datasets.
   An empty geo anchor leaves the selection untouched (a non-geo follow-up must not clear it). Starting
   a new conversation clears the selection; **reopening a conversation re-selects the regions it last
   grounded on** (read from the persisted assistant-message anchors — no new storage needed).
+- **FR-108**: The chat geo anchor MUST be **oblast-focused** so the chat-driven selection matches a
+  manual oblast pick: each cited dataset contributes its oblast only if it is about a **single** oblast
+  (municipalities rolled up via the `part_of` graph); multi-oblast / national datasets (e.g. an NSI
+  "by oblast" massive) are excluded, so asking about one oblast no longer selects the whole country.
+  The selected regions MUST be rendered with high contrast (orange fill + bold outline + accented
+  info card) so the selection is clearly visible against the blue choropleth.
 
 ## Success Criteria *(mandatory)*
 

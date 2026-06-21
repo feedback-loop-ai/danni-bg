@@ -280,7 +280,7 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
   return {
     text,
     citations,
-    anchors: buildAnchors(citations, resolve),
+    anchors: buildAnchors(citations, resolve, bridge.partOfParents()),
     usage,
     ...(groundingText ? { groundingText } : {}),
   };
@@ -391,7 +391,7 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
   return {
     text,
     citations,
-    anchors: buildAnchors(citations, resolve),
+    anchors: buildAnchors(citations, resolve, bridge.partOfParents()),
     usage,
     ...(grounding ? { groundingText: grounding.text } : {}),
   };
