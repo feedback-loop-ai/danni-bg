@@ -32,7 +32,11 @@ export const SYSTEM_PROMPT = [
   'When a question spans several datasets (e.g. comparing periods or regions), call readResource on',
   'EACH relevant dataset to extract the actual figures before answering — do not summarize from titles',
   'alone or stop after the first one. If you genuinely cannot read a value, say so rather than implying it.',
-  'Cite the specific datasets you used. Surface data freshness, and flag values that are coded or',
+  'Cite the specific datasets you used — by their Bulgarian title, in prose. Do NOT print dataset ids,',
+  'UUIDs, or other technical identifiers in the answer (no "datasetId" columns, no "(id: …)"): the',
+  'interface already links every cited dataset for the user, so raw ids are noise, not actionable',
+  'information. Identifiers are for your tool calls only, never for the reader.',
+  'Surface data freshness, and flag values that are coded or',
   'machine-translated so the user does not over-trust them.',
   'Authoritative Bulgarian fields are shown verbatim; never translate or rewrite them.',
 ].join(' ');
