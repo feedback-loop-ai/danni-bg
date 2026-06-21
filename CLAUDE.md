@@ -51,8 +51,13 @@ B2G platform; single-responsibility, each builds on the prior:
   backfill) — the "one deployment, many portals/customers" model; control plane only (substrate stays
   per-deployment)
 - 030 production deployment & ops (app Dockerfile, migrate-on-release, externalized/rotated secrets,
-  CI deploy, health/observability/backups, single→multi-node path) — gates the SQLite→Postgres
-  app-tables move (see the `db-architecture-decision` memo)
+  CI deploy, readiness/backups, single→multi-node path) — gates the SQLite→Postgres app-tables move
+  (see the `db-architecture-decision` memo); the *target* it deploys onto is 031, the *telemetry* on it
+  is 032
+- 031 infrastructure provisioning & orchestration (IaC + orchestrator + ingress/TLS + secret backend +
+  horizontally-scalable app tier with per-node SQLite substrate) — the provisioned platform 030 ships to
+- 032 observability (structured logs, RED + domain metrics incl. LLM cost/tokens, distributed tracing,
+  dashboards, SLOs/alerting, per-tenant cost) — deepens 030 FR-138; consumes the 026/028 usage signals
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->
