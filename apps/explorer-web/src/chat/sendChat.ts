@@ -12,6 +12,12 @@ export interface ChatCallbacks {
   onTool?: (name: string, status: string) => void;
   onCitations?: (citations: Citation[]) => void;
   onAnchors?: (anchor: MapAnchor) => void;
+  /** Live token usage for the turn (cumulative ↑input / ↓output / cached). */
+  onUsage?: (usage: {
+    inputTokens: number;
+    outputTokens: number;
+    cachedInputTokens: number;
+  }) => void;
   onError?: (message: string) => void;
   onDone?: () => void;
 }
@@ -47,6 +53,13 @@ export function dispatchSSEEvent(ev: SSEEvent, cb: ChatCallbacks): void {
       return;
     case 'anchors':
       cb.onAnchors?.(parseEventData<MapAnchor>(ev));
+      return;
+    case 'usage':
+      cb.onUsage?.(
+        parseEventData<{ inputTokens: number; outputTokens: number; cachedInputTokens: number }>(
+          ev,
+        ),
+      );
       return;
     case 'error':
       cb.onError?.(parseEventData<{ message: string }>(ev).message);

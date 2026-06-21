@@ -95,8 +95,14 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
-  // Live count of generated tokens this turn (one per streamed delta ≈ one model token), shown live.
+  // Live token meter: genTokens counts streamed deltas (smooth ↓ output between usage events); usage
+  // holds the server-reported cumulative totals (↑ input + exact ↓ output + cached).
   const [genTokens, setGenTokens] = useState(0);
+  const [usage, setUsage] = useState<{
+    inputTokens: number;
+    outputTokens: number;
+    cachedInputTokens: number;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -151,6 +157,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
                 ),
               );
             setGenTokens(0);
+            setUsage(null);
             void resumeChat(
               conv.streaming.messageId,
               {
@@ -163,6 +170,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
                   cites = c;
                   patch();
                 },
+                onUsage: setUsage,
                 onAnchors: (a) => {
                   if (a.geoEntityIds.length > 0) selectRegions(a.geoEntityIds);
                 },
@@ -219,6 +227,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     abortRef.current = controller;
     setStreaming(true);
     setGenTokens(0);
+    setUsage(null);
     setError(null);
     let assistant = '';
     let cites: Citation[] = [];
@@ -238,6 +247,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             cites = citations;
             patchAssistant(assistant, cites);
           },
+          onUsage: setUsage,
           onAnchors: (anchor) => {
             if (anchor.geoEntityIds.length > 0) selectRegions(anchor.geoEntityIds);
           },
@@ -481,16 +491,27 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             ),
           )}
         </div>
-        {streaming && (
-          <div
-            className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums"
-            aria-live="polite"
-            title="Генерирани токени на живо"
-          >
-            <span className="inline-block size-1.5 animate-pulse rounded-full bg-orange-500" />
-            <span>↑ {genTokens.toLocaleString('bg-BG')} токена</span>
-          </div>
-        )}
+        {streaming &&
+          (() => {
+            // ↑ input from the server (appears once the first step reports usage); ↓ output streams
+            // live via deltas and snaps to the server's exact count when it arrives.
+            const inTok = usage?.inputTokens ?? 0;
+            const outTok = Math.max(genTokens, usage?.outputTokens ?? 0);
+            const cached = usage?.cachedInputTokens ?? 0;
+            return (
+              <div
+                className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums"
+                aria-live="polite"
+                title={`Токени на живо — ↑ вход${cached ? ` (${cached.toLocaleString('bg-BG')} от кеш)` : ''}, ↓ изход`}
+              >
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block size-1.5 animate-pulse rounded-full bg-orange-500" />
+                  <span>↑ {inTok.toLocaleString('bg-BG')}</span>
+                </span>
+                <span>↓ {outTok.toLocaleString('bg-BG')} токена</span>
+              </div>
+            );
+          })()}
         {error && <p className="text-sm text-destructive">{error}</p>}
         {chatFocus && (
           <div className="flex items-center gap-1 text-xs">

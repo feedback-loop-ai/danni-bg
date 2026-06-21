@@ -161,7 +161,7 @@ export function chatHandler(deps: ChatRouteDeps) {
           groundingDatasetIds,
           abortSignal: signal,
           ...(maxOut ? { maxOutputTokens: maxOut } : {}),
-          events: { onToken: h.onToken, onTool: h.onTool },
+          events: { onToken: h.onToken, onTool: h.onTool, onUsage: h.onUsage },
         });
         if (body.debug && result.groundingText) h.onGrounding(result.groundingText);
         h.onCitations(result.citations);
@@ -238,6 +238,7 @@ export async function streamGeneration(
         data: JSON.stringify({ citations: s.citations }),
       });
     if (s.anchors) void stream.writeSSE({ event: 'anchors', data: JSON.stringify(s.anchors) });
+    if (s.usage) void stream.writeSSE({ event: 'usage', data: JSON.stringify(s.usage) });
     if (s.status === 'done') {
       void stream.writeSSE({ event: 'done', data: '{}' });
       sub.unsubscribe();
@@ -278,6 +279,8 @@ function forwardEvent(
     void stream.writeSSE({ event: 'anchors', data: JSON.stringify(e.anchors) });
   else if (e.type === 'grounding')
     void stream.writeSSE({ event: 'grounding', data: JSON.stringify({ text: e.text }) });
+  else if (e.type === 'usage')
+    void stream.writeSSE({ event: 'usage', data: JSON.stringify(e.usage) });
   else if (e.type === 'done') void stream.writeSSE({ event: 'done', data: '{}' });
   else if (e.type === 'error')
     void stream.writeSSE({
