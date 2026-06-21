@@ -37,9 +37,15 @@ sync  →  curate  →  enrich  →  index  →  search
   where an oblast's count is the de-duplicated roll-up of its own datasets plus its municipalities',
   a **faceted search panel** (tag + publisher facets with result counts, backed by `/api/facets`),
   and a dataset drilldown built around a **centre document reader plus a tabular grid** (server-side
-  sort + per-column filters over the whole resource). On top sits a **grounded chat assistant**:
-  grounded by construction — the focused / open dataset's real rows are injected as ground-truth
-  context, kept sticky across follow-ups, and hardened against fabrication.
+  sort + per-column filters over the whole resource). **Region selection** is multi-select
+  (Shift+click) and hierarchical — selecting an oblast filters to its **rolled-up** datasets (its own
+  plus its municipalities', matching the map count), shown as high-contrast chips + filter pills. On
+  top sits a **grounded chat assistant**: grounded by construction — the focused / open dataset's real
+  rows are injected as ground-truth context, kept sticky across follow-ups, and hardened against
+  fabrication. It is **scope-aware** (a region selection scopes retrieval, with roll-up + recall so a
+  tight scope doesn't starve), **grounds its answers back onto the map** (cited regions become the
+  selection), references datasets by title (no raw ids), and shows a **live ↑input/↓output token +
+  ⏱ duration** readout kept on each reply.
 - **Authenticated chat platform** (specs 019–022) — public browsing stays open; **chat + admin are
   gated** behind an Ory identity stack (email+password **or passkeys**, link-mode recovery). Tiered
   users (admin/user); an admin **platform-settings** page configures the LLM endpoint + quota policy at
@@ -68,6 +74,7 @@ The store on disk is the source of truth; every stage is re-runnable and every r
 | [specs/008-map-data-explorer/contracts/](specs/008-map-data-explorer/contracts/) | The explorer HTTP API + chat-tool contracts |
 | [infra/ory/README.md](infra/ory/README.md) | The Ory identity stack (Kratos + Mailpit), single-port mode, passkeys |
 | [specs/019-022-*/](specs/) | Identity + admin settings + passkeys (019), persistent/resumable chat (020), token metering (021), account & chat-UX (022) |
+| [specs/023-026-*/](specs/) | Region multi-select + geo-filter roll-up + chat↔map selection (023), agentic-eval hardening (024), chat answer presentation / anti-fabrication (025), chat-UX polish + live usage telemetry (026) |
 
 ## License
 

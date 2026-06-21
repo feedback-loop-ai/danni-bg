@@ -217,6 +217,7 @@ Migrations are applied in numeric order by a checksum-guarded runner (`src/store
 | `011_token_usage_cached` | `token_usage.cached_input_tokens` | usage breakdown (spec 021) |
 | `012_user_avatar` | `users.avatar_url` | profile pictures (spec 022) |
 | `013_chat_sessions` | `chat_sessions` + `chat_messages` | persistent/resumable chat (spec 020) |
+| `014_message_usage_duration` | `chat_messages.usage_json` + `duration_ms` | per-turn tokens + reply time kept on each message (spec 026) |
 
 Vectors are stored as plain BLOBs; similarity search is in-process cosine + Reciprocal-Rank-Fusion with FTS5 (the `sqlite-vec` virtual-table path is a future upgrade for large corpora).
 
@@ -318,6 +319,18 @@ oblast for a municipality), which drives the map drill-down. `GET /api/regions/:
 behind a region. `GET /api/entities/:id` returns one entity's graph node — canonical labels, outgoing /
 incoming `entity_relations` edges (resolved far-end nodes), and its direct dataset count.
 
+**Geo filter roll-up + region selection (spec 023).** Selecting a region constrains the dataset list
+and the chat scope via `geoUnitIds` (the single selection source of truth, `filters.geoUnitIds`). An
+**oblast filter expands to its municipalities** (`geo-rollup.ts` `expandGeoUnitIds` +
+`ReadBridge.partOfChildren`) so the filtered count matches the choropleth roll-up (e.g. Стара Загора:
+128 oblast-only → **638**); a municipality filter stays exact. The map supports **Shift+click
+multi-select** (oblasts, or municipalities when drilled in), rendered as a high-contrast selection
+(orange) + filter chips. The chat is **scope-aware**: a geo-scope rolls up the same way, and the tool
+loop + RAG path **over-fetch then backfill the region's datasets** so a tight scope narrows rather than
+starves; the model is told to stay in-region (no cross-region padding). A chat answer's grounded
+regions (oblast-focused anchor) **become the selection** — chat and map share one selection — and are
+re-selected when a saved conversation is reopened.
+
 **Map — SVG choropleth + drill-down.** The map is a **headless-renderable SVG D3-geo choropleth**
 (`apps/explorer-web/src/map/MapView.tsx` + pure `lib/projection.ts` / `lib/map-scale.ts`), not a
 WebGL/MapLibre canvas. It renders the 28 oblasts; clicking one **zooms into its 265-municipality
@@ -350,6 +363,19 @@ turn. Recent turns are replayed within a char budget. A grounded dataset is alwa
 call, `readResource` gained a **value-filter** (exact column → case-insensitive substring, matching over
 the whole resource) and exposes column names, and a hardened **anti-fabrication** system prompt forbids
 stating any specific value not present verbatim in a tool result or the injected context.
+
+**Answer presentation & anti-fabrication (specs 023/025).** The system prompt also (a) references
+datasets **by title, never raw ids/UUIDs** in prose — the `citations` carry the linkable id (no
+`datasetId` columns of noise); (b) enforces **enumeration closure** — when listing, the tool results
+are the complete, closed set, so the model must not "round out" a list with datasets, publishers, or
+municipalities from prior knowledge; and (c) under a geo-scope, must stay **in-region**. These close
+real fabrication modes the agentic eval caught (cross-region padding, register/municipality lists).
+
+**Live usage telemetry (spec 026).** Each turn streams a `usage` SSE event — cumulative token usage
+per provider step (`onStepFinish`) plus an authoritative final total (billing/metering unchanged) — so
+the UI shows a live **↑input / ↓output (+ ⚡cached)** meter with a ticking **⏱ duration** clock. The
+totals + reply duration are **persisted per message** (`014_message_usage_duration`) and restored on
+reload/resume; one `UsageFooter` renders both the live and the kept-after-completion states.
 
 **Serving-layer source map**
 
@@ -414,4 +440,7 @@ region roll-up (013), publisher-derived geo recall (014), entities-only curate (
 knowledge graph (016), and grounded-chat hardening (017) — each with its clarified spec, plan, contracts,
 and task list. The authenticated platform layer is `specs/018-022-*/`: agentic evals (018), identity +
 admin settings + passkeys (019), persistent & resumable chat sessions (020), token metering & quotas
-(021), and account & chat-UX (022).*
+(021), and account & chat-UX (022). The latest UX + quality layer is `specs/023-026-*/`: region
+multi-select + geo-filter roll-up + chat↔map selection + scope-aware recall (023), agentic-eval
+hardening — auth, frontier judge, deterministic guards, expanded cases (024), chat answer presentation
++ anti-fabrication closure (025), and chat-UX polish + live usage telemetry (026).*
