@@ -18,7 +18,7 @@ they're the primary load for the judge-independent guards in guards.py.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # Must match apps/explorer-api/src/chat/grounding.ts NO_DATA_REPLY exactly.
 NO_DATA_REPLY = "No relevant public data was found in the mirror for this question."
@@ -37,6 +37,11 @@ class Case:
     # Enumeration case: a broad topic that retrieves many datasets — the load that
     # stresses count-inflation / ghost-id drift (see guards.py + the module docstring).
     enum: bool = False
+    # Optional chat scope (e.g. {"geoUnitIds": [...]}) sent with the turn, exercising
+    # the geo-scope roll-up + scope-aware recall (spec 023, FR-099/FR-100). The chat
+    # never sees the scope as text — it's a server-side filter — so the QUESTION must
+    # stand on its own and not lean on the scope for its referent.
+    scope: dict | None = field(default=None)
 
 
 CASES: list[Case] = [
@@ -136,5 +141,36 @@ CASES: list[Case] = [
         expect_tool="mirrorSearch",
         note="NSI demographics: national statistical massives, several per query.",
         enum=True,
+    ),
+    # --- Geo-scoped cases (spec 023): the turn carries scope.geoUnitIds, exercising the oblast→
+    # municipality roll-up + scope-aware recall. The chat can't see the scope, so each question
+    # names its own subject and must still ground within the scoped region. ---
+    Case(
+        id="geo-scope-recall",
+        kind="grounded",
+        # Generic topic scoped to one oblast — the case that used to starve (0 citations / 30
+        # floundering searches) before scope-aware over-fetch + region backfill (FR-100).
+        question="Изброй набори от данни за регистри.",
+        expect_tool="mirrorSearch",
+        scope={"geoUnitIds": ["geo:bg-oblast-stara-zagora"]},
+        note=(
+            "Scope-aware recall: a generic query under a tight oblast scope must retrieve the region "
+            "(the citations/not-no-data asserts verify the FR-100 fix). The faithfulness judge then "
+            "catches a model habit: deepseek-v4-pro pads the register list with well-known OUT-of-region "
+            "institutions (Столична община, Община Пловдив, …) not in the scoped grounding — a "
+            "model/guardrail issue, not a retrieval one, so tracked as xfail."
+        ),
+        known_model_fabrication=True,
+        enum=True,
+    ),
+    Case(
+        id="geo-scope-municipality-rollup",
+        kind="grounded",
+        # Scoped to the OBLAST but asking about a municipality within it — only grounds if the oblast
+        # scope was rolled up to include its municipalities (FR-099). A flat oblast scope excludes it.
+        question="Какви данни публикува община Казанлък?",
+        expect_tool="mirrorSearch",
+        scope={"geoUnitIds": ["geo:bg-oblast-stara-zagora"]},
+        note="Oblast scope must include municipality data (roll-up) to answer a municipality question.",
     ),
 ]
