@@ -24,6 +24,12 @@ import { GEO_SCOPED_SEARCH_LIMIT, buildTools } from './tools.ts';
 export interface ChatTurnEvents {
   onToken?: (delta: string) => void;
   onTool?: (name: string, status: 'start' | 'done') => void;
+  /** Cumulative token usage, emitted per step (live ↑input/↓output) and once more, exact, at the end. */
+  onUsage?: (usage: {
+    inputTokens: number;
+    outputTokens: number;
+    cachedInputTokens: number;
+  }) => void;
 }
 
 export interface TokenUsage {
@@ -231,6 +237,9 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
   const base = geoScoped ? `${SYSTEM_PROMPT}\n\n${GEO_SCOPE_NOTE}` : SYSTEM_PROMPT;
   const system = focus ? `${base}\n\n${FOCUS_HEADER}\n${focus.text}` : base;
 
+  // Accumulate usage across tool steps so the client gets a live ↑input/↓output readout (each step is
+  // a separate provider call; its usage is per-step, so we sum). The exact total is re-emitted at the end.
+  const acc = { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0 };
   const result = streamText({
     model,
     system,
@@ -238,6 +247,12 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
     tools,
     maxOutputTokens: opts.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
     stopWhen: stepCountIs(opts.maxSteps ?? DEFAULT_MAX_STEPS),
+    onStepFinish: (step) => {
+      acc.inputTokens += step.usage?.inputTokens ?? 0;
+      acc.outputTokens += step.usage?.outputTokens ?? 0;
+      acc.cachedInputTokens += step.usage?.cachedInputTokens ?? 0;
+      events?.onUsage?.({ ...acc });
+    },
     ...(opts.abortSignal ? { abortSignal: opts.abortSignal } : {}),
   });
 
@@ -269,6 +284,7 @@ export async function runToolLoop(opts: RunChatTurnOptions): Promise<ChatTurnRes
   }
 
   const usage = await readUsage(result);
+  events?.onUsage?.(usage); // authoritative final total (reconciles the per-step estimate, adds cached)
   if (text.trim() === '') {
     return { text: NO_DATA_REPLY, citations: [], anchors: EMPTY_ANCHOR, usage };
   }
@@ -361,6 +377,13 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
     system,
     messages: [{ role: 'user', content: userMsg }],
     maxOutputTokens: opts.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
+    onStepFinish: (step) => {
+      events?.onUsage?.({
+        inputTokens: step.usage?.inputTokens ?? 0,
+        outputTokens: step.usage?.outputTokens ?? 0,
+        cachedInputTokens: step.usage?.cachedInputTokens ?? 0,
+      });
+    },
     ...(opts.abortSignal ? { abortSignal: opts.abortSignal } : {}),
   });
   let text = '';
@@ -374,6 +397,7 @@ export async function runRagTurn(opts: RunChatTurnOptions): Promise<ChatTurnResu
   }
 
   const usage = await readUsage(result);
+  events?.onUsage?.(usage); // authoritative final total
   if (text.trim() === '') {
     return { text: NO_DATA_REPLY, citations: [], anchors: EMPTY_ANCHOR, usage };
   }

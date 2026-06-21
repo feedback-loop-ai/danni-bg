@@ -6,12 +6,20 @@
 
 import type { Citation, MapAnchor } from './grounding.ts';
 
+/** Live token usage for a turn, surfaced to the client for an ↑input / ↓output readout. */
+export interface UsageInfo {
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+}
+
 export type GenEvent =
   | { type: 'token'; delta: string }
   | { type: 'tool'; name: string; status: 'start' | 'done' }
   | { type: 'citations'; citations: Citation[] }
   | { type: 'anchors'; anchors: MapAnchor }
   | { type: 'grounding'; text: string }
+  | { type: 'usage'; usage: UsageInfo }
   | { type: 'done' }
   | { type: 'error'; message: string };
 
@@ -21,6 +29,7 @@ export interface GenHandlers {
   onCitations: (citations: Citation[]) => void;
   onAnchors: (anchors: MapAnchor) => void;
   onGrounding: (text: string) => void;
+  onUsage: (usage: UsageInfo) => void;
 }
 
 export type GenStatus = 'streaming' | 'done' | 'error';
@@ -32,6 +41,7 @@ export interface GenSnapshot {
   text: string;
   citations?: Citation[];
   anchors?: MapAnchor;
+  usage?: UsageInfo;
   status: GenStatus;
   error?: string;
 }
@@ -86,6 +96,10 @@ export class GenerationManager {
         emit({ type: 'anchors', anchors });
       },
       onGrounding: (text) => emit({ type: 'grounding', text }),
+      onUsage: (usage) => {
+        gen.usage = usage;
+        emit({ type: 'usage', usage });
+      },
     };
     // Defer the run so the initiating request can subscribe before the first token.
     queueMicrotask(() => {
@@ -148,6 +162,7 @@ function snapshotOf(gen: Generation): GenSnapshot {
     text: gen.text,
     ...(gen.citations ? { citations: gen.citations } : {}),
     ...(gen.anchors ? { anchors: gen.anchors } : {}),
+    ...(gen.usage ? { usage: gen.usage } : {}),
     status: gen.status,
     ...(gen.error ? { error: gen.error } : {}),
   };
