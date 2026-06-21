@@ -33,6 +33,9 @@ capabilities each have their own spec:
 - 024 agentic-eval hardening (extends 018): the `eval/agentic` suite authenticates against the gated
   chat, adds judge-independent deterministic guards (`guards.py`), a frontier judge (Qwen 3.7 Plus on
   Alibaba Model Studio — gemma-26b is an unreliable judge), and enumeration + geo-scoped cases
+- 025 chat answer presentation (signal-to-noise): the shared `SYSTEM_PROMPT` tells the chat to
+  reference datasets by Bulgarian title and never print raw ids/UUIDs in the answer (the `citations`
+  event still carries each dataset's id + source URL for the UI to link)
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->
