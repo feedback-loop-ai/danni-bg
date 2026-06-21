@@ -51,6 +51,24 @@ const SUGGESTIONS = [
   'Кои набори са за бюджета на общините?',
 ];
 
+/** Claude-style "thinking" indicator: three dots breathing out of phase (keyframe in index.css). */
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-1 py-1" aria-label="Асистентът подготвя отговор">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-2 w-2 rounded-full bg-primary/70"
+          style={{
+            animation: 'danni-typing 1.25s ease-in-out infinite',
+            animationDelay: `${i * 0.18}s`,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 /** The regions an assistant turn grounded on — the latest such set, so resume re-selects them. */
 function lastGroundedRegions(messages: { role: string; anchors?: MapAnchor }[]): string[] {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -77,6 +95,8 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
+  // Live count of generated tokens this turn (one per streamed delta ≈ one model token), shown live.
+  const [genTokens, setGenTokens] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -130,11 +150,13 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
                     : m,
                 ),
               );
+            setGenTokens(0);
             void resumeChat(
               conv.streaming.messageId,
               {
                 onToken: (d) => {
                   text += d;
+                  setGenTokens((n) => n + 1);
                   patch();
                 },
                 onCitations: (c) => {
@@ -196,6 +218,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
     const controller = new AbortController();
     abortRef.current = controller;
     setStreaming(true);
+    setGenTokens(0);
     setError(null);
     let assistant = '';
     let cites: Citation[] = [];
@@ -208,6 +231,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
           },
           onToken: (delta) => {
             assistant += delta;
+            setGenTokens((n) => n + 1);
             patchAssistant(assistant, cites.length > 0 ? cites : undefined);
           },
           onCitations: (citations) => {
@@ -424,7 +448,7 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
                       {completePartialMarkdown(m.content)}
                     </Markdown>
                   ) : (
-                    streaming && <span className="text-muted-foreground">…</span>
+                    streaming && <TypingDots />
                   )}
                 </div>
                 {m.citations && m.citations.length > 0 && (
@@ -457,6 +481,16 @@ export function ChatPanel({ onSelectDataset }: ChatPanelProps) {
             ),
           )}
         </div>
+        {streaming && (
+          <div
+            className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums"
+            aria-live="polite"
+            title="Генерирани токени на живо"
+          >
+            <span className="inline-block size-1.5 animate-pulse rounded-full bg-orange-500" />
+            <span>↑ {genTokens.toLocaleString('bg-BG')} токена</span>
+          </div>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
         {chatFocus && (
           <div className="flex items-center gap-1 text-xs">
