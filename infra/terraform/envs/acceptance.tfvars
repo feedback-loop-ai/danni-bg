@@ -5,5 +5,13 @@ location           = "nbg1"
 control_plane_type = "cx32"
 agent_type         = "cx32"
 agent_count        = 1
-# allowed_ssh_cidrs = ["203.0.113.4/32"]
-# ssh_public_keys   = ["ssh-ed25519 AAAA... you@host"]
+
+# SSH + k3s API (22 + 6443) locked to the admin IP (update + re-apply if it changes).
+allowed_ssh_cidrs = ["79.100.6.166/32"]
+
+ssh_public_keys = [
+  # YubiKey (FIDO2) — interactive admin / break-glass (touch required)
+  "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAINwDiMGwZNoE1MvcPlGAdpF1bP8yXNAzXo0enzeYT/4XAAAABHNzaDo= vyanakiev@100.68.70.61",
+  # On-disk ed25519 — non-interactive automation (e.g. kubeconfig fetch)
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINs3gonzThyAzPVv2xEAp8T3HVHZgFhKSj+gAq7VMvZq vyanakiev@vyanakiev-workstation-hetzner-20260512",
+]
