@@ -16,13 +16,6 @@ resource "random_password" "k3s_token" {
   special = false
 }
 
-resource "hcloud_ssh_key" "admin" {
-  count      = length(var.ssh_public_keys)
-  name       = "${local.name}-key-${count.index}"
-  public_key = var.ssh_public_keys[count.index]
-  labels     = local.labels
-}
-
 resource "hcloud_network" "this" {
   name     = local.name
   ip_range = "10.0.0.0/16"
@@ -80,7 +73,7 @@ resource "hcloud_server" "control_plane" {
   image              = "ubuntu-24.04"
   location           = var.location
   placement_group_id = hcloud_placement_group.this.id
-  ssh_keys           = hcloud_ssh_key.admin[*].id
+  ssh_keys           = var.ssh_key_names
   firewall_ids       = [hcloud_firewall.this.id]
   labels             = merge(local.labels, { role = "control-plane" })
 
@@ -105,7 +98,7 @@ resource "hcloud_server" "agent" {
   image              = "ubuntu-24.04"
   location           = var.location
   placement_group_id = hcloud_placement_group.this.id
-  ssh_keys           = hcloud_ssh_key.admin[*].id
+  ssh_keys           = var.ssh_key_names
   firewall_ids       = [hcloud_firewall.this.id]
   labels             = merge(local.labels, { role = "agent" })
 
