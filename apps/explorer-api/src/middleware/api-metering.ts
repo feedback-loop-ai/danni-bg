@@ -39,12 +39,14 @@ export function chatMeter(deps: ApiMeterDeps): MiddlewareHandler<AuthEnv> {
   return async (c, next) => {
     const user = c.get('user');
     const key = c.get('apiKey');
+    const tenantId = c.get('tenant')?.id;
     const rl = deps.limiter.take(`${user.id}:chat`, deps.config.rateChat());
     if (!rl.ok) return rateLimited(c, rl.retryAfterSec);
     try {
       deps.usage.record({
         principalKind: key ? 'apiKey' : 'user',
         principalId: user.id,
+        ...(tenantId ? { tenantId } : {}),
         keyId: key?.id ?? null,
         routeClass: 'chat',
       });
@@ -114,6 +116,7 @@ export function dataApiGate(
       deps.usage.record({
         principalKind: 'apiKey',
         principalId: owner,
+        ...(res.key.tenant_id ? { tenantId: res.key.tenant_id } : {}),
         keyId: res.key.id,
         routeClass: 'data',
       });

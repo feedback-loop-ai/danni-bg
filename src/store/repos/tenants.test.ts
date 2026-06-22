@@ -1,0 +1,85 @@
+import { Database } from 'bun:sqlite';
+import { beforeEach, describe, expect, it } from 'bun:test';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { runMigrations } from '../migrate.ts';
+import { DEFAULT_TENANT_ID, TenantsRepo } from './tenants.ts';
+import { UsersRepo } from './users.ts';
+
+const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
+
+function setup() {
+  const db = new Database(':memory:');
+  runMigrations(db, join(ROOT, 'migrations'));
+  const users = new UsersRepo(db);
+  const tenants = new TenantsRepo(db);
+  const mkUser = (email: string, role: 'admin' | 'user' = 'user') =>
+    users.findOrCreateByKratosId({ kratosIdentityId: `k-${email}`, email, createRole: role });
+  return { db, users, tenants, mkUser };
+}
+
+describe('TenantsRepo (spec 029)', () => {
+  let s: ReturnType<typeof setup>;
+  beforeEach(() => {
+    s = setup();
+  });
+
+  it('migration creates a default tenant', () => {
+    const def = s.tenants.get(DEFAULT_TENANT_ID);
+    expect(def?.slug).toBe('default');
+    expect(s.tenants.getBySlug('default')?.id).toBe(DEFAULT_TENANT_ID);
+  });
+
+  it('create + listAll with member counts', () => {
+    const acme = s.tenants.create({ name: 'Acme', slug: 'acme', plan: 'pro' });
+    const u = s.mkUser('a@acme.test');
+    s.tenants.addMember(acme.id, u.id, 'owner');
+    const all = s.tenants.listAll();
+    const row = all.find((t) => t.id === acme.id);
+    expect(row?.plan).toBe('pro');
+    expect(row?.memberCount).toBe(1);
+  });
+
+  it('addMember is idempotent and upserts the role', () => {
+    const t = s.tenants.create({ name: 'T', slug: 't' });
+    const u = s.mkUser('u@t.test');
+    s.tenants.addMember(t.id, u.id, 'member');
+    s.tenants.addMember(t.id, u.id, 'admin'); // conflict → role updated, not duplicated
+    expect(s.tenants.membersOf(t.id)).toHaveLength(1);
+    expect(s.tenants.membershipOf(t.id, u.id)?.role).toBe('admin');
+  });
+
+  it('setMemberRole + removeMember', () => {
+    const t = s.tenants.create({ name: 'T', slug: 't2' });
+    const u = s.mkUser('u2@t.test');
+    s.tenants.addMember(t.id, u.id, 'member');
+    expect(s.tenants.setMemberRole(t.id, u.id, 'owner')).toBe(true);
+    expect(s.tenants.membershipOf(t.id, u.id)?.role).toBe('owner');
+    expect(s.tenants.removeMember(t.id, u.id)).toBe(true);
+    expect(s.tenants.membershipOf(t.id, u.id)).toBeNull();
+  });
+
+  it('ensureMembership joins the default tenant only when the user has none', () => {
+    const u = s.mkUser('new@t.test');
+    expect(s.tenants.primaryMembership(u.id)).toBeNull();
+    const m = s.tenants.ensureMembership(u.id);
+    expect(m.tenantId).toBe(DEFAULT_TENANT_ID);
+    expect(m.role).toBe('member');
+    // Idempotent + does not change an existing primary membership.
+    const acme = s.tenants.create({ name: 'Acme', slug: 'acme2' });
+    s.tenants.addMember(acme.id, u.id, 'admin');
+    expect(s.tenants.ensureMembership(u.id).tenantId).toBe(DEFAULT_TENANT_ID); // primary stays the default
+  });
+
+  it('membersOf joins identity; membershipsOf lists every tenant for a user', () => {
+    const t1 = s.tenants.create({ name: 'One', slug: 'one' });
+    const t2 = s.tenants.create({ name: 'Two', slug: 'two' });
+    const u = s.mkUser('multi@t.test');
+    s.tenants.addMember(t1.id, u.id, 'owner');
+    s.tenants.addMember(t2.id, u.id, 'member');
+    expect(s.tenants.membersOf(t1.id)[0]?.email).toBe('multi@t.test');
+    expect(s.tenants.membershipsOf(u.id).map((m) => m.tenantId).sort()).toEqual(
+      [t1.id, t2.id].sort(),
+    );
+  });
+});

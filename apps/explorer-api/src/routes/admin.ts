@@ -5,6 +5,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { PlatformSettingsRepo } from '../../../../src/store/repos/platform-settings.ts';
+import type { TenantsRepo } from '../../../../src/store/repos/tenants.ts';
 import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts';
 import type { UsersRepo } from '../../../../src/store/repos/users.ts';
 import {
@@ -66,9 +67,21 @@ export interface AdminRoutesOpts {
   apiUsage?: import('../../../../src/store/repos/api-usage.ts').ApiUsageRepo | undefined;
   apiQuotaWindowSec?: (() => number) | undefined;
   tokenUsage?: TokenUsageRepo | undefined;
+  tenants?: TenantsRepo | undefined;
   defaultTokenLimit?: (() => number | undefined) | undefined;
   cacheWeight?: (() => number | undefined) | undefined;
 }
+
+const createTenantBody = z.object({
+  name: z.string().trim().min(1).max(120),
+  slug: z
+    .string()
+    .trim()
+    .min(1)
+    .max(60)
+    .regex(/^[a-z0-9-]+$/, 'slug must be lowercase letters, digits, or hyphens'),
+  plan: z.string().trim().min(1).max(40).optional(),
+});
 
 export function adminRoutes(
   users: UsersRepo,
@@ -77,7 +90,7 @@ export function adminRoutes(
 ): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
   // Pass apiKeys so a key authenticates then requireAdmin cleanly 403s it (keys are never admin).
-  app.use('*', requireAuth(users, opts.sessionResolver, opts.apiKeys), requireAdmin);
+  app.use('*', requireAuth(users, opts.sessionResolver, opts.apiKeys, opts.tenants), requireAdmin);
 
   app.get('/settings', (c) => {
     const { source, llm } = maskedLlm(settings);
@@ -120,17 +133,49 @@ export function adminRoutes(
     return c.json({ llm, toggles: togglesView(settings), source });
   });
 
-  // Per-principal API request usage (spec 028) over the current quota window — emails resolved.
+  // Per-principal API request usage (spec 028) over the current quota window — emails resolved; an
+  // org key's usage also rolls up under its org (spec 029 SC-C3) when a tenants repo is wired.
   const apiUsage = opts.apiUsage;
+  const tenants = opts.tenants;
   if (apiUsage) {
     app.get('/api-usage', (c) => {
       const windowSec = opts.apiQuotaWindowSec?.() ?? 86_400;
       const since = new Date(Date.now() - windowSec * 1000).toISOString();
-      const rows = apiUsage.summaryAll(since).map((r) => ({
+      const principals = apiUsage.summaryAll(since).map((r) => ({
         ...r,
         email: users.get(r.principalId)?.email ?? null,
       }));
-      return c.json({ windowSec, principals: rows });
+      const byTenant = apiUsage.summaryByTenant(since).map((r) => ({
+        ...r,
+        name: tenants?.get(r.tenantId)?.name ?? null,
+      }));
+      return c.json({ windowSec, principals, byTenant });
+    });
+  }
+
+  // Super-admin org management (spec 029 FR-132): list every org + create a new one.
+  if (tenants) {
+    app.get('/tenants', (c) => c.json({ tenants: tenants.listAll() }));
+    app.post('/tenants', async (c) => {
+      let body: unknown;
+      try {
+        body = await c.req.json();
+      } catch {
+        return c.json({ error: { code: 'bad_request', message: 'invalid JSON body' } }, 400);
+      }
+      const parsed = createTenantBody.safeParse(body);
+      if (!parsed.success) {
+        return c.json({ error: { code: 'bad_request', message: 'invalid org' } }, 400);
+      }
+      if (tenants.getBySlug(parsed.data.slug)) {
+        return c.json({ error: { code: 'conflict', message: 'slug already in use' } }, 409);
+      }
+      const created = tenants.create({
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        ...(parsed.data.plan ? { plan: parsed.data.plan } : {}),
+      });
+      return c.json(created, 201);
     });
   }
 

@@ -1,5 +1,6 @@
 import type { Database } from 'bun:sqlite';
 import { nowIso } from '../../lib/time.ts';
+import { DEFAULT_TENANT_ID } from './tenants.ts';
 
 // Per-request API usage (spec 028). One row per metered request; counts over a time window drive the
 // request quota + the usage views. Mirrors the other repos: a plain class over the shared Database.
@@ -10,6 +11,7 @@ export type PrincipalKind = 'user' | 'apiKey';
 export interface ApiUsageInput {
   principalKind: PrincipalKind;
   principalId: string; // owning users.id
+  tenantId?: string; // owning org (spec 029); defaults to the default tenant
   keyId?: string | null; // api_keys.id when principalKind === 'apiKey'
   routeClass: RouteClass;
   now?: string;
@@ -28,12 +30,13 @@ export class ApiUsageRepo {
   record(input: ApiUsageInput): void {
     this.db
       .query(
-        'INSERT INTO api_usage (id, principal_kind, principal_id, key_id, route_class, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO api_usage (id, principal_kind, principal_id, tenant_id, key_id, route_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
       )
       .run(
         crypto.randomUUID(),
         input.principalKind,
         input.principalId,
+        input.tenantId ?? DEFAULT_TENANT_ID,
         input.keyId ?? null,
         input.routeClass,
         input.now ?? nowIso(),
@@ -79,6 +82,21 @@ export class ApiUsageRepo {
     const data = rows.find((r) => r.route_class === 'data')?.n ?? 0;
     const chat = rows.find((r) => r.route_class === 'chat')?.n ?? 0;
     return { total: data + chat, data, chat };
+  }
+
+  /** Per-tenant totals since `sinceIso` — an org key's usage rolls up under its org (spec 029 SC-C3). */
+  summaryByTenant(
+    sinceIso: string,
+  ): { tenantId: string; data: number; chat: number; total: number }[] {
+    return this.db
+      .query<{ tenantId: string; data: number; chat: number }, [string]>(
+        `SELECT tenant_id AS tenantId,
+                SUM(route_class = 'data') AS data,
+                SUM(route_class = 'chat') AS chat
+         FROM api_usage WHERE created_at >= ? GROUP BY tenant_id ORDER BY COUNT(*) DESC`,
+      )
+      .all(sinceIso)
+      .map((r) => ({ ...r, total: r.data + r.chat }));
   }
 
   /** Per-principal totals since `sinceIso` (admin view), newest activity first. */

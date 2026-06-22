@@ -51,11 +51,18 @@ capabilities each have their own spec:
   (`apiRate{Data,Chat}`/`apiQuota{Data,WindowSec}`); `/api/me/api-usage` + admin `/api/admin/api-usage`,
   per-key request count surfaced in the account "API ключове" section — builds on 027
 
+- 029 multi-tenancy (control plane): `tenants`/`tenant_members` (org role `owner`/`admin`/`member`,
+  migration 017) — note the table is `tenants`, since `organizations` already names egov dataset
+  publishers. `tenant_id` added to `api_keys`/`chat_sessions`/`token_usage`/`api_usage`;
+  `platform_settings` repivoted to composite `(tenant_id,key)` with a `global` fallback row (per-tenant
+  config, FR-131). `requireAuth` resolves an active org (`TenantsRepo.ensureMembership` auto-joins new
+  users to the `default` tenant); `requireTenantAdmin` gates org self-management (`/api/tenant` +
+  members CRUD); super-admin org CRUD + per-tenant usage rollup under `/api/admin/tenants` +
+  `/api/admin/api-usage` `byTenant`. Keys/usage/sessions are org-attributed; existing data backfills
+  into the `default` org with no behavior change (SC-C1/C2/C3) — builds on 027/028
+
 **Proposed (sketches, not yet implemented)** — productization roadmap toward an API-as-a-product /
 B2G platform; single-responsibility, each builds on the prior:
-- 029 multi-tenancy (`organizations`/`org_members`, org-scoped keys/usage/sessions/config; default-org
-  backfill) — the "one deployment, many portals/customers" model; control plane only (substrate stays
-  per-deployment)
 - 030 production deployment & ops (app Dockerfile, migrate-on-release, externalized/rotated secrets,
   CI deploy, readiness/backups, single→multi-node path) — gates the SQLite→Postgres app-tables move
   (see the `db-architecture-decision` memo); the *target* it deploys onto is 031, the *telemetry* on it
