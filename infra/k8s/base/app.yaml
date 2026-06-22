@@ -31,6 +31,10 @@ spec:
         app.kubernetes.io/name: danni-app
         app.kubernetes.io/part-of: danni
     spec:
+      # Pull the private GHCR image (spec 030 CI) using a dockerconfigjson Secret synced from OpenBao
+      # (externalsecrets.yaml). Drop this if you make the GHCR package public.
+      imagePullSecrets:
+        - name: ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
