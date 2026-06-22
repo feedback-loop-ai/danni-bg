@@ -3,13 +3,20 @@
 // 403 for an API-key caller.
 
 import { useEffect, useState } from 'react';
-import { type ApiKeyView, createApiKey, listApiKeys, revokeApiKey } from '../lib/meApi.ts';
+import {
+  type ApiKeyView,
+  createApiKey,
+  getApiUsage,
+  listApiKeys,
+  revokeApiKey,
+} from '../lib/meApi.ts';
 
 const dt = new Intl.DateTimeFormat('bg-BG', { dateStyle: 'medium' });
 const fmtDate = (iso: string | null) => (iso ? dt.format(new Date(iso)) : '—');
 
 export function ApiKeys() {
   const [keys, setKeys] = useState<ApiKeyView[] | null>(null);
+  const [usageByKey, setUsageByKey] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -20,6 +27,9 @@ export function ApiKeys() {
     listApiKeys()
       .then(setKeys)
       .catch(() => setError('Неуспешно зареждане на ключовете.'));
+    getApiUsage()
+      .then((u) => setUsageByKey(Object.fromEntries(u.byKey.map((k) => [k.keyId, k.count]))))
+      .catch(() => {});
   }
   useEffect(load, []);
 
@@ -125,6 +135,7 @@ export function ApiKeys() {
                 <div className="truncate font-medium">{k.name}</div>
                 <div className="truncate text-muted-foreground">
                   <code>{k.prefix}…</code> · {k.scopes.join(', ')} · ползван {fmtDate(k.lastUsedAt)}
+                  {usageByKey[k.id] ? ` · ${usageByKey[k.id]} заявки` : ''}
                 </div>
               </div>
               <button

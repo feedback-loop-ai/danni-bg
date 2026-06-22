@@ -24,6 +24,7 @@ export interface ApiKeyRow {
   last_used_at: string | null;
   expires_at: string | null;
   revoked_at: string | null;
+  quota_limit: number | null; // per-key request-quota override (spec 028); null = plan default
 }
 
 /** Safe-to-return view (never includes the hash or secret). */

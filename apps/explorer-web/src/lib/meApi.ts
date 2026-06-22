@@ -117,3 +117,17 @@ export async function revokeApiKey(id: string): Promise<void> {
   const res = await fetch(`/api/me/api-keys/${id}`, { method: 'DELETE', credentials: 'include' });
   if (!res.ok) throw new Error(`api-key revoke failed: ${res.status}`);
 }
+
+// API request usage over the current quota window (spec 028).
+export interface ApiUsage {
+  windowSec: number;
+  total: number;
+  data: number;
+  chat: number;
+  byKey: { keyId: string; count: number }[];
+}
+export async function getApiUsage(): Promise<ApiUsage> {
+  const res = await fetch('/api/me/api-usage', { credentials: 'include' });
+  if (!res.ok) throw new Error(`api-usage request failed: ${res.status}`);
+  return (await res.json()) as ApiUsage;
+}

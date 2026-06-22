@@ -10,6 +10,7 @@ import { loadConfig } from '../../../src/config/loader.ts';
 import { buildEmbedder } from '../../../src/index/embedders/factory.ts';
 import { openDb } from '../../../src/store/db.ts';
 import { ApiKeyRepo } from '../../../src/store/repos/api-keys.ts';
+import { ApiUsageRepo } from '../../../src/store/repos/api-usage.ts';
 import { PlatformSettingsRepo } from '../../../src/store/repos/platform-settings.ts';
 import { TokenUsageRepo } from '../../../src/store/repos/token-usage.ts';
 import { UsersRepo } from '../../../src/store/repos/users.ts';
@@ -73,6 +74,7 @@ export function main(): void {
     health: () => buildHealth(db, slo, settings),
     users: new UsersRepo(db),
     apiKeys: new ApiKeyRepo(db),
+    apiUsage: new ApiUsageRepo(db),
     tokenUsage: new TokenUsageRepo(db),
     chatSessions: new PersistentSessionStore(db),
     settings,
