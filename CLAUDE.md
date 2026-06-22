@@ -74,8 +74,9 @@ capabilities each have their own spec:
 
 - 031 infrastructure provisioning & orchestration (IaC, all under `infra/`): Terraform `infra/terraform`
   provisions a private-networked **k3s** cluster on **Hetzner Cloud** (control plane + N agents,
-  cloud-init bootstrap, firewall, remote S3 state; `envs/{dev,staging,prod}.tfvars` size it — SC-E1/E3).
-  Portable **Kustomize** `infra/k8s` (base + `overlays/{dev,staging,prod}`): app Deployment (readiness
+  cloud-init bootstrap, firewall, remote S3 state; `envs/{acceptance,prod}.tfvars` size it — SC-E1/E3;
+  prod = 2× cx42, `curate` runs off-cluster). Portable **Kustomize** `infra/k8s` (base +
+  `overlays/{acceptance,prod}`): app Deployment (readiness
   `/readyz` + liveness `/healthz`, RollingUpdate `maxUnavailable:0`, HPA, PDB), Kratos internal (prod
   config `k8s/base/config/kratos.yaml`, host substituted at render), Kratos Postgres StatefulSet +
   `pg_dump` CronJob, Ingress+TLS (cert-manager/traefik), default-deny NetworkPolicies, External Secrets

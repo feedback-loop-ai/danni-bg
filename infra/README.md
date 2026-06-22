@@ -4,7 +4,7 @@ Two layers, both as code:
 
 - `terraform/` — provisions a private-networked **k3s** cluster on **Hetzner Cloud** (control plane + N
   agents), per environment. One `apply` up, one `destroy` down (SC-E1).
-- `k8s/` — portable **Kustomize** manifests (base + `overlays/{dev,staging,prod}`) that run the app,
+- `k8s/` — portable **Kustomize** manifests (base + `overlays/{acceptance,prod}`) that run the app,
   Kratos (internal), its Postgres, ingress/TLS, NetworkPolicies, HPA/PDB, and secrets — on *any*
   cluster, not just k3s.
 
@@ -23,15 +23,16 @@ is **spec 032**. This spec is the platform itself.
 ```sh
 cd infra/terraform
 terraform init -backend-config=backend.hcloud.tfvars      # remote state + locking
-terraform apply -var-file=envs/prod.tfvars                # dev|staging|prod — same code, sized params (SC-E3)
+terraform apply -var-file=envs/prod.tfvars                # acceptance|prod — same code, sized params (SC-E3)
 # fetch the kubeconfig (see the kubeconfig_hint output)
 ssh root@$(terraform output -raw control_plane_ipv4) cat /etc/rancher/k3s/k3s.yaml \
   | sed "s/127.0.0.1/$(terraform output -raw control_plane_ipv4)/" > kubeconfig.yaml
 export KUBECONFIG=$PWD/kubeconfig.yaml
 ```
 
-`terraform destroy -var-file=envs/<env>.tfvars` tears it down cleanly (SC-E1). Non-prod is cheap:
-`agent_count = 0` (dev) runs control-plane-only; scale agents/replicas down off-hours (FR-146).
+`terraform destroy -var-file=envs/<env>.tfvars` tears it down cleanly (SC-E1). Two environments:
+**acceptance** (pre-prod gate, smaller) and **prod** — same modules, sized via tfvars (SC-E3). Scale
+acceptance agents/replicas down off-hours to save cost (FR-146).
 
 ## 2. Install the cluster operators (once per cluster)
 
@@ -83,5 +84,5 @@ kubectl apply -k k8s/overlays/prod
 |---|---|
 | SC-E1 one apply up / destroy down over TLS | `terraform/` + `k8s` ingress + cert-manager |
 | SC-E2 self-heal, no downtime ≥2 replicas | Deployment + HPA + PDB + placement-group spread |
-| SC-E3 staging/prod from identical code | `overlays/*` + `envs/*.tfvars` (only params differ) |
+| SC-E3 acceptance/prod from identical code | `overlays/*` + `envs/*.tfvars` (only params differ) |
 | SC-E4 no baked/committed secrets; rotatable | External Secrets + CI secret gate (spec 030) |
