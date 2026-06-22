@@ -17,6 +17,8 @@ export async function migrateCliMain(argv: string[] = []): Promise<number> {
   } catch {
     storeRoot = resolve(process.cwd(), 'store');
   }
+  // DANNI_STORE_ROOT (container/deploy override) wins over the config path; an explicit argv wins over both.
+  if (process.env.DANNI_STORE_ROOT) storeRoot = resolve(process.cwd(), process.env.DANNI_STORE_ROOT);
   if (argv[0]) storeRoot = resolve(process.cwd(), argv[0]);
 
   ensureDir(storeRoot);

@@ -29,11 +29,14 @@ import { type ConversationStore, SessionStore } from './chat/session.ts';
 import type { PersistentSessionStore } from './chat/sessions-repo.ts';
 import { type DatasetLite, hasGeo, liteToPointer, matchesFiltersLite } from './dataset-lite.ts';
 import { expandGeoUnitIds } from './geo-rollup.ts';
+import type { Metrics } from './metrics.ts';
 import { type ApiMeterConfig, chatMeter, dataApiGate } from './middleware/api-metering.ts';
 import { RateLimiter } from './middleware/rate-limiter.ts';
+import { requestLog } from './middleware/request-log.ts';
 import { requireAuth, requireScope } from './middleware/require-auth.ts';
 import type { ReadBridge } from './read-bridge.ts';
 import { viewToPointer } from './read-bridge.ts';
+import type { ReadinessReport } from './readiness.ts';
 import { aggregateRegions } from './regions-aggregate.ts';
 import { adminRoutes } from './routes/admin.ts';
 import { authRoutes } from './routes/auth.ts';
@@ -67,6 +70,10 @@ export interface AppContext {
   bridge: ReadBridge;
   crosswalk: Crosswalk;
   health: () => HealthInfo;
+  /** Readiness probe (spec 030): DB reachable + migrations current. When wired, exposes /readyz. */
+  readiness?: () => ReadinessReport;
+  /** In-process RED metrics (spec 030): when wired, requests are logged + metered and /metrics is exposed. */
+  metrics?: Metrics;
   chat?: ChatConfig;
   /** App users repo — gates /api/chat + backs /api/auth (spec 019). */
   users: UsersRepo;
@@ -126,6 +133,9 @@ function clampInt(raw: string | null, def: number, max: number): number {
 
 export function createApp(ctx: AppContext): Hono {
   const app = new Hono();
+
+  // Structured request logging + RED metrics (spec 030), first so it wraps every API/auth request.
+  app.use('*', requestLog(ctx.metrics));
 
   const chat: ChatConfig = ctx.chat ?? {
     sessions: new SessionStore(),
@@ -270,6 +280,22 @@ export function createApp(ctx: AppContext): Hono {
       components: { store: 'ok', boundaries: 'ok', defaultProvider: h.defaultProvider },
     });
   });
+
+  // Readiness (spec 030): "can this process serve traffic?" — DB reachable + schema current. 503 when
+  // not ready (a deploy with a pending migration), so an orchestrator holds traffic until it is.
+  const readiness = ctx.readiness;
+  if (readiness) {
+    app.get('/readyz', (c) => {
+      const r = readiness();
+      return c.json(r, r.ready ? 200 : 503);
+    });
+  }
+
+  // Basic RED metrics snapshot (spec 030, FR-138) — request/error counts + avg latency for an SLO.
+  const metrics = ctx.metrics;
+  if (metrics) {
+    app.get('/metrics', (c) => c.json(metrics.snapshot()));
+  }
 
   // All in-scope datasets, honoring the structured filters (used by list / regions / national /
   // facets). Bulk lite projection (see ReadBridge.listLite) — not a per-dataset view fan-out — so
