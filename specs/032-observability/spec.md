@@ -2,7 +2,7 @@
 
 **Feature Branch**: `032-observability`
 **Created**: 2026-06-21
-**Status**: **Proposed** (sketch — not yet implemented)
+**Status**: **Implemented** (app emits Prometheus metrics + request-id logs + span events + cost; backends/dashboards/alerts are config under `infra/observability`. OTLP exporter wiring + per-key labelled cost series + the FR-154 nightly eval gauge are documented ops follow-ons)
 **Input**: Productization roadmap — spec 030 includes only a readiness probe + basic logs (FR-138).
 Running danni for real (and protecting **margins** on metered LLM spend) needs first-class
 observability: structured telemetry, dashboards, SLOs, alerting, and per-tenant cost visibility.

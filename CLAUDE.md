@@ -84,10 +84,14 @@ capabilities each have their own spec:
   shared rate-limit store (028); read substrate stays per-node. Runbook `infra/README.md` — the platform
   030 ships onto
 
-**Proposed (sketches, not yet implemented)** — productization roadmap toward an API-as-a-product /
-B2G platform; single-responsibility, each builds on the prior:
-- 032 observability (structured logs, RED + domain metrics incl. LLM cost/tokens, distributed tracing,
-  dashboards, SLOs/alerting, per-tenant cost) — deepens 030 FR-138; consumes the 026/028 usage signals
+- 032 observability (deepens 030 FR-138): app emits Prometheus `/metrics` (`apps/explorer-api/src/metrics.ts`
+  `Metrics` — RED by route class/status + domain counters `danni_llm_tokens_total`/`danni_llm_cost_usd_total`/
+  `danni_rate_limit_rejections_total`/`danni_chat_outcomes_total` + scrape gauges active-gens/index-stale),
+  request-id correlation (`middleware/request-id.ts` → logs + chat span trace), a vendor-neutral span
+  tracer (`trace.ts` — `chat.turn` + per-tool spans, metadata-only), and LLM cost (`src/lib/llm-cost.ts`
+  `estimateCost` tokens×price×cache-discount). Config under `infra/observability` (OTel collector,
+  Prometheus SLO/cost-anomaly rules, Grafana dashboard). OTLP exporter wiring + per-key labelled cost
+  series + the FR-154 nightly-eval gauge are documented ops follow-ons — consumes the 026/028 usage signals
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->

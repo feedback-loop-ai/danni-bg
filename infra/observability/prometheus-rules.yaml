@@ -1,0 +1,68 @@
+# Prometheus alerting + SLO rules (spec 032, FR-152/153). Actionable (runbook links), not noisy: fast +
+# slow burn windows for the SLOs, plus a cost-anomaly alert for a runaway key (FR-153). Wire `runbook`
+# links to docs/OPERATIONS.md sections. Load into Prometheus (rule_files) alongside the OTel scrape.
+groups:
+  - name: danni-slo
+    rules:
+      # SLO: data-API 5xx error rate < 1%. Multi-window burn (fast 5m + slow 1h) to avoid flapping.
+      - alert: DanniDataApiErrorRateHigh
+        expr: |
+          (
+            sum(rate(danni_http_requests_total{route="data",status="5xx"}[5m]))
+            / clamp_min(sum(rate(danni_http_requests_total{route="data"}[5m])), 1)
+          ) > 0.01
+          and
+          (
+            sum(rate(danni_http_requests_total{route="data",status="5xx"}[1h]))
+            / clamp_min(sum(rate(danni_http_requests_total{route="data"}[1h])), 1)
+          ) > 0.01
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: "data-API error rate above 1% SLO"
+          runbook: "docs/OPERATIONS.md#health--observability"
+
+      # SLO: chat turn errors. The chat outcome counter distinguishes real errors from no-data answers.
+      - alert: DanniChatErrorRateHigh
+        expr: |
+          (
+            sum(rate(danni_chat_outcomes_total{outcome="error"}[10m]))
+            / clamp_min(sum(rate(danni_chat_outcomes_total[10m])), 1)
+          ) > 0.05
+        for: 10m
+        labels: { severity: page }
+        annotations:
+          summary: "chat error rate above 5%"
+          runbook: "docs/OPERATIONS.md#health--observability"
+
+      # Readiness: the app reports not-ready (e.g. pending migration) — uptime signal from spec 030.
+      - alert: DanniNotReady
+        expr: max(up{job="danni-app"}) < 1
+        for: 3m
+        labels: { severity: page }
+        annotations:
+          summary: "danni app not ready / not scraping"
+          runbook: "docs/OPERATIONS.md#releases--migrations-fr-135--sc-d2"
+
+  - name: danni-cost
+    rules:
+      # Margin guard (FR-153): LLM spend rate spikes well above the trailing baseline — a runaway key or
+      # a pricing/usage anomaly. Tune the multiplier per traffic profile.
+      - alert: DanniLlmCostSpike
+        expr: |
+          rate(danni_llm_cost_usd_total[15m])
+            > 3 * rate(danni_llm_cost_usd_total[6h] offset 15m)
+        for: 15m
+        labels: { severity: ticket }
+        annotations:
+          summary: "LLM spend rate 3x above the 6h baseline — check for a runaway key"
+          runbook: "docs/OPERATIONS.md#cost-observability"
+
+      # Sustained rate-limit/quota rejections — a client hammering a quota or an under-provisioned limit.
+      - alert: DanniRateLimitRejectionsSustained
+        expr: sum(rate(danni_rate_limit_rejections_total[10m])) > 1
+        for: 15m
+        labels: { severity: ticket }
+        annotations:
+          summary: "sustained 429s — a client is hitting rate/quota limits"
+          runbook: "docs/OPERATIONS.md#health--observability"

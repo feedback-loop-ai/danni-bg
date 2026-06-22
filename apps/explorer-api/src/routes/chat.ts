@@ -7,6 +7,7 @@ import type { LanguageModel, ModelMessage } from 'ai';
 import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
+import { estimateCost, pricingFor } from '../../../../src/lib/llm-cost.ts';
 import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts';
 import type { UserRow } from '../../../../src/store/repos/users.ts';
 import type { GenEvent, GenSnapshot, GenerationManager } from '../chat/generation-manager.ts';
@@ -14,8 +15,10 @@ import { billableTokens, effectiveLimit, quotaView } from '../chat/quota.ts';
 import { runChatTurn } from '../chat/run.ts';
 import { type ConversationStore, MAX_CONTEXT_DATASETS, windowMessages } from '../chat/session.ts';
 import { expandGeoUnitIds } from '../geo-rollup.ts';
+import type { Metrics } from '../metrics.ts';
 import type { ReadBridge } from '../read-bridge.ts';
 import { scopeDescriptorSchema } from '../schemas.ts';
+import { Tracer } from '../trace.ts';
 import { type ProviderConfig, ProviderError, providerConfigSchema } from './../chat/providers.ts';
 
 export const chatRequestSchema = z
@@ -50,6 +53,8 @@ export interface ChatRouteDeps {
   cacheWeight?: () => number | undefined;
   /** Resolve the max output tokens per answer; undefined = built-in default. */
   maxOutputTokens?: () => number | undefined;
+  /** Telemetry registry (spec 032): chat outcome + LLM tokens/cost are recorded when wired. */
+  metrics?: Metrics;
 }
 
 export function chatHandler(deps: ChatRouteDeps) {
@@ -69,6 +74,9 @@ export function chatHandler(deps: ChatRouteDeps) {
     const user = c.get('user') as UserRow | undefined;
     // Active org (spec 029): session + usage are attributed to the caller's tenant.
     const tenantId = (c.get('tenant') as { id: string } | undefined)?.id;
+    // Telemetry (spec 032): correlate this turn's spans/logs by request id; the metrics registry
+    // records the outcome + LLM tokens/cost below.
+    const requestId = c.get('requestId') as string | undefined;
     if (deps.usage && user) {
       const limit = effectiveLimit(user.token_limit, deps.defaultTokenLimit?.());
       const { used, cached } = deps.usage.usageForUser(user.id, user.usage_reset_at);
@@ -122,6 +130,7 @@ export function chatHandler(deps: ChatRouteDeps) {
       model = deps.selectModel(body.provider);
     } catch (e) {
       const code = e instanceof ProviderError ? e.code : 'provider_error';
+      deps.metrics?.recordChatOutcome('error');
       return streamSSE(c, async (stream) => {
         await stream.writeSSE({
           event: 'session',
@@ -156,17 +165,57 @@ export function chatHandler(deps: ChatRouteDeps) {
       userId: user?.id ?? '',
       run: async (h, signal) => {
         const startedAt = Date.now();
-        const result = await runChatTurn({
-          model,
-          bridge: deps.bridge,
-          scope,
-          messages,
-          groundingDatasetIds,
-          abortSignal: signal,
-          ...(maxOut ? { maxOutputTokens: maxOut } : {}),
-          events: { onToken: h.onToken, onTool: h.onTool, onUsage: h.onUsage },
-        });
+        // Span trace (spec 032): a 'chat.turn' span for provider latency + a span per tool-loop step,
+        // all correlated by request id. Metadata only — never prompt/answer text (FR-148).
+        const tracer = new Tracer(requestId);
+        const turnSpan = tracer.startSpan('chat.turn', { ...(modelId ? { model: modelId } : {}) });
+        const toolSpans = new Map<string, ReturnType<Tracer['startSpan']>>();
+        const onTool = (name: string, status: 'start' | 'done') => {
+          if (status === 'start')
+            toolSpans.set(name, tracer.startSpan('chat.tool', { tool: name }));
+          else {
+            toolSpans.get(name)?.end({ tool: name });
+            toolSpans.delete(name);
+          }
+          h.onTool(name, status);
+        };
+        let result: Awaited<ReturnType<typeof runChatTurn>>;
+        try {
+          result = await runChatTurn({
+            model,
+            bridge: deps.bridge,
+            scope,
+            messages,
+            groundingDatasetIds,
+            abortSignal: signal,
+            ...(maxOut ? { maxOutputTokens: maxOut } : {}),
+            events: { onToken: h.onToken, onTool, onUsage: h.onUsage },
+          });
+        } catch (e) {
+          deps.metrics?.recordChatOutcome('error');
+          turnSpan.end({ ok: false });
+          throw e;
+        }
         const durationMs = Date.now() - startedAt;
+        // Outcome + LLM tokens/cost for the metrics registry (margin monitoring, FR-149/153).
+        const outcome = result.citations.length > 0 ? 'grounded' : 'no_data';
+        deps.metrics?.recordChatOutcome(outcome);
+        if (result.usage) {
+          deps.metrics?.recordLlm(
+            result.usage,
+            estimateCost(result.usage, pricingFor(modelId), deps.cacheWeight?.() ?? 0.1),
+          );
+        }
+        turnSpan.end({
+          ok: true,
+          outcome,
+          ...(result.usage
+            ? {
+                inputTokens: result.usage.inputTokens,
+                outputTokens: result.usage.outputTokens,
+              }
+            : {}),
+        });
         if (body.debug && result.groundingText) h.onGrounding(result.groundingText);
         h.onCitations(result.citations);
         h.onAnchors(result.anchors);
