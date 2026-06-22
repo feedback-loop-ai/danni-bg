@@ -1,0 +1,30 @@
+# danni base manifests (spec 031) — portable to ANY Kubernetes cluster. Overlays (../overlays/*) pin
+# the image tag, host, replicas, and sizing per environment. Requires these cluster operators:
+#   - an ingress controller (traefik on k3s; or nginx) + cert-manager (TLS)
+#   - the External Secrets Operator (external-secrets.io) wired to your secret backend
+#   - the metrics-server (for the HorizontalPodAutoscaler)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: danni
+
+resources:
+  - namespace.yaml
+  - app.yaml
+  - kratos.yaml
+  - postgres.yaml
+  - ingress.yaml
+  - networkpolicy.yaml
+  - externalsecrets.yaml
+
+# Kratos config + identity schema as a ConfigMap (mounted at /etc/config/kratos). identity.schema.json
+# is copied here (Kustomize can't reference files above the base dir); keep it in sync with
+# infra/ory/identity.schema.json.
+configMapGenerator:
+  - name: kratos-config
+    files:
+      - kratos.yaml=config/kratos.yaml
+      - identity.schema.json=config/identity.schema.json
+
+commonLabels:
+  app.kubernetes.io/part-of: danni

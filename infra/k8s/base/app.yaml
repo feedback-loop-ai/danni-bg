@@ -1,0 +1,155 @@
+# danni app tier (spec 031, FR-142/145): the built explorer-api container serving the SPA + API.
+# Horizontally scalable stateless replicas behind the orchestrator — health-gated rolling deploys via
+# the /readyz + /healthz probes from spec 030; `kubectl rollout undo` rolls back (revisionHistoryLimit).
+#
+# Precondition for >1 replica (FR-145): the app/control-plane tables must live in Postgres (specs
+# 029/030 + db-architecture-decision) and the rate-limit/quota store must be shared (spec 028). Until
+# then the read substrate (SQLite) is per-node — mounted read-only here (refreshed by the pipeline /
+# baked into the image), never a shared writable file. The overlays set replicas accordingly.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: danni-app
+  namespace: danni
+  labels:
+    app.kubernetes.io/name: danni-app
+    app.kubernetes.io/part-of: danni
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5 # keep prior ReplicaSets so `kubectl rollout undo` can roll back
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0 # health-gated: never drop below desired while the new pod becomes ready
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: danni-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: danni-app
+        app.kubernetes.io/part-of: danni
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: app
+          image: ghcr.io/feedback-loop-ai/danni-app:latest # overlays pin an immutable tag/digest
+          ports:
+            - name: http
+              containerPort: 8790
+          env:
+            - name: DANNI_PROFILE
+              value: production
+            - name: DANNI_STORE_ROOT
+              value: /data
+            - name: EXPLORER_API_PORT
+              value: "8790"
+            - name: KRATOS_PUBLIC_URL
+              value: http://danni-kratos:4433
+            # Deployment-wide required secrets are gated in CI (spec 030); the app entrypoint gates its
+            # own env only, so it needs none of the Kratos secrets here.
+            - name: DANNI_REQUIRED_SECRETS
+              value: ""
+          envFrom:
+            - secretRef:
+                name: danni-app-secrets # provided by ExternalSecret (externalsecrets.yaml)
+          # Readiness holds traffic until DB + migrations are current (spec 030); liveness restarts a
+          # wedged process. Startup probe gives the migrate-on-release entrypoint time before liveness.
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: store
+              mountPath: /data
+              readOnly: true # read substrate is per-node + read-only (FR-145)
+      volumes:
+        # Per-node read substrate. Single-node: a writable PVC seeded by the pipeline; multi-node: swap
+        # for a baked image layer or a read-only shared volume (see infra/README.md).
+        - name: store
+          persistentVolumeClaim:
+            claimName: danni-store
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: danni-app
+  namespace: danni
+  labels:
+    app.kubernetes.io/name: danni-app
+spec:
+  selector:
+    app.kubernetes.io/name: danni-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# Per-node read substrate volume (SQLite). RWO is fine single-node; for multi-node use a baked image
+# or an RWX read-only volume refreshed by the sync pipeline — never a shared writable SQLite file.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: danni-store
+  namespace: danni
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: danni-app
+  namespace: danni
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: danni-app
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: danni-app
+  namespace: danni
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: danni-app
