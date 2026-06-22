@@ -38,3 +38,10 @@ patches:
       - op: replace
         path: /spec/maxReplicas
         value: 6
+  - target:
+      kind: SecretStore
+      name: danni-secret-store
+    patch: |-
+      - op: replace
+        path: /spec/provider/vault/namespace
+        value: danni/prod

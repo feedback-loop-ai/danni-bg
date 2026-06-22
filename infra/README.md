@@ -15,8 +15,9 @@ is **spec 032**. This spec is the platform itself.
 
 - A Hetzner Cloud project + API token (`export TF_VAR_hcloud_token=...` — never commit it).
 - An S3-compatible bucket for Terraform remote state (Hetzner Object Storage works).
-- A secret backend for runtime secrets (HashiCorp Vault in the default `SecretStore`; swap for your
-  cloud's secret manager). The CI secret gate (spec 030 FR-136) still blocks placeholder secrets.
+- A secret backend for runtime secrets: **OpenBao** (shared, multi-tenant via namespaces — the default
+  `SecretStore` targets the `danni/<env>` namespace). The CI secret gate (spec 030 FR-136) still blocks
+  placeholder secrets.
 
 ## 1. Provision the cluster (FR-141)
 
@@ -39,9 +40,12 @@ acceptance agents/replicas down off-hours to save cost (FR-146).
 The manifests assume these are present:
 
 - **cert-manager** + a `letsencrypt-prod` ClusterIssuer (TLS at the edge, FR-143).
-- **External Secrets Operator** wired to your secret backend (FR-144) — fill the `SecretStore` in
-  `k8s/base/externalsecrets.yaml` and store `danni/app` + `danni/kratos` secrets in the backend.
-- **metrics-server** (for the HorizontalPodAutoscaler). k3s bundles **traefik** as the ingress class.
+- **External Secrets Operator** + **OpenBao** (FR-144): set the OpenBao `server` in
+  `k8s/base/externalsecrets.yaml`, configure OpenBao's k8s auth to trust this cluster + bind the
+  `danni-secrets` ServiceAccount to a `danni` role, and store the `app` + `kratos` secrets under the
+  `danni/<env>` namespace's `secret/` kv mount. (The OpenBao instance itself lives in a separate repo.)
+- **metrics-server** (for the HorizontalPodAutoscaler) — already bundled by k3s, like **traefik**
+  (ingress class) and the **local-path** default StorageClass; no install needed on k3s.
 
 ## 3. Deploy the app (FR-142)
 
