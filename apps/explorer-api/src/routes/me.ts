@@ -6,6 +6,7 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 import type { ApiKeyRepo } from '../../../../src/store/repos/api-keys.ts';
+import type { ApiUsageRepo } from '../../../../src/store/repos/api-usage.ts';
 import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts';
 import type { UsersRepo } from '../../../../src/store/repos/users.ts';
 import type { SessionResolver } from '../auth/kratos-session.ts';
@@ -44,6 +45,8 @@ export interface MeRoutesOpts {
   chatSessions?: PersistentSessionStore | undefined;
   generations?: GenerationManager | undefined;
   apiKeys?: ApiKeyRepo | undefined;
+  apiUsage?: ApiUsageRepo | undefined;
+  apiQuotaWindowSec?: (() => number) | undefined;
 }
 
 export function meRoutes(
@@ -85,6 +88,16 @@ export function meRoutes(
       return ok
         ? c.json({ revoked: true })
         : c.json({ error: { code: 'not_found', message: 'key not found' } }, 404);
+    });
+  }
+
+  // API request usage (spec 028) over the current quota window — total + per route class + per key.
+  const apiUsage = opts.apiUsage;
+  if (apiUsage) {
+    app.get('/api-usage', (c) => {
+      const windowSec = opts.apiQuotaWindowSec?.() ?? 86_400;
+      const since = new Date(Date.now() - windowSec * 1000).toISOString();
+      return c.json({ windowSec, ...apiUsage.summaryForUser(c.get('user').id, since) });
     });
   }
 

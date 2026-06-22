@@ -27,6 +27,13 @@ export const togglesSchema = z
     cachedTokenWeight: z.number().min(0).max(1).optional(),
     // Max tokens the model may generate per answer; unset = built-in default (4096).
     maxOutputTokens: z.number().int().positive().optional(),
+    // API metering (spec 028) — per-key/principal request rate limits + the data-API request quota.
+    // Rates are requests/min (0 = unlimited); the quota is requests per window. Unset = the built-in
+    // defaults in app.ts. A key's own `quota_limit` overrides the data quota.
+    apiRateData: z.number().int().nonnegative().optional(),
+    apiRateChat: z.number().int().nonnegative().optional(),
+    apiQuotaData: z.number().int().nonnegative().optional(),
+    apiQuotaWindowSec: z.number().int().positive().optional(),
   })
   .strict();
 export type Toggles = z.infer<typeof togglesSchema>;

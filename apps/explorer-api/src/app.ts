@@ -9,6 +9,7 @@ import type { MiddlewareHandler } from 'hono';
 import type { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
 import { MUNICIPALITIES, OBLASTS } from '../../../src/enrich/gazetteer/bg-admin.ts';
 import type { ApiKeyRepo } from '../../../src/store/repos/api-keys.ts';
+import type { ApiUsageRepo } from '../../../src/store/repos/api-usage.ts';
 import type { PlatformSettingsRepo } from '../../../src/store/repos/platform-settings.ts';
 import type { TokenUsageRepo } from '../../../src/store/repos/token-usage.ts';
 import type { UsersRepo } from '../../../src/store/repos/users.ts';
@@ -27,6 +28,8 @@ import { type ConversationStore, SessionStore } from './chat/session.ts';
 import type { PersistentSessionStore } from './chat/sessions-repo.ts';
 import { type DatasetLite, hasGeo, liteToPointer, matchesFiltersLite } from './dataset-lite.ts';
 import { expandGeoUnitIds } from './geo-rollup.ts';
+import { type ApiMeterConfig, chatMeter, dataApiGate } from './middleware/api-metering.ts';
+import { RateLimiter } from './middleware/rate-limiter.ts';
 import { requireAuth, requireScope } from './middleware/require-auth.ts';
 import type { ReadBridge } from './read-bridge.ts';
 import { viewToPointer } from './read-bridge.ts';
@@ -68,6 +71,9 @@ export interface AppContext {
   /** API-key repo (spec 027) — machine-client Bearer auth alongside sessions; when omitted, only
    * sessions authenticate (hermetic tests can opt in by passing a repo). */
   apiKeys?: ApiKeyRepo;
+  /** API request-usage repo (spec 028) — when wired, the chat + data API are metered, rate-limited,
+   * and (data) request-quota'd per principal; backs the api-usage views. */
+  apiUsage?: ApiUsageRepo;
   /** Per-user token metering — records chat usage + backs the quota gate and usage views. */
   tokenUsage?: TokenUsageRepo;
   /** Persistent per-user chat history — when wired, conversations are saved + resumable. */
@@ -139,6 +145,40 @@ export function createApp(ctx: AppContext): Hono {
   const resolveCacheWeight = (): number | undefined => resolveToggles()?.cachedTokenWeight;
   const resolveMaxOutputTokens = (): number | undefined => resolveToggles()?.maxOutputTokens;
 
+  // API metering (spec 028): rate limits + the data-API request quota + per-request usage. Defaults
+  // are admin-overridable via toggles. The limiter is in-process (single-node; multi-node needs a
+  // shared store — spec 031). Wired only when an api-usage repo is present.
+  const DEFAULT_API_RATE_DATA = 60;
+  const DEFAULT_API_RATE_CHAT = 20;
+  const DEFAULT_API_QUOTA_DATA = 10_000;
+  const DEFAULT_API_QUOTA_WINDOW_SEC = 86_400;
+  const meterConfig: ApiMeterConfig = {
+    rateData: () => resolveToggles()?.apiRateData ?? DEFAULT_API_RATE_DATA,
+    rateChat: () => resolveToggles()?.apiRateChat ?? DEFAULT_API_RATE_CHAT,
+    quotaData: () => resolveToggles()?.apiQuotaData ?? DEFAULT_API_QUOTA_DATA,
+    quotaWindowSec: () => resolveToggles()?.apiQuotaWindowSec ?? DEFAULT_API_QUOTA_WINDOW_SEC,
+  };
+  const meterDeps = ctx.apiUsage
+    ? { usage: ctx.apiUsage, limiter: new RateLimiter(), config: meterConfig }
+    : null;
+
+  // Public read API: anonymous browser traffic is free; an API-key caller is auth'd + rate-limited +
+  // request-quota'd + metered. Registered BEFORE the route handlers below so it runs first.
+  if (meterDeps) {
+    const gate = dataApiGate(ctx.apiKeys, meterDeps);
+    for (const p of [
+      '/api/datasets',
+      '/api/datasets/*',
+      '/api/regions',
+      '/api/regions/*',
+      '/api/national',
+      '/api/facets',
+      '/api/entities/*',
+    ]) {
+      app.use(p, gate);
+    }
+  }
+
   // Gated chat (spec 019): requireAuth runs before the streaming handler — anon → 401, else the
   // session's app user is resolved/created and the turn proceeds. The cast bridges the auth-typed
   // middleware onto the app's default env (it only gates + sets `user`, which chatHandler ignores).
@@ -146,6 +186,7 @@ export function createApp(ctx: AppContext): Hono {
     '/api/chat',
     requireAuth(ctx.users, ctx.sessionResolver, ctx.apiKeys) as MiddlewareHandler,
     requireScope('chat') as MiddlewareHandler,
+    ...(meterDeps ? [chatMeter(meterDeps) as MiddlewareHandler] : []),
     chatHandler({
       bridge: ctx.bridge,
       // Persistent store when wired (conversations survive + resume), else the in-memory one.
@@ -170,6 +211,8 @@ export function createApp(ctx: AppContext): Hono {
         chatSessions: ctx.chatSessions,
         generations,
         apiKeys: ctx.apiKeys,
+        apiUsage: ctx.apiUsage,
+        apiQuotaWindowSec: meterConfig.quotaWindowSec,
       }),
     );
   }
@@ -189,6 +232,8 @@ export function createApp(ctx: AppContext): Hono {
       adminRoutes(ctx.users, ctx.settings, {
         sessionResolver: ctx.sessionResolver,
         apiKeys: ctx.apiKeys,
+        apiUsage: ctx.apiUsage,
+        apiQuotaWindowSec: meterConfig.quotaWindowSec,
         tokenUsage: ctx.tokenUsage,
         defaultTokenLimit: resolveDefaultTokenLimit,
         cacheWeight: resolveCacheWeight,

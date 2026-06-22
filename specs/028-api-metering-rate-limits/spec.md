@@ -2,7 +2,7 @@
 
 **Feature Branch**: `028-api-metering-rate-limits`
 **Created**: 2026-06-21
-**Status**: **Proposed** (sketch — not yet implemented)
+**Status**: **Implemented**
 **Input**: Productization finding — metering today counts **chat tokens per human user** (spec 021)
 only. There is no per-API-key **request** metering, no rate limiting on any route, and no usage basis
 for billing API consumers. Required before exposing a paid/public API.

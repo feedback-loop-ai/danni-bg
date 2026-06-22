@@ -43,12 +43,16 @@ capabilities each have their own spec:
 - 027 API-key authentication for machine clients (`Authorization: Bearer dnk_live_…`, hashed
   `api_keys` migration 015, scopes `read`/`chat`; `requireAuth`/`requireScope`/`requireHuman`;
   `/api/me/api-keys` CRUD + account "API ключове" section). Keys never reach admin or key-management;
-  the secret is shown once. Billing/metering of API calls is the (proposed) 028.
+  the secret is shown once. Billing/metering of API calls is 028.
+- 028 API metering, quotas & rate limiting: per-key request metering (`api_usage` migration 016,
+  `ApiUsageRepo`), in-process token-bucket rate limits + a per-key/plan request quota on the public
+  read API (`dataApiGate`: anon traffic stays free, keyed traffic is auth'd→limited→quota'd→recorded;
+  `chatMeter` rate-limits + records the chat route), all runtime admin-configurable
+  (`apiRate{Data,Chat}`/`apiQuota{Data,WindowSec}`); `/api/me/api-usage` + admin `/api/admin/api-usage`,
+  per-key request count surfaced in the account "API ключове" section — builds on 027
 
 **Proposed (sketches, not yet implemented)** — productization roadmap toward an API-as-a-product /
 B2G platform; single-responsibility, each builds on the prior:
-- 028 API metering, quotas & rate limiting (per-key request metering + 429 rate limit/quota, runtime
-  admin-configurable; reuses the spec-021 usage/quota patterns) — builds on 027
 - 029 multi-tenancy (`organizations`/`org_members`, org-scoped keys/usage/sessions/config; default-org
   backfill) — the "one deployment, many portals/customers" model; control plane only (substrate stays
   per-deployment)

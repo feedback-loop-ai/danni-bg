@@ -63,6 +63,8 @@ function togglesView(settings: PlatformSettingsRepo): Record<string, unknown> {
 export interface AdminRoutesOpts {
   sessionResolver?: SessionResolver | undefined;
   apiKeys?: import('../../../../src/store/repos/api-keys.ts').ApiKeyRepo | undefined;
+  apiUsage?: import('../../../../src/store/repos/api-usage.ts').ApiUsageRepo | undefined;
+  apiQuotaWindowSec?: (() => number) | undefined;
   tokenUsage?: TokenUsageRepo | undefined;
   defaultTokenLimit?: (() => number | undefined) | undefined;
   cacheWeight?: (() => number | undefined) | undefined;
@@ -117,6 +119,20 @@ export function adminRoutes(
     const { source, llm } = maskedLlm(settings);
     return c.json({ llm, toggles: togglesView(settings), source });
   });
+
+  // Per-principal API request usage (spec 028) over the current quota window — emails resolved.
+  const apiUsage = opts.apiUsage;
+  if (apiUsage) {
+    app.get('/api-usage', (c) => {
+      const windowSec = opts.apiQuotaWindowSec?.() ?? 86_400;
+      const since = new Date(Date.now() - windowSec * 1000).toISOString();
+      const rows = apiUsage.summaryAll(since).map((r) => ({
+        ...r,
+        email: users.get(r.principalId)?.email ?? null,
+      }));
+      return c.json({ windowSec, principals: rows });
+    });
+  }
 
   // Per-user token usage + quota admin (token metering). Only wired when a usage repo is present.
   const usage = opts.tokenUsage;

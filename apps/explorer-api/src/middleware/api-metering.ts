@@ -1,0 +1,126 @@
+// API metering + rate limits + request quota (spec 028). Two entry points:
+//   chatMeter   — runs AFTER requireAuth on the gated chat route: rate-limit + record. (The chat
+//                 TOKEN quota stays in spec 021; this adds a request rate limit + usage record.)
+//   dataApiGate — standalone on the public read API: anonymous browser traffic stays free; an
+//                 API-key caller is authenticated, rate-limited, request-quota'd, and recorded.
+
+import type { MiddlewareHandler } from 'hono';
+import {
+  API_KEY_NAMESPACE,
+  type ApiKeyRepo,
+  parseScopes,
+} from '../../../../src/store/repos/api-keys.ts';
+import type { ApiUsageRepo } from '../../../../src/store/repos/api-usage.ts';
+import type { RateLimiter } from './rate-limiter.ts';
+import type { AuthEnv } from './require-auth.ts';
+
+export interface ApiMeterConfig {
+  rateData: () => number; // req/min, 0 = unlimited
+  rateChat: () => number;
+  quotaData: () => number; // requests per window, 0 = unlimited
+  quotaWindowSec: () => number;
+}
+
+export interface ApiMeterDeps {
+  usage: ApiUsageRepo;
+  limiter: RateLimiter;
+  config: ApiMeterConfig;
+  now?: () => number;
+}
+
+const windowStart = (sec: number, now: number): string => new Date(now - sec * 1000).toISOString();
+const rateLimited = (c: Parameters<MiddlewareHandler>[0], retryAfterSec: number) => {
+  c.header('Retry-After', String(retryAfterSec));
+  return c.json({ error: { code: 'rate_limited', message: 'too many requests' } }, 429);
+};
+
+/** Chat route metering (after requireAuth). Token-quota stays in spec 021; here we rate-limit + record. */
+export function chatMeter(deps: ApiMeterDeps): MiddlewareHandler<AuthEnv> {
+  return async (c, next) => {
+    const user = c.get('user');
+    const key = c.get('apiKey');
+    const rl = deps.limiter.take(`${user.id}:chat`, deps.config.rateChat());
+    if (!rl.ok) return rateLimited(c, rl.retryAfterSec);
+    try {
+      deps.usage.record({
+        principalKind: key ? 'apiKey' : 'user',
+        principalId: user.id,
+        keyId: key?.id ?? null,
+        routeClass: 'chat',
+      });
+    } catch {
+      // metering is best-effort — never fail the request on a usage write
+    }
+    await next();
+    return undefined;
+  };
+}
+
+/** Public read API gate: anonymous traffic is free; an API-key caller is auth'd + limited + metered. */
+export function dataApiGate(
+  apiKeys: ApiKeyRepo | undefined,
+  deps: ApiMeterDeps,
+): MiddlewareHandler {
+  const now = deps.now ?? Date.now;
+  return async (c, next) => {
+    // Overlapping path registrations (`/api/datasets` + `/api/datasets/*`) can both match one request;
+    // meter/limit it exactly once.
+    if (c.get('apiMetered')) {
+      await next();
+      return undefined;
+    }
+    c.set('apiMetered', true);
+    const authz = c.req.header('authorization');
+    const secret = authz?.startsWith('Bearer ') ? authz.slice('Bearer '.length).trim() : '';
+    // No (or non-ours) credential → anonymous public read: free, unmetered, unlimited.
+    if (!apiKeys || !secret.startsWith(API_KEY_NAMESPACE)) {
+      await next();
+      return undefined;
+    }
+    const res = apiKeys.resolveBySecret(secret);
+    if (res.status !== 'ok') {
+      const code =
+        res.status === 'revoked'
+          ? 'api_key_revoked'
+          : res.status === 'expired'
+            ? 'api_key_expired'
+            : 'unauthorized';
+      return c.json({ error: { code, message: 'invalid API key' } }, 401);
+    }
+    if (!parseScopes(res.key).includes('read')) {
+      return c.json(
+        { error: { code: 'insufficient_scope', message: "API key lacks 'read' scope" } },
+        403,
+      );
+    }
+    const owner = res.key.user_id;
+    const rl = deps.limiter.take(`${owner}:data`, deps.config.rateData());
+    if (!rl.ok) return rateLimited(c, rl.retryAfterSec);
+    const cap = res.key.quota_limit ?? deps.config.quotaData();
+    if (cap > 0) {
+      const used = deps.usage.countSince(
+        owner,
+        windowStart(deps.config.quotaWindowSec(), now()),
+        'data',
+      );
+      if (used >= cap) {
+        return c.json(
+          { error: { code: 'quota_exceeded', message: 'request quota exceeded' } },
+          429,
+        );
+      }
+    }
+    try {
+      deps.usage.record({
+        principalKind: 'apiKey',
+        principalId: owner,
+        keyId: res.key.id,
+        routeClass: 'data',
+      });
+    } catch {
+      // best-effort
+    }
+    await next();
+    return undefined;
+  };
+}
