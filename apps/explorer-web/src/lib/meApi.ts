@@ -78,3 +78,42 @@ export async function stopGeneration(messageId: string): Promise<void> {
     credentials: 'include',
   }).catch(() => {});
 }
+
+// API keys (spec 027) — machine-client Bearer credentials, managed by the signed-in human.
+export type ApiKeyScope = 'read' | 'chat';
+export interface ApiKeyView {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: ApiKeyScope[];
+  createdAt: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  revokedAt: string | null;
+}
+/** A freshly created key — `key` is the full plaintext secret, shown ONCE and never retrievable. */
+export interface CreatedApiKey extends ApiKeyView {
+  key: string;
+}
+
+export async function listApiKeys(): Promise<ApiKeyView[]> {
+  const res = await fetch('/api/me/api-keys', { credentials: 'include' });
+  if (!res.ok) throw new Error(`api-keys request failed: ${res.status}`);
+  return ((await res.json()) as { keys: ApiKeyView[] }).keys;
+}
+
+export async function createApiKey(name: string, scopes?: ApiKeyScope[]): Promise<CreatedApiKey> {
+  const res = await fetch('/api/me/api-keys', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name, ...(scopes && scopes.length > 0 ? { scopes } : {}) }),
+  });
+  if (!res.ok) throw new Error(`api-key create failed: ${res.status}`);
+  return (await res.json()) as CreatedApiKey;
+}
+
+export async function revokeApiKey(id: string): Promise<void> {
+  const res = await fetch(`/api/me/api-keys/${id}`, { method: 'DELETE', credentials: 'include' });
+  if (!res.ok) throw new Error(`api-key revoke failed: ${res.status}`);
+}

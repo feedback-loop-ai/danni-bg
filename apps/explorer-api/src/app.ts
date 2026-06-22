@@ -8,6 +8,7 @@ import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';
 import type { Crosswalk } from '../../../packages/geo-boundaries/src/crosswalk.ts';
 import { MUNICIPALITIES, OBLASTS } from '../../../src/enrich/gazetteer/bg-admin.ts';
+import type { ApiKeyRepo } from '../../../src/store/repos/api-keys.ts';
 import type { PlatformSettingsRepo } from '../../../src/store/repos/platform-settings.ts';
 import type { TokenUsageRepo } from '../../../src/store/repos/token-usage.ts';
 import type { UsersRepo } from '../../../src/store/repos/users.ts';
@@ -26,7 +27,7 @@ import { type ConversationStore, SessionStore } from './chat/session.ts';
 import type { PersistentSessionStore } from './chat/sessions-repo.ts';
 import { type DatasetLite, hasGeo, liteToPointer, matchesFiltersLite } from './dataset-lite.ts';
 import { expandGeoUnitIds } from './geo-rollup.ts';
-import { requireAuth } from './middleware/require-auth.ts';
+import { requireAuth, requireScope } from './middleware/require-auth.ts';
 import type { ReadBridge } from './read-bridge.ts';
 import { viewToPointer } from './read-bridge.ts';
 import { aggregateRegions } from './regions-aggregate.ts';
@@ -64,6 +65,9 @@ export interface AppContext {
   chat?: ChatConfig;
   /** App users repo — gates /api/chat + backs /api/auth (spec 019). */
   users: UsersRepo;
+  /** API-key repo (spec 027) — machine-client Bearer auth alongside sessions; when omitted, only
+   * sessions authenticate (hermetic tests can opt in by passing a repo). */
+  apiKeys?: ApiKeyRepo;
   /** Per-user token metering — records chat usage + backs the quota gate and usage views. */
   tokenUsage?: TokenUsageRepo;
   /** Persistent per-user chat history — when wired, conversations are saved + resumable. */
@@ -140,7 +144,8 @@ export function createApp(ctx: AppContext): Hono {
   // middleware onto the app's default env (it only gates + sets `user`, which chatHandler ignores).
   app.post(
     '/api/chat',
-    requireAuth(ctx.users, ctx.sessionResolver) as MiddlewareHandler,
+    requireAuth(ctx.users, ctx.sessionResolver, ctx.apiKeys) as MiddlewareHandler,
+    requireScope('chat') as MiddlewareHandler,
     chatHandler({
       bridge: ctx.bridge,
       // Persistent store when wired (conversations survive + resume), else the in-memory one.
@@ -164,6 +169,7 @@ export function createApp(ctx: AppContext): Hono {
         sessionResolver: ctx.sessionResolver,
         chatSessions: ctx.chatSessions,
         generations,
+        apiKeys: ctx.apiKeys,
       }),
     );
   }
@@ -182,6 +188,7 @@ export function createApp(ctx: AppContext): Hono {
       '/api/admin',
       adminRoutes(ctx.users, ctx.settings, {
         sessionResolver: ctx.sessionResolver,
+        apiKeys: ctx.apiKeys,
         tokenUsage: ctx.tokenUsage,
         defaultTokenLimit: resolveDefaultTokenLimit,
         cacheWeight: resolveCacheWeight,

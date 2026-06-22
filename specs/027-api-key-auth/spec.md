@@ -2,7 +2,10 @@
 
 **Feature Branch**: `027-api-key-auth`
 **Created**: 2026-06-21
-**Status**: **Proposed** (sketch — not yet implemented)
+**Status**: **Implemented** (migration `015_api_keys.sql` + `ApiKeyRepo`; `requireAuth`/`requireScope`/
+`requireHuman` in `require-auth.ts`; `/api/me/api-keys` CRUD; account-page "API ключове" section).
+Verified live: create→`201` (secret once), key on `/api/chat`→`200` (no cookie), admin/key-mgmt with a
+key→`403`, revoked key→`401`. 190 api tests incl. repo + auth-integration suites.
 **Input**: Productization finding — the API is reachable only with an Ory Kratos **browser session**
 (`X-User-*` headers injected by Oathkeeper). There is no machine-to-machine auth, so enterprise /
 agent consumers can't call the data API or chat programmatically. This is the prerequisite for the

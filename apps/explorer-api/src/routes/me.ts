@@ -5,14 +5,26 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
+import type { ApiKeyRepo } from '../../../../src/store/repos/api-keys.ts';
 import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts';
 import type { UsersRepo } from '../../../../src/store/repos/users.ts';
 import type { SessionResolver } from '../auth/kratos-session.ts';
 import type { GenerationManager } from '../chat/generation-manager.ts';
 import { billableTokens, effectiveLimit, quotaView } from '../chat/quota.ts';
 import type { PersistentSessionStore } from '../chat/sessions-repo.ts';
-import { type AuthEnv, requireAuth } from '../middleware/require-auth.ts';
+import { type AuthEnv, requireAuth, requireHuman } from '../middleware/require-auth.ts';
 import { streamGeneration } from './chat.ts';
+
+// API-key management (spec 027). Keys are created/listed/revoked by a HUMAN session only (a key can
+// never mint or list keys); the secret is returned once on creation and never again.
+const createKeyBody = z.object({
+  name: z.string().trim().min(1).max(80),
+  scopes: z
+    .array(z.enum(['read', 'chat']))
+    .nonempty()
+    .optional(),
+  expiresAt: z.string().datetime().nullable().optional(),
+});
 
 // Profile picture: a small data: image URL (the client resizes first). Cap the size so a base64 blob
 // can't bloat the row / the session callback payload.
@@ -31,6 +43,7 @@ export interface MeRoutesOpts {
   sessionResolver?: SessionResolver | undefined;
   chatSessions?: PersistentSessionStore | undefined;
   generations?: GenerationManager | undefined;
+  apiKeys?: ApiKeyRepo | undefined;
 }
 
 export function meRoutes(
@@ -39,7 +52,41 @@ export function meRoutes(
   opts: MeRoutesOpts,
 ): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
-  app.use('*', requireAuth(users, opts.sessionResolver));
+  app.use('*', requireAuth(users, opts.sessionResolver, opts.apiKeys));
+
+  // API-key management (spec 027) — human-session-only (a key can't manage keys).
+  const apiKeys = opts.apiKeys;
+  if (apiKeys) {
+    app.get('/api-keys', requireHuman, (c) =>
+      c.json({ keys: apiKeys.listForUser(c.get('user').id) }),
+    );
+    app.post('/api-keys', requireHuman, async (c) => {
+      let body: unknown;
+      try {
+        body = await c.req.json();
+      } catch {
+        return c.json({ error: { code: 'bad_request', message: 'invalid JSON body' } }, 400);
+      }
+      const parsed = createKeyBody.safeParse(body);
+      if (!parsed.success) {
+        return c.json({ error: { code: 'bad_request', message: 'invalid API key request' } }, 400);
+      }
+      const created = apiKeys.create({
+        userId: c.get('user').id,
+        name: parsed.data.name,
+        ...(parsed.data.scopes ? { scopes: parsed.data.scopes } : {}),
+        expiresAt: parsed.data.expiresAt ?? null,
+      });
+      // The plaintext secret is returned ONCE here and is never retrievable again.
+      return c.json({ key: created.plaintext, ...created.view }, 201);
+    });
+    app.delete('/api-keys/:id', requireHuman, (c) => {
+      const ok = apiKeys.revoke(c.req.param('id'), c.get('user').id);
+      return ok
+        ? c.json({ revoked: true })
+        : c.json({ error: { code: 'not_found', message: 'key not found' } }, 404);
+    });
+  }
 
   app.get('/usage', (c) => {
     const user = c.get('user');
