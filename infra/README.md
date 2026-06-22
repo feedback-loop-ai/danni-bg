@@ -37,6 +37,14 @@ acceptance agents/replicas down off-hours to save cost (FR-146).
 
 ## 2. Install the cluster operators (once per cluster)
 
+One command (idempotent) installs cert-manager + the `letsencrypt-prod` ClusterIssuer + the External
+Secrets Operator — k3s already bundles traefik/metrics-server/local-path:
+
+```sh
+export KUBECONFIG=$PWD/kubeconfig.yaml
+ACME_EMAIL=you@example.org ./k8s/install-operators.sh acceptance   # or: prod
+```
+
 The manifests assume these are present:
 
 - **cert-manager** + a `letsencrypt-prod` ClusterIssuer (TLS at the edge, FR-143).
