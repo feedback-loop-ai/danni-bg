@@ -1,4 +1,4 @@
-# Inputs (spec 031). dev/staging/prod differ only by tfvars (envs/*.tfvars) → SC-E3 parity.
+# Inputs (spec 031). acceptance/prod differ only by tfvars (envs/*.tfvars) → SC-E3 parity.
 
 variable "hcloud_token" {
   description = "Hetzner Cloud API token (provide via TF_VAR_hcloud_token or the secret manager — never commit)."
@@ -7,11 +7,11 @@ variable "hcloud_token" {
 }
 
 variable "env" {
-  description = "Environment name (dev|staging|prod). Used to label + name resources."
+  description = "Environment name (acceptance|prod). Used to label + name resources."
   type        = string
   validation {
-    condition     = contains(["dev", "staging", "prod"], var.env)
-    error_message = "env must be one of: dev, staging, prod."
+    condition     = contains(["acceptance", "prod"], var.env)
+    error_message = "env must be one of: acceptance, prod."
   }
 }
 

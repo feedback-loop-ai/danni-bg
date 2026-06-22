@@ -1,4 +1,4 @@
-# prod overlay (spec 031): same base as staging, sized for production with multiple replicas (SC-E2/E3).
+# prod overlay (spec 031): same base as acceptance, sized for production with multiple replicas (SC-E2/E3).
 # Pin the image to an immutable digest in CI (the release pipeline patches newTag/newName → digest);
 # >1 replica presupposes the app/control-plane state in Postgres + a shared rate-limit store (FR-145).
 apiVersion: kustomize.config.k8s.io/v1beta1
