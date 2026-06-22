@@ -1,0 +1,54 @@
+# OpenTelemetry Collector (spec 032) — the vendor-neutral hub. It SCRAPES the app's Prometheus metrics
+# (/metrics), receives OTLP traces/logs (when an exporter is wired in the app), and fans out to the
+# backends (Prometheus/Tempo/Loki here; swap for a hosted APM). Deploy as a DaemonSet/Deployment on the
+# spec-031 cluster. This is config — the app already EMITS the signals (Prometheus counters today; the
+# span/log events are OTLP-ready).
+receivers:
+  # Pull danni's Prometheus metrics. In-cluster, target the app Service; adjust for your topology.
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: danni-app
+          scrape_interval: 15s
+          metrics_path: /metrics
+          static_configs:
+            - targets: ["danni-app.danni-prod.svc.cluster.local:80"]
+  # OTLP in (traces + logs) for when the app wires an OTLP exporter behind the Tracer seam.
+  otlp:
+    protocols:
+      grpc: { endpoint: 0.0.0.0:4317 }
+      http: { endpoint: 0.0.0.0:4318 }
+
+processors:
+  batch: {}
+  # Defense-in-depth: drop any prompt/answer text attribute that should never have been emitted (FR-148).
+  attributes/redact:
+    actions:
+      - { key: prompt, action: delete }
+      - { key: answer, action: delete }
+      - { key: message, action: delete }
+
+exporters:
+  # Expose a scrape endpoint for Prometheus to pull aggregated metrics.
+  prometheus:
+    endpoint: 0.0.0.0:8889
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls: { insecure: true }
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus, otlp]
+      processors: [batch]
+      exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      processors: [attributes/redact, batch]
+      exporters: [otlp/tempo]
+    logs:
+      receivers: [otlp]
+      processors: [attributes/redact, batch]
+      exporters: [otlphttp/loki]

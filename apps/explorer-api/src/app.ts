@@ -32,6 +32,7 @@ import { expandGeoUnitIds } from './geo-rollup.ts';
 import type { Metrics } from './metrics.ts';
 import { type ApiMeterConfig, chatMeter, dataApiGate } from './middleware/api-metering.ts';
 import { RateLimiter } from './middleware/rate-limiter.ts';
+import { requestId } from './middleware/request-id.ts';
 import { requestLog } from './middleware/request-log.ts';
 import { requireAuth, requireScope } from './middleware/require-auth.ts';
 import type { ReadBridge } from './read-bridge.ts';
@@ -134,7 +135,9 @@ function clampInt(raw: string | null, def: number, max: number): number {
 export function createApp(ctx: AppContext): Hono {
   const app = new Hono();
 
-  // Structured request logging + RED metrics (spec 030), first so it wraps every API/auth request.
+  // Request-id correlation (spec 032) then structured logging + RED metrics (spec 030), first so they
+  // wrap every API/auth request and the id is available to the log line + the chat span trace.
+  app.use('*', requestId());
   app.use('*', requestLog(ctx.metrics));
 
   const chat: ChatConfig = ctx.chat ?? {
@@ -174,7 +177,12 @@ export function createApp(ctx: AppContext): Hono {
     quotaWindowSec: () => resolveToggles()?.apiQuotaWindowSec ?? DEFAULT_API_QUOTA_WINDOW_SEC,
   };
   const meterDeps = ctx.apiUsage
-    ? { usage: ctx.apiUsage, limiter: new RateLimiter(), config: meterConfig }
+    ? {
+        usage: ctx.apiUsage,
+        limiter: new RateLimiter(),
+        config: meterConfig,
+        ...(ctx.metrics ? { metrics: ctx.metrics } : {}),
+      }
     : null;
 
   // Public read API: anonymous browser traffic is free; an API-key caller is auth'd + rate-limited +
@@ -212,6 +220,7 @@ export function createApp(ctx: AppContext): Hono {
       defaultTokenLimit: resolveDefaultTokenLimit,
       cacheWeight: resolveCacheWeight,
       maxOutputTokens: resolveMaxOutputTokens,
+      ...(ctx.metrics ? { metrics: ctx.metrics } : {}),
     }),
   );
 
@@ -291,10 +300,20 @@ export function createApp(ctx: AppContext): Hono {
     });
   }
 
-  // Basic RED metrics snapshot (spec 030, FR-138) — request/error counts + avg latency for an SLO.
+  // Prometheus metrics (spec 030 RED, deepened in 032): counters from the registry + scrape-time gauges
+  // (active detached generations, index freshness). Scraped by the OTel collector (infra/observability).
   const metrics = ctx.metrics;
   if (metrics) {
-    app.get('/metrics', (c) => c.json(metrics.snapshot()));
+    app.get('/metrics', (c) =>
+      c.text(
+        metrics.prometheus({
+          danni_active_generations: generations.activeCount(),
+          danni_index_stale: ctx.health().isStale ? 1 : 0,
+        }),
+        200,
+        { 'content-type': 'text/plain; version=0.0.4' },
+      ),
+    );
   }
 
   // All in-scope datasets, honoring the structured filters (used by list / regions / national /

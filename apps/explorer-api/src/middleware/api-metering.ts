@@ -11,6 +11,7 @@ import {
   parseScopes,
 } from '../../../../src/store/repos/api-keys.ts';
 import type { ApiUsageRepo } from '../../../../src/store/repos/api-usage.ts';
+import type { Metrics } from '../metrics.ts';
 import type { RateLimiter } from './rate-limiter.ts';
 import type { AuthEnv } from './require-auth.ts';
 
@@ -26,6 +27,8 @@ export interface ApiMeterDeps {
   limiter: RateLimiter;
   config: ApiMeterConfig;
   now?: () => number;
+  /** Telemetry registry (spec 032): rate-limit/quota 429s are counted when wired. */
+  metrics?: Metrics;
 }
 
 const windowStart = (sec: number, now: number): string => new Date(now - sec * 1000).toISOString();
@@ -41,7 +44,10 @@ export function chatMeter(deps: ApiMeterDeps): MiddlewareHandler<AuthEnv> {
     const key = c.get('apiKey');
     const tenantId = c.get('tenant')?.id;
     const rl = deps.limiter.take(`${user.id}:chat`, deps.config.rateChat());
-    if (!rl.ok) return rateLimited(c, rl.retryAfterSec);
+    if (!rl.ok) {
+      deps.metrics?.recordRateLimitRejection('chat');
+      return rateLimited(c, rl.retryAfterSec);
+    }
     try {
       deps.usage.record({
         principalKind: key ? 'apiKey' : 'user',
@@ -97,7 +103,10 @@ export function dataApiGate(
     }
     const owner = res.key.user_id;
     const rl = deps.limiter.take(`${owner}:data`, deps.config.rateData());
-    if (!rl.ok) return rateLimited(c, rl.retryAfterSec);
+    if (!rl.ok) {
+      deps.metrics?.recordRateLimitRejection('data');
+      return rateLimited(c, rl.retryAfterSec);
+    }
     const cap = res.key.quota_limit ?? deps.config.quotaData();
     if (cap > 0) {
       const used = deps.usage.countSince(
@@ -106,6 +115,7 @@ export function dataApiGate(
         'data',
       );
       if (used >= cap) {
+        deps.metrics?.recordRateLimitRejection('data');
         return c.json(
           { error: { code: 'quota_exceeded', message: 'request quota exceeded' } },
           429,

@@ -137,6 +137,13 @@ export class GenerationManager {
     return gen ? snapshotOf(gen) : undefined;
   }
 
+  /** Number of generations currently streaming (spec 032 gauge: detached-generation count). */
+  activeCount(): number {
+    let n = 0;
+    for (const gen of this.gens.values()) if (gen.status === 'streaming') n += 1;
+    return n;
+  }
+
   /** The in-flight generation id for a session, if any (used to offer a re-attach on resume). */
   activeForSession(sessionId: string): string | undefined {
     for (const gen of this.gens.values()) {
