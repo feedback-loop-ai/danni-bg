@@ -2,7 +2,7 @@
 
 **Feature Branch**: `030-production-deployment`
 **Created**: 2026-06-21
-**Status**: **Proposed** (sketch — not yet implemented)
+**Status**: **Implemented** (FR-140 multi-node is documented plan, not migration; image push/release target is deployment-specific)
 **Input**: Productization finding — deployment is dev-only: docker-compose covers the **Ory deps**, but
 the app runs via `bun … server.ts` (single, non-hot process), there is **no app Dockerfile**, CI is
 build-test only (no deploy), migrations are manual, Kratos `cookie`/`cipher` secrets are placeholders,

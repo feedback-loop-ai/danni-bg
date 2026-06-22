@@ -63,6 +63,23 @@ export function ensureMigrationsTable(db: Database): void {
   `);
 }
 
+/**
+ * Migrations discovered on disk that are NOT yet recorded as applied — without applying anything
+ * (spec 030). Backs the readiness probe ("are migrations current?") so a deploy that forgot
+ * `db:migrate` reports not-ready instead of 500ing at runtime. Read-only: it only ensures the
+ * bookkeeping table exists so a brand-new DB reports every migration as pending.
+ */
+export function pendingMigrations(db: Database, dir: string): Migration[] {
+  ensureMigrationsTable(db);
+  const appliedVersions = new Set(
+    db
+      .query<{ version: number }, []>('SELECT version FROM schema_migrations')
+      .all()
+      .map((r) => r.version),
+  );
+  return discoverMigrations(dir).filter((m) => !appliedVersions.has(m.version));
+}
+
 export function runMigrations(db: Database, dir: string): RunMigrationsResult {
   ensureMigrationsTable(db);
   const migrations = discoverMigrations(dir);

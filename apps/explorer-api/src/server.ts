@@ -22,7 +22,9 @@ import { kratosProxy, kratosSessionResolver } from './auth/kratos-session.ts';
 import { serverDefaultFromEnv } from './chat/providers.ts';
 import { PersistentSessionStore } from './chat/sessions-repo.ts';
 import { log } from './logging.ts';
+import { Metrics } from './metrics.ts';
 import { ReadBridge } from './read-bridge.ts';
+import { checkReadiness } from './readiness.ts';
 
 const SPA_ROOT = './apps/explorer-web/dist';
 
@@ -58,7 +60,9 @@ export function seedSettings(settings: PlatformSettingsRepo): void {
 
 export function main(): void {
   const config = loadConfig();
-  const storeRoot = resolve(process.cwd(), config.store.root);
+  // DANNI_STORE_ROOT lets a container/deploy point at its mounted store volume without baking a
+  // host-specific path into danni.config.json (spec 030).
+  const storeRoot = resolve(process.cwd(), process.env.DANNI_STORE_ROOT ?? config.store.root);
   const db = openDb({ storeRoot, loadVec: false });
   const slo = config.store.freshnessSloSeconds;
   const settings = new PlatformSettingsRepo(db);
@@ -73,6 +77,14 @@ export function main(): void {
     }),
     crosswalk: new Crosswalk(loadCrosswalk()),
     health: () => buildHealth(db, slo, settings),
+    readiness: () =>
+      checkReadiness({
+        db,
+        migrationsDir: resolve(process.cwd(), 'migrations'),
+        settings,
+        env: process.env,
+      }),
+    metrics: new Metrics(),
     users: new UsersRepo(db),
     apiKeys: new ApiKeyRepo(db),
     apiUsage: new ApiUsageRepo(db),

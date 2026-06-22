@@ -1,0 +1,63 @@
+# Production overlay (spec 030, FR-134). Use TOGETHER with the base file — the base provides the Ory
+# services, this turns them production-grade and adds the built app container:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Secrets come from the environment (FR-136), NEVER the committed placeholders. Required env:
+#   POSTGRES_PASSWORD, KRATOS_SECRETS_COOKIE (32+ chars), KRATOS_SECRETS_CIPHER (exactly 32 chars),
+#   DANNI_PROFILE=production. The read substrate (datasets/FTS5/vectors) must be seeded into the
+#   danni_store volume via the sync pipeline or a restored backup — see docs/OPERATIONS.md.
+services:
+  kratos-postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD}
+
+  kratos-migrate:
+    environment:
+      DSN: postgres://kratos:${POSTGRES_PASSWORD:?}@kratos-postgres:5432/kratos?sslmode=disable
+
+  kratos:
+    # No --dev in production; env-injected secrets override the YAML placeholders (Ory env mapping).
+    command: serve -c /etc/config/kratos/kratos.yml --watch-courier
+    environment:
+      DSN: postgres://kratos:${POSTGRES_PASSWORD:?}@kratos-postgres:5432/kratos?sslmode=disable
+      SECRETS_COOKIE: ${KRATOS_SECRETS_COOKIE:?set KRATOS_SECRETS_COOKIE}
+      SECRETS_CIPHER: ${KRATOS_SECRETS_CIPHER:?set KRATOS_SECRETS_CIPHER}
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: danni-app:latest
+    container_name: danni-app
+    restart: unless-stopped
+    ports:
+      - "8790:8790"
+    environment:
+      DANNI_PROFILE: ${DANNI_PROFILE:-production}
+      DANNI_STORE_ROOT: /data
+      # The app entrypoint runs the secret gate on its OWN env; deployment-wide required secrets (the
+      # Kratos cookie/cipher) are gated in CI, so the app needs none of its own here.
+      DANNI_REQUIRED_SECRETS: ""
+      KRATOS_PUBLIC_URL: ${KRATOS_PUBLIC_URL:-http://kratos:4433}
+      EXPLORER_DEFAULT_PROVIDER: ${EXPLORER_DEFAULT_PROVIDER:-}
+      EXPLORER_DEFAULT_MODEL: ${EXPLORER_DEFAULT_MODEL:-}
+      EXPLORER_DEFAULT_BASE_URL: ${EXPLORER_DEFAULT_BASE_URL:-}
+      EXPLORER_DEFAULT_API_KEY: ${EXPLORER_DEFAULT_API_KEY:-}
+    volumes:
+      - danni_store:/data
+    depends_on:
+      kratos:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bun
+        - -e
+        - "fetch('http://localhost:8790/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  danni_store:

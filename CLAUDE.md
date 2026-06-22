@@ -61,12 +61,19 @@ capabilities each have their own spec:
   `/api/admin/api-usage` `byTenant`. Keys/usage/sessions are org-attributed; existing data backfills
   into the `default` org with no behavior change (SC-C1/C2/C3) — builds on 027/028
 
+- 030 production deployment & ops: app `Dockerfile` (multi-stage — build SPA, run `explorer-api` on Bun)
+  + `scripts/docker-entrypoint.sh` (migrate-on-release then serve; bad migration aborts boot) +
+  `docker-compose.prod.yml` overlay. Readiness `GET /readyz` (`apps/explorer-api/src/readiness.ts` —
+  DB reachable + `pendingMigrations` empty; 503 until ready) + basic RED `/metrics` (`metrics.ts` +
+  `request-log` middleware). Secret gate `scripts/check-secrets.ts` (`src/lib/secret-scan.ts`
+  `auditSecrets` — fails non-dev profiles on placeholder/missing secrets; `DANNI_PROFILE`,
+  `DANNI_REQUIRED_SECRETS`) wired into the entrypoint + a gated CI `deploy` job (`DEPLOY_ENABLED`).
+  `DANNI_STORE_ROOT` points the container at its store volume. Ops runbook `docs/OPERATIONS.md`
+  (Litestream backup/restore + single→multi-node path). FR-140 multi-node is a documented plan, not the
+  migration. Gates the SQLite→Postgres app-tables move (`db-architecture-decision` memo)
+
 **Proposed (sketches, not yet implemented)** — productization roadmap toward an API-as-a-product /
 B2G platform; single-responsibility, each builds on the prior:
-- 030 production deployment & ops (app Dockerfile, migrate-on-release, externalized/rotated secrets,
-  CI deploy, readiness/backups, single→multi-node path) — gates the SQLite→Postgres app-tables move
-  (see the `db-architecture-decision` memo); the *target* it deploys onto is 031, the *telemetry* on it
-  is 032
 - 031 infrastructure provisioning & orchestration (IaC + orchestrator + ingress/TLS + secret backend +
   horizontally-scalable app tier with per-node SQLite substrate) — the provisioned platform 030 ships to
 - 032 observability (structured logs, RED + domain metrics incl. LLM cost/tokens, distributed tracing,
