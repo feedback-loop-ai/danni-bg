@@ -51,8 +51,8 @@ variable "k3s_version" {
   default     = "v1.31.4+k3s1"
 }
 
-variable "ssh_public_keys" {
-  description = "SSH public keys granted node access (for break-glass + kubeconfig fetch)."
+variable "ssh_key_names" {
+  description = "Names of EXISTING Hetzner SSH keys to grant node access (managed centrally in the project, not created here)."
   type        = list(string)
   default     = []
 }
