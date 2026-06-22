@@ -4,12 +4,24 @@
 // `users.role`; Oathkeeper/Kratos do not hold the role.
 
 import type { MiddlewareHandler } from 'hono';
+import {
+  API_KEY_NAMESPACE,
+  type ApiKeyRepo,
+  type ApiKeyScope,
+  parseScopes,
+} from '../../../../src/store/repos/api-keys.ts';
 import type { UserRow, UsersRepo } from '../../../../src/store/repos/users.ts';
 import type { SessionResolver } from '../auth/kratos-session.ts';
 import { readAuth } from './auth.ts';
 
-/** Hono environment for routes behind the auth guards: the resolved app user is on the context. */
-export type AuthEnv = { Variables: { user: UserRow } };
+/**
+ * Hono environment for routes behind the auth guards: the resolved app user is on the context.
+ * `apiKey` is set ONLY when the caller authenticated with an API key (machine client, spec 027) —
+ * absent for human Kratos sessions; it drives scope checks and the admin/human-only guards.
+ */
+export type AuthEnv = {
+  Variables: { user: UserRow; apiKey?: { id: string; scopes: ApiKeyScope[] } };
+};
 
 // Optional convenience: emails auto-promoted to admin on FIRST login (existing rows keep their role).
 // Otherwise promote with `danni admin grant <email>`. Read per call so it's configurable + testable.
@@ -29,8 +41,33 @@ function isBootstrapAdmin(email: string): boolean {
 export function requireAuth(
   users: UsersRepo,
   resolveSession?: SessionResolver,
+  apiKeys?: ApiKeyRepo,
 ): MiddlewareHandler<AuthEnv> {
   return async (c, next) => {
+    // API key (machine client, spec 027): `Authorization: Bearer dnk_live_…`. Resolves to the owning
+    // user — same `user` context as a session — plus an `apiKey` marker carrying its scopes.
+    const authz = c.req.header('authorization');
+    if (apiKeys && authz?.startsWith('Bearer ')) {
+      const secret = authz.slice('Bearer '.length).trim();
+      if (secret.startsWith(API_KEY_NAMESPACE)) {
+        const res = apiKeys.resolveBySecret(secret);
+        const owner = res.status === 'ok' ? users.get(res.key.user_id) : null;
+        if (res.status === 'ok' && owner) {
+          c.set('user', owner);
+          c.set('apiKey', { id: res.key.id, scopes: parseScopes(res.key) });
+          await next();
+          return undefined;
+        }
+        const code =
+          res.status === 'revoked'
+            ? 'api_key_revoked'
+            : res.status === 'expired'
+              ? 'api_key_expired'
+              : 'unauthorized';
+        return c.json({ error: { code, message: 'invalid API key' } }, 401);
+      }
+    }
+
     const header = readAuth(c);
     let identity: {
       userId: string;
@@ -64,11 +101,41 @@ export function requireAuth(
   };
 }
 
-/** Must run after requireAuth (reads the resolved user). */
+/** Must run after requireAuth (reads the resolved user). API keys can NEVER reach admin (spec 027). */
 export const requireAdmin: MiddlewareHandler<AuthEnv> = async (c, next) => {
+  if (c.get('apiKey')) {
+    return c.json({ error: { code: 'forbidden', message: 'API keys cannot access admin' } }, 403);
+  }
   const user = c.get('user');
   if (!user || user.role !== 'admin') {
     return c.json({ error: { code: 'forbidden', message: 'admin access required' } }, 403);
+  }
+  await next();
+  return undefined;
+};
+
+/** Run after requireAuth: an API-key caller must hold `scope`; human sessions pass any scope. */
+export function requireScope(scope: ApiKeyScope): MiddlewareHandler<AuthEnv> {
+  return async (c, next) => {
+    const key = c.get('apiKey');
+    if (key && !key.scopes.includes(scope)) {
+      return c.json(
+        { error: { code: 'insufficient_scope', message: `API key lacks '${scope}' scope` } },
+        403,
+      );
+    }
+    await next();
+    return undefined;
+  };
+}
+
+/** Run after requireAuth: reject API-key callers (human-only routes, e.g. managing keys themselves). */
+export const requireHuman: MiddlewareHandler<AuthEnv> = async (c, next) => {
+  if (c.get('apiKey')) {
+    return c.json(
+      { error: { code: 'forbidden', message: 'this action requires a signed-in session' } },
+      403,
+    );
   }
   await next();
   return undefined;

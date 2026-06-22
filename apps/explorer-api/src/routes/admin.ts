@@ -62,6 +62,7 @@ function togglesView(settings: PlatformSettingsRepo): Record<string, unknown> {
 
 export interface AdminRoutesOpts {
   sessionResolver?: SessionResolver | undefined;
+  apiKeys?: import('../../../../src/store/repos/api-keys.ts').ApiKeyRepo | undefined;
   tokenUsage?: TokenUsageRepo | undefined;
   defaultTokenLimit?: (() => number | undefined) | undefined;
   cacheWeight?: (() => number | undefined) | undefined;
@@ -73,7 +74,8 @@ export function adminRoutes(
   opts: AdminRoutesOpts = {},
 ): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
-  app.use('*', requireAuth(users, opts.sessionResolver), requireAdmin);
+  // Pass apiKeys so a key authenticates then requireAdmin cleanly 403s it (keys are never admin).
+  app.use('*', requireAuth(users, opts.sessionResolver, opts.apiKeys), requireAdmin);
 
   app.get('/settings', (c) => {
     const { source, llm } = maskedLlm(settings);

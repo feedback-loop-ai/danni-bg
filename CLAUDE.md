@@ -40,11 +40,13 @@ capabilities each have their own spec:
   token meter via a new `usage` SSE event (per-step + final, billing unchanged); per-turn tokens +
   reply duration kept per message (migration 014 `usage_json`/`duration_ms`, restored on reload); one
   `UsageFooter` with identical live (ticking ⏱) and completed styling
+- 027 API-key authentication for machine clients (`Authorization: Bearer dnk_live_…`, hashed
+  `api_keys` migration 015, scopes `read`/`chat`; `requireAuth`/`requireScope`/`requireHuman`;
+  `/api/me/api-keys` CRUD + account "API ключове" section). Keys never reach admin or key-management;
+  the secret is shown once. Billing/metering of API calls is the (proposed) 028.
 
 **Proposed (sketches, not yet implemented)** — productization roadmap toward an API-as-a-product /
 B2G platform; single-responsibility, each builds on the prior:
-- 027 API-key authentication for machine clients (`Authorization: Bearer`, hashed `api_keys`, scopes;
-  resolved by the same `requireAuth` as a session) — the M2M auth the browser-only stack lacks
 - 028 API metering, quotas & rate limiting (per-key request metering + 429 rate limit/quota, runtime
   admin-configurable; reuses the spec-021 usage/quota patterns) — builds on 027
 - 029 multi-tenancy (`organizations`/`org_members`, org-scoped keys/usage/sessions/config; default-org

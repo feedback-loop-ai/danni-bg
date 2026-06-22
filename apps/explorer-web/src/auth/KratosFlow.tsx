@@ -16,6 +16,7 @@ import type {
 } from '@ory/client';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ApiKeys } from '../account/ApiKeys.tsx';
 import { AvatarUpload } from '../account/AvatarUpload.tsx';
 import { SelfUsage } from '../account/SelfUsage.tsx';
 import { Card } from '../components/ui/card.tsx';
@@ -437,6 +438,7 @@ export function KratosFlow({ kind, title }: { kind: FlowKind; title: string }) {
           <AvatarUpload />
           <AppearanceSection />
           <SelfUsage />
+          <ApiKeys />
           {flow ? (
             <>
               {flowMessages(flow.ui).map((m) => (
