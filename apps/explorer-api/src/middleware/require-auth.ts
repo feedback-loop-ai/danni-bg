@@ -10,17 +10,34 @@ import {
   type ApiKeyScope,
   parseScopes,
 } from '../../../../src/store/repos/api-keys.ts';
+import {
+  DEFAULT_TENANT_ID,
+  type TenantRole,
+  type TenantsRepo,
+} from '../../../../src/store/repos/tenants.ts';
 import type { UserRow, UsersRepo } from '../../../../src/store/repos/users.ts';
 import type { SessionResolver } from '../auth/kratos-session.ts';
 import { readAuth } from './auth.ts';
+
+/** The active tenant for a gated request (spec 029): which org the caller is acting within + their role. */
+export interface ActiveTenant {
+  id: string;
+  role: TenantRole;
+}
 
 /**
  * Hono environment for routes behind the auth guards: the resolved app user is on the context.
  * `apiKey` is set ONLY when the caller authenticated with an API key (machine client, spec 027) —
  * absent for human Kratos sessions; it drives scope checks and the admin/human-only guards.
+ * `tenant` is the active org (spec 029): always set by requireAuth (the default tenant when no
+ * TenantsRepo is wired), so downstream handlers can scope reads/writes by tenant.
  */
 export type AuthEnv = {
-  Variables: { user: UserRow; apiKey?: { id: string; scopes: ApiKeyScope[] } };
+  Variables: {
+    user: UserRow;
+    apiKey?: { id: string; scopes: ApiKeyScope[] };
+    tenant: ActiveTenant;
+  };
 };
 
 // Optional convenience: emails auto-promoted to admin on FIRST login (existing rows keep their role).
@@ -42,6 +59,7 @@ export function requireAuth(
   users: UsersRepo,
   resolveSession?: SessionResolver,
   apiKeys?: ApiKeyRepo,
+  tenants?: TenantsRepo,
 ): MiddlewareHandler<AuthEnv> {
   return async (c, next) => {
     // API key (machine client, spec 027): `Authorization: Bearer dnk_live_…`. Resolves to the owning
@@ -55,6 +73,8 @@ export function requireAuth(
         if (res.status === 'ok' && owner) {
           c.set('user', owner);
           c.set('apiKey', { id: res.key.id, scopes: parseScopes(res.key) });
+          // A key belongs to an org (spec 029): the request acts within the key's tenant.
+          c.set('tenant', { id: res.key.tenant_id ?? DEFAULT_TENANT_ID, role: 'member' });
           await next();
           return undefined;
         }
@@ -96,6 +116,14 @@ export function requireAuth(
       createRole,
     });
     c.set('user', user);
+    // Resolve the active org (spec 029): a freshly self-registered user is auto-joined to the default
+    // tenant; their primary membership is the active tenant. Without a TenantsRepo (focused tests),
+    // fall back to the default tenant so downstream tenant-scoping still has a value.
+    const membership = tenants?.ensureMembership(user.id);
+    c.set('tenant', {
+      id: membership?.tenantId ?? DEFAULT_TENANT_ID,
+      role: membership?.role ?? 'member',
+    });
     await next();
     return undefined;
   };
@@ -134,6 +162,28 @@ export const requireHuman: MiddlewareHandler<AuthEnv> = async (c, next) => {
   if (c.get('apiKey')) {
     return c.json(
       { error: { code: 'forbidden', message: 'this action requires a signed-in session' } },
+      403,
+    );
+  }
+  await next();
+  return undefined;
+};
+
+/**
+ * Run after requireAuth (spec 029): the caller must be an owner/admin of their active org. Human-only
+ * (an API key can never administer its org). Org admins manage their own members/keys/plan (FR-132).
+ */
+export const requireTenantAdmin: MiddlewareHandler<AuthEnv> = async (c, next) => {
+  if (c.get('apiKey')) {
+    return c.json(
+      { error: { code: 'forbidden', message: 'this action requires a signed-in session' } },
+      403,
+    );
+  }
+  const role = c.get('tenant')?.role;
+  if (role !== 'owner' && role !== 'admin') {
+    return c.json(
+      { error: { code: 'forbidden', message: 'organization admin access required' } },
       403,
     );
   }

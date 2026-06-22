@@ -11,6 +11,7 @@ import { MUNICIPALITIES, OBLASTS } from '../../../src/enrich/gazetteer/bg-admin.
 import type { ApiKeyRepo } from '../../../src/store/repos/api-keys.ts';
 import type { ApiUsageRepo } from '../../../src/store/repos/api-usage.ts';
 import type { PlatformSettingsRepo } from '../../../src/store/repos/platform-settings.ts';
+import type { TenantsRepo } from '../../../src/store/repos/tenants.ts';
 import type { TokenUsageRepo } from '../../../src/store/repos/token-usage.ts';
 import type { UsersRepo } from '../../../src/store/repos/users.ts';
 import { resolveServerDefault } from './admin/resolve-default.ts';
@@ -38,6 +39,7 @@ import { adminRoutes } from './routes/admin.ts';
 import { authRoutes } from './routes/auth.ts';
 import { chatHandler } from './routes/chat.ts';
 import { meRoutes } from './routes/me.ts';
+import { tenantRoutes } from './routes/tenant.ts';
 import {
   type DatasetPointer,
   type ErrorCode,
@@ -76,6 +78,9 @@ export interface AppContext {
   apiUsage?: ApiUsageRepo;
   /** Per-user token metering — records chat usage + backs the quota gate and usage views. */
   tokenUsage?: TokenUsageRepo;
+  /** Organizations (tenants) repo (spec 029) — when wired, requests resolve an active org and the
+   * org self-management + super-admin org routes are mounted; else everything is the default tenant. */
+  tenants?: TenantsRepo;
   /** Persistent per-user chat history — when wired, conversations are saved + resumable. */
   chatSessions?: PersistentSessionStore;
   /** In-flight generation registry (mid-stream resume). Injectable for tests; else created here. */
@@ -184,7 +189,7 @@ export function createApp(ctx: AppContext): Hono {
   // middleware onto the app's default env (it only gates + sets `user`, which chatHandler ignores).
   app.post(
     '/api/chat',
-    requireAuth(ctx.users, ctx.sessionResolver, ctx.apiKeys) as MiddlewareHandler,
+    requireAuth(ctx.users, ctx.sessionResolver, ctx.apiKeys, ctx.tenants) as MiddlewareHandler,
     requireScope('chat') as MiddlewareHandler,
     ...(meterDeps ? [chatMeter(meterDeps) as MiddlewareHandler] : []),
     chatHandler({
@@ -213,6 +218,7 @@ export function createApp(ctx: AppContext): Hono {
         apiKeys: ctx.apiKeys,
         apiUsage: ctx.apiUsage,
         apiQuotaWindowSec: meterConfig.quotaWindowSec,
+        tenants: ctx.tenants,
       }),
     );
   }
@@ -223,6 +229,18 @@ export function createApp(ctx: AppContext): Hono {
     '/api/auth',
     authRoutes(ctx.users, ctx.kratosPublicUrl ?? 'http://localhost:14433', ctx.sessionResolver),
   );
+
+  // Organization (tenant) self-management (spec 029) — active org + member admin. Mounted only when a
+  // tenants repo is wired (always in prod); super-admin org CRUD lives under /api/admin.
+  if (ctx.tenants) {
+    app.route(
+      '/api/tenant',
+      tenantRoutes(ctx.users, ctx.tenants, {
+        sessionResolver: ctx.sessionResolver,
+        apiKeys: ctx.apiKeys,
+      }),
+    );
+  }
 
   // Admin platform settings (spec 019) + per-user token usage/quota admin (token metering) — mounted
   // only when a settings repo is wired (always in prod).
@@ -235,6 +253,7 @@ export function createApp(ctx: AppContext): Hono {
         apiUsage: ctx.apiUsage,
         apiQuotaWindowSec: meterConfig.quotaWindowSec,
         tokenUsage: ctx.tokenUsage,
+        tenants: ctx.tenants,
         defaultTokenLimit: resolveDefaultTokenLimit,
         cacheWeight: resolveCacheWeight,
       }),

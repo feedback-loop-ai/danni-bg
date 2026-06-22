@@ -1,6 +1,7 @@
 import type { Database } from 'bun:sqlite';
 import { sha256Hex } from '../../lib/hash.ts';
 import { nowIso } from '../../lib/time.ts';
+import { DEFAULT_TENANT_ID } from './tenants.ts';
 
 // API keys for machine clients (spec 027). The plaintext secret is `dnk_live_<random>`; only its
 // SHA-256 hash is stored, so a leaked DB doesn't leak usable keys. The secret is returned exactly
@@ -16,6 +17,7 @@ const PREFIX_LEN = API_KEY_NAMESPACE.length + 6; // namespace + 6 chars, kept fo
 export interface ApiKeyRow {
   id: string;
   user_id: string;
+  tenant_id: string | null; // owning org (spec 029); null only for pre-migration rows (treat as default)
   name: string;
   key_hash: string;
   prefix: string;
@@ -74,9 +76,10 @@ function toView(row: ApiKeyRow): ApiKeyView {
 export class ApiKeyRepo {
   constructor(private readonly db: Database) {}
 
-  /** Create a key for a user. Returns the plaintext ONCE (caller shows it, never stored). */
+  /** Create a key for a user, owned by a tenant (spec 029). Returns the plaintext ONCE. */
   create(input: {
     userId: string;
+    tenantId?: string;
     name: string;
     scopes?: ApiKeyScope[];
     expiresAt?: string | null;
@@ -91,9 +94,19 @@ export class ApiKeyRepo {
     const prefix = secret.slice(0, PREFIX_LEN);
     this.db
       .query(
-        'INSERT INTO api_keys (id, user_id, name, key_hash, prefix, scopes, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO api_keys (id, user_id, tenant_id, name, key_hash, prefix, scopes, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       )
-      .run(id, input.userId, input.name, sha256Hex(secret), prefix, JSON.stringify(scopes), now, input.expiresAt ?? null);
+      .run(
+        id,
+        input.userId,
+        input.tenantId ?? DEFAULT_TENANT_ID,
+        input.name,
+        sha256Hex(secret),
+        prefix,
+        JSON.stringify(scopes),
+        now,
+        input.expiresAt ?? null,
+      );
     const row = this.db.query<ApiKeyRow, [string]>('SELECT * FROM api_keys WHERE id = ?').get(id);
     return { plaintext: secret, view: toView(row as ApiKeyRow) };
   }
@@ -116,6 +129,16 @@ export class ApiKeyRepo {
     return this.db
       .query<ApiKeyRow, [string]>('SELECT * FROM api_keys WHERE user_id = ? ORDER BY created_at DESC')
       .all(userId)
+      .map(toView);
+  }
+
+  /** All keys owned by a tenant, newest first (org-admin view, spec 029). */
+  listForTenant(tenantId: string): ApiKeyView[] {
+    return this.db
+      .query<ApiKeyRow, [string]>(
+        'SELECT * FROM api_keys WHERE tenant_id = ? ORDER BY created_at DESC',
+      )
+      .all(tenantId)
       .map(toView);
   }
 

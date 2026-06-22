@@ -36,7 +36,7 @@ export interface Conversation {
  * tests) and the persistent `PersistentSessionStore` (real app) are interchangeable.
  */
 export interface ConversationStore {
-  getOrCreate(sessionId: string | null, userId: string): Conversation;
+  getOrCreate(sessionId: string | null, userId: string, tenantId?: string): Conversation;
   append(sessionId: string, message: ChatMessage): void;
   setContext(sessionId: string, datasetIds: string[]): void;
 }
@@ -53,8 +53,8 @@ export class SessionStore implements ConversationStore {
   constructor(private readonly newId: () => string = () => crypto.randomUUID()) {}
 
   /** Return the existing conversation for `sessionId`, or create a fresh one (new id when null). The
-   * `userId` is part of the shared store interface but unused here (in-memory, single-process). */
-  getOrCreate(sessionId: string | null, _userId?: string): Conversation {
+   * `userId`/`tenantId` are part of the shared store interface but unused here (in-memory, single-process). */
+  getOrCreate(sessionId: string | null, _userId?: string, _tenantId?: string): Conversation {
     if (sessionId !== null) {
       const existing = this.sessions.get(sessionId);
       if (existing) return existing;

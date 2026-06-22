@@ -5,6 +5,7 @@
 
 import type { Database } from 'bun:sqlite';
 import { nowIso } from '../../../../src/lib/time.ts';
+import { DEFAULT_TENANT_ID } from '../../../../src/store/repos/tenants.ts';
 import type { Citation, MapAnchor } from './grounding.ts';
 import type { ChatMessage, Conversation, ConversationStore, MessageUsage } from './session.ts';
 
@@ -73,8 +74,16 @@ export class PersistentSessionStore implements ConversationStore {
     };
   }
 
-  /** Resume the user's session if `sessionId` is theirs; otherwise start a fresh owned session. */
-  getOrCreate(sessionId: string | null, userId: string): Conversation {
+  /**
+   * Resume the user's session if `sessionId` is theirs; otherwise start a fresh owned session, tagged
+   * with the caller's active tenant (spec 029). User-ownership already isolates reads; the tenant_id
+   * makes a session attributable to its org for the tenant boundary.
+   */
+  getOrCreate(
+    sessionId: string | null,
+    userId: string,
+    tenantId = DEFAULT_TENANT_ID,
+  ): Conversation {
     if (sessionId) {
       const row = this.db
         .query<SessionRow, [string, string]>(
@@ -87,9 +96,9 @@ export class PersistentSessionStore implements ConversationStore {
     const now = nowIso();
     this.db
       .query(
-        'INSERT INTO chat_sessions (id, user_id, title, context_dataset_ids, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, ?)',
+        'INSERT INTO chat_sessions (id, user_id, tenant_id, title, context_dataset_ids, created_at, updated_at) VALUES (?, ?, ?, NULL, ?, ?, ?)',
       )
-      .run(id, userId, '[]', now, now);
+      .run(id, userId, tenantId, '[]', now, now);
     return { sessionId: id, messages: [], contextDatasetIds: [] };
   }
 

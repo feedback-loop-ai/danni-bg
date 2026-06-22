@@ -2,7 +2,7 @@
 
 **Feature Branch**: `029-multi-tenancy`
 **Created**: 2026-06-21
-**Status**: **Proposed** (sketch — not yet implemented)
+**Status**: **Implemented** (control plane; `tenants` table — `organizations` is the egov publisher concept)
 **Input**: Productization finding — `users` is a **flat** table (no org/tenant column) and there is one
 shared store, so a deployment is single-tenant. The B2G/SaaS plays (sell per portal; host several
 customers) need tenant isolation: organizations, membership, and tenant-scoped data + keys + config.

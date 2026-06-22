@@ -1,8 +1,10 @@
 import type { Database } from 'bun:sqlite';
 import { nowIso } from '../../lib/time.ts';
+import { DEFAULT_TENANT_ID } from './tenants.ts';
 
 export interface TokenUsageInput {
   userId: string;
+  tenantId?: string; // owning org (spec 029); defaults to the default tenant
   sessionId?: string | null;
   model?: string | null;
   inputTokens: number;
@@ -51,12 +53,13 @@ export class TokenUsageRepo {
   record(input: TokenUsageInput): void {
     this.db
       .query(
-        `INSERT INTO token_usage (id, user_id, session_id, model, input_tokens, output_tokens, total_tokens, cached_input_tokens, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO token_usage (id, user_id, tenant_id, session_id, model, input_tokens, output_tokens, total_tokens, cached_input_tokens, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         crypto.randomUUID(),
         input.userId,
+        input.tenantId ?? DEFAULT_TENANT_ID,
         input.sessionId ?? null,
         input.model ?? null,
         clamp(input.inputTokens),

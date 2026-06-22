@@ -67,6 +67,8 @@ export function chatHandler(deps: ChatRouteDeps) {
     // Enforce the per-user token quota up front (token metering): an over-quota user is rejected with
     // 429 before any model work. `user` is set by requireAuth; metering is skipped if no repo is wired.
     const user = c.get('user') as UserRow | undefined;
+    // Active org (spec 029): session + usage are attributed to the caller's tenant.
+    const tenantId = (c.get('tenant') as { id: string } | undefined)?.id;
     if (deps.usage && user) {
       const limit = effectiveLimit(user.token_limit, deps.defaultTokenLimit?.());
       const { used, cached } = deps.usage.usageForUser(user.id, user.usage_reset_at);
@@ -85,7 +87,7 @@ export function chatHandler(deps: ChatRouteDeps) {
       }
     }
 
-    const conv = deps.sessions.getOrCreate(body.sessionId ?? null, user?.id ?? '');
+    const conv = deps.sessions.getOrCreate(body.sessionId ?? null, user?.id ?? '', tenantId);
     // Snapshot the prior transcript BEFORE appending this turn's question: the persistent store's
     // `append` doesn't mutate the returned snapshot (unlike the in-memory one), so build the model's
     // message list from prior history + the new question explicitly.
@@ -190,6 +192,7 @@ export function chatHandler(deps: ChatRouteDeps) {
         if (deps.usage && user && result.usage) {
           deps.usage.record({
             userId: user.id,
+            ...(tenantId ? { tenantId } : {}),
             sessionId: conv.sessionId,
             model: modelId,
             inputTokens: result.usage.inputTokens,

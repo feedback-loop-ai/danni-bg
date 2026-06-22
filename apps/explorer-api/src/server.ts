@@ -12,6 +12,7 @@ import { openDb } from '../../../src/store/db.ts';
 import { ApiKeyRepo } from '../../../src/store/repos/api-keys.ts';
 import { ApiUsageRepo } from '../../../src/store/repos/api-usage.ts';
 import { PlatformSettingsRepo } from '../../../src/store/repos/platform-settings.ts';
+import { TenantsRepo } from '../../../src/store/repos/tenants.ts';
 import { TokenUsageRepo } from '../../../src/store/repos/token-usage.ts';
 import { UsersRepo } from '../../../src/store/repos/users.ts';
 import { resolveServerDefault } from './admin/resolve-default.ts';
@@ -76,6 +77,7 @@ export function main(): void {
     apiKeys: new ApiKeyRepo(db),
     apiUsage: new ApiUsageRepo(db),
     tokenUsage: new TokenUsageRepo(db),
+    tenants: new TenantsRepo(db),
     chatSessions: new PersistentSessionStore(db),
     settings,
     kratosPublicUrl: kratosUrl,

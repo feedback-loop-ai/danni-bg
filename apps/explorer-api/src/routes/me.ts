@@ -7,6 +7,7 @@ import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 import type { ApiKeyRepo } from '../../../../src/store/repos/api-keys.ts';
 import type { ApiUsageRepo } from '../../../../src/store/repos/api-usage.ts';
+import type { TenantsRepo } from '../../../../src/store/repos/tenants.ts';
 import type { TokenUsageRepo } from '../../../../src/store/repos/token-usage.ts';
 import type { UsersRepo } from '../../../../src/store/repos/users.ts';
 import type { SessionResolver } from '../auth/kratos-session.ts';
@@ -47,6 +48,7 @@ export interface MeRoutesOpts {
   apiKeys?: ApiKeyRepo | undefined;
   apiUsage?: ApiUsageRepo | undefined;
   apiQuotaWindowSec?: (() => number) | undefined;
+  tenants?: TenantsRepo | undefined;
 }
 
 export function meRoutes(
@@ -55,7 +57,7 @@ export function meRoutes(
   opts: MeRoutesOpts,
 ): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
-  app.use('*', requireAuth(users, opts.sessionResolver, opts.apiKeys));
+  app.use('*', requireAuth(users, opts.sessionResolver, opts.apiKeys, opts.tenants));
 
   // API-key management (spec 027) — human-session-only (a key can't manage keys).
   const apiKeys = opts.apiKeys;
@@ -76,6 +78,7 @@ export function meRoutes(
       }
       const created = apiKeys.create({
         userId: c.get('user').id,
+        tenantId: c.get('tenant').id, // the key belongs to the caller's active org (spec 029)
         name: parsed.data.name,
         ...(parsed.data.scopes ? { scopes: parsed.data.scopes } : {}),
         expiresAt: parsed.data.expiresAt ?? null,
