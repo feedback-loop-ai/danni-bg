@@ -72,10 +72,20 @@ capabilities each have their own spec:
   (Litestream backup/restore + single→multi-node path). FR-140 multi-node is a documented plan, not the
   migration. Gates the SQLite→Postgres app-tables move (`db-architecture-decision` memo)
 
+- 031 infrastructure provisioning & orchestration (IaC, all under `infra/`): Terraform `infra/terraform`
+  provisions a private-networked **k3s** cluster on **Hetzner Cloud** (control plane + N agents,
+  cloud-init bootstrap, firewall, remote S3 state; `envs/{dev,staging,prod}.tfvars` size it — SC-E1/E3).
+  Portable **Kustomize** `infra/k8s` (base + `overlays/{dev,staging,prod}`): app Deployment (readiness
+  `/readyz` + liveness `/healthz`, RollingUpdate `maxUnavailable:0`, HPA, PDB), Kratos internal (prod
+  config `k8s/base/config/kratos.yaml`, host substituted at render), Kratos Postgres StatefulSet +
+  `pg_dump` CronJob, Ingress+TLS (cert-manager/traefik), default-deny NetworkPolicies, External Secrets
+  (no committed/baked secrets — SC-E4). `kustomize build overlays/<env>` validates; rollback via
+  `kubectl rollout undo`. >1 app replica presupposes the SQLite→Postgres app-tables move (029/030) +
+  shared rate-limit store (028); read substrate stays per-node. Runbook `infra/README.md` — the platform
+  030 ships onto
+
 **Proposed (sketches, not yet implemented)** — productization roadmap toward an API-as-a-product /
 B2G platform; single-responsibility, each builds on the prior:
-- 031 infrastructure provisioning & orchestration (IaC + orchestrator + ingress/TLS + secret backend +
-  horizontally-scalable app tier with per-node SQLite substrate) — the provisioned platform 030 ships to
 - 032 observability (structured logs, RED + domain metrics incl. LLM cost/tokens, distributed tracing,
   dashboards, SLOs/alerting, per-tenant cost) — deepens 030 FR-138; consumes the 026/028 usage signals
 

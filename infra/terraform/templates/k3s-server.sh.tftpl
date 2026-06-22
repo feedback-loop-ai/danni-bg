@@ -1,0 +1,11 @@
+#!/bin/bash
+# k3s control-plane bootstrap (spec 031). Pinned version for reproducibility; binds to the private
+# network interface (Hetzner cloud network = ens10) and advertises the private IP; the public IP is a
+# TLS SAN so the kubeconfig fetched over the public address validates.
+set -euo pipefail
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" K3S_TOKEN="${k3s_token}" sh -s - server \
+  --node-ip "${private_ip}" \
+  --advertise-address "${private_ip}" \
+  --flannel-iface ens10 \
+  --tls-san "$(curl -s http://169.254.169.254/hetzner/v1/metadata/public-ipv4)" \
+  --write-kubeconfig-mode 644

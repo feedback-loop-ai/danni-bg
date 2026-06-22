@@ -2,7 +2,7 @@
 
 **Feature Branch**: `031-infra-provisioning-orchestration`
 **Created**: 2026-06-21
-**Status**: **Proposed** (sketch — not yet implemented)
+**Status**: **Implemented** (Hetzner+k3s Terraform + portable Kustomize manifests; cluster operators + host substitution are operator steps, not code)
 **Input**: Productization roadmap — spec 030 packages the **app** (Dockerfile, migrate-on-release, CI
 deploy) but assumes a target already exists. This spec is the target: the **environment is provisioned
 and orchestrated as code** — the cloud resources, the orchestrator that runs the containers,

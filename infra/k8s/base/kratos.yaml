@@ -1,0 +1,91 @@
+# Ory Kratos (spec 031, FR-143): stays INTERNAL (ClusterIP) — the danni app proxies /kratos on its own
+# origin (single-port model), so Kratos public is never exposed at the edge. Config + identity schema +
+# templates come from a ConfigMap (generated from infra/ory/* in kustomization.yaml); secrets
+# (cookie/cipher) + DSN come from the secret manager via ExternalSecret. No --dev in production.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: danni-kratos
+  namespace: danni
+  labels:
+    app.kubernetes.io/name: danni-kratos
+    app.kubernetes.io/part-of: danni
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: danni-kratos
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: danni-kratos
+        app.kubernetes.io/part-of: danni
+    spec:
+      initContainers:
+        # Apply Kratos SQL migrations before serve (serve does not auto-migrate without --dev).
+        - name: migrate
+          image: oryd/kratos:v26.2.0
+          args: ["migrate", "sql", "-e", "--yes"]
+          envFrom:
+            - secretRef:
+                name: danni-kratos-secrets # DSN, SECRETS_COOKIE, SECRETS_CIPHER
+          volumeMounts:
+            - name: kratos-config
+              mountPath: /etc/config/kratos
+      containers:
+        - name: kratos
+          image: oryd/kratos:v26.2.0
+          args:
+            - serve
+            - -c
+            - /etc/config/kratos/kratos.yaml
+            - --watch-courier
+          envFrom:
+            - secretRef:
+                name: danni-kratos-secrets
+          ports:
+            - name: public
+              containerPort: 4433
+            - name: admin
+              containerPort: 4434
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: public
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/alive
+              port: admin
+            periodSeconds: 15
+          volumeMounts:
+            - name: kratos-config
+              mountPath: /etc/config/kratos
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: kratos-config
+          configMap:
+            name: kratos-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: danni-kratos
+  namespace: danni
+  labels:
+    app.kubernetes.io/name: danni-kratos
+spec:
+  selector:
+    app.kubernetes.io/name: danni-kratos
+  ports:
+    - name: public
+      port: 4433
+      targetPort: public
+    - name: admin
+      port: 4434
+      targetPort: admin
