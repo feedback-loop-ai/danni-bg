@@ -93,6 +93,13 @@ capabilities each have their own spec:
   `estimateCost` tokens×price×cache-discount). Config under `infra/observability` (OTel collector,
   Prometheus SLO/cost-anomaly rules, Grafana dashboard). OTLP exporter wiring + per-key labelled cost
   series + the FR-154 nightly-eval gauge are documented ops follow-ons — consumes the 026/028 usage signals
+- 033 secret/image/network delivery (consumer side of the `feedback-loop-ai/vault` repo): envs =
+  acceptance+prod (dev dropped; prod 2× cx43); CI builds+pushes the app image to **GHCR**
+  (`.github/workflows/ci.yml` `image` job; main→`:acceptance`/`:edge`/`:sha`, tag→`:stable`); private
+  pull via `imagePullSecret` `ghcr-pull` from OpenBao; secrets via ESO ← OpenBao per-env namespace
+  `danni/<env>`; ESO→OpenBao only over a self-hosted **Headscale** tailnet via the
+  `infra/k8s/components/openbao-egress` Tailscale proxy (`:8200` never public; the Tailscale *operator*
+  is incompatible with Headscale). OpenBao + Headscale themselves live in the `vault` repo
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->

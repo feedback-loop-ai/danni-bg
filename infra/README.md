@@ -55,6 +55,20 @@ The manifests assume these are present:
 - **metrics-server** (for the HorizontalPodAutoscaler) — already bundled by k3s, like **traefik**
   (ingress class) and the **local-path** default StorageClass; no install needed on k3s.
 
+### OpenBao reachability via Headscale (spec 033)
+
+ESO reaches OpenBao through the **`openbao-egress`** Tailscale proxy (`components/openbao-egress`) over
+the self-hosted Headscale tailnet — `:8200` is never public. Before deploying, set in the component:
+`TS_EXTRA_ARGS` (your Headscale URL) and `TS_DEST_IP` (OpenBao's tailnet IP); and create two bootstrap
+objects out-of-band (NOT from OpenBao — that would be circular):
+
+```sh
+# ephemeral Headscale pre-auth key for the proxy to join the tailnet
+kubectl -n danni-<env> create secret generic tailscale-auth --from-literal=authkey=<headscale-preauth>
+# OpenBao's self-signed CA so ESO can verify TLS (SAN "openbao")
+kubectl -n danni-<env> create configmap openbao-ca --from-file=ca.crt=<openbao-tls.crt>
+```
+
 ## 3. Deploy the app (FR-142)
 
 ```sh

@@ -17,6 +17,10 @@ resources:
   - networkpolicy.yaml
   - externalsecrets.yaml
 
+# Tailscale egress proxy → OpenBao over the self-hosted Headscale tailnet (spec 033).
+components:
+  - ../components/openbao-egress
+
 # Kratos config + identity schema as a ConfigMap (mounted at /etc/config/kratos). identity.schema.json
 # is copied here (Kustomize can't reference files above the base dir); keep it in sync with
 # infra/ory/identity.schema.json.
