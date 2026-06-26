@@ -4,6 +4,7 @@
   "description": "Synced local mirror of data.egov.bg with curation and machine-readable index.",
   "type": "module",
   "private": true,
+  "license": "EUPL-1.2",
   "bin": {
     "danni": "./bin/danni"
   },

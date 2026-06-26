@@ -76,6 +76,12 @@ The store on disk is the source of truth; every stage is re-runnable and every r
 | [specs/019-022-*/](specs/) | Identity + admin settings + passkeys (019), persistent/resumable chat (020), token metering (021), account & chat-UX (022) |
 | [specs/023-026-*/](specs/) | Region multi-select + geo-filter roll-up + chat↔map selection (023), agentic-eval hardening (024), chat answer presentation / anti-fabrication (025), chat-UX polish + live usage telemetry (026) |
 
-## License
+## License & model
 
-See [LICENSE](./LICENSE).
+**Open core.** This repository — the danni application (substrate, explorer, grounded chat, identity,
+API) — is open source under the **[EUPL-1.2](./LICENSE)** (European Union Public Licence). It's
+self-hostable on its own (`docker compose` + the dev Ory stack).
+
+The **commercial** layer — the scalable, multi-tenant, secured *deployment infrastructure* (Terraform,
+k8s, observability, the OpenBao/Headscale secret backend) and managed hosting — lives in separate
+private repos, not here.
