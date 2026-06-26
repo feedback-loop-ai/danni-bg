@@ -1,5 +1,8 @@
 # danni-bg
 
+[![CI](https://github.com/danni-bg/danni-bg/actions/workflows/ci.yml/badge.svg)](https://github.com/danni-bg/danni-bg/actions/workflows/ci.yml)
+[![License: EUPL-1.2](https://img.shields.io/badge/license-EUPL--1.2-blue.svg)](./LICENSE)
+
 A synced local mirror of [data.egov.bg](https://data.egov.bg/) (Bulgaria's open-data portal) —
 curated, enriched, and indexed — with an **interactive map explorer and a grounded chat assistant**
 on top.
