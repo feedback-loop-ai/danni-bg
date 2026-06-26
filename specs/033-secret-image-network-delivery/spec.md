@@ -20,7 +20,7 @@ credential, the secrets, and the private network path** the running app needs.
 - **FR-155**: Environments are **acceptance** (pre-prod gate) + **prod** — dev dropped. Same Terraform
   modules + Kustomize base, sized via `envs/*.tfvars` + `overlays/*` (prod = 2× cx43; SC-E3 parity).
 - **FR-156**: **Image delivery** — CI builds the app image and pushes to **GHCR** after the test gate
-  (`ghcr.io/feedback-loop-ai/danni-app`): push to main → `:edge`/`:acceptance`/`:sha`; tag `vX.Y.Z` →
+  (`ghcr.io/danni-bg/danni-app`): push to main → `:edge`/`:acceptance`/`:sha`; tag `vX.Y.Z` →
   `:X.Y.Z`/`:stable`/`:latest`. Overlays pin the tag (acceptance tracks `:acceptance`; prod `:stable`).
 - **FR-157**: **Private image pull** — the GHCR package is private; the app pod pulls via an
   `imagePullSecret` (`ghcr-pull`, a `dockerconfigjson`) sourced from OpenBao (`secret/ghcr`) by ESO.
