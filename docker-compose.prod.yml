@@ -1,12 +1,13 @@
-# Production overlay (spec 030, FR-134). Use TOGETHER with the base file — the base provides the Ory
-# services, this turns them production-grade and adds the built app container:
+# Single-host production overlay (self-hosting). Use TOGETHER with the base file — the base provides the
+# Ory services, this turns them production-grade and adds the built app container. (For the scalable
+# multi-node k8s/Terraform deployment, see the private danni-bg/deploy repo.)
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build
 #
 # Secrets come from the environment (FR-136), NEVER the committed placeholders. Required env:
 #   POSTGRES_PASSWORD, KRATOS_SECRETS_COOKIE (32+ chars), KRATOS_SECRETS_CIPHER (exactly 32 chars),
 #   DANNI_PROFILE=production. The read substrate (datasets/FTS5/vectors) must be seeded into the
-#   danni_store volume via the sync pipeline or a restored backup — see docs/OPERATIONS.md.
+#   danni_store volume via the sync pipeline (danni sync → curate → index) or a restored backup.
 services:
   kratos-postgres:
     environment:

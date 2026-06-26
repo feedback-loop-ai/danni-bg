@@ -1,7 +1,0 @@
-# Kustomize component (spec 033): the Tailscale egress proxy that lets ESO reach OpenBao over the
-# self-hosted Headscale tailnet. Included by base (both environments need OpenBao access).
-apiVersion: kustomize.config.k8s.io/v1alpha1
-kind: Component
-
-resources:
-  - egress.yaml

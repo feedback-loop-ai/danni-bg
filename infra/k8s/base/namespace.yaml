@@ -1,9 +1,0 @@
-# danni namespace (spec 031). All app + identity services live here; NetworkPolicies (networkpolicy.yaml)
-# default-deny ingress so only the intended paths are reachable on the private cluster network.
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: danni
-  labels:
-    app.kubernetes.io/part-of: danni
-    pod-security.kubernetes.io/enforce: baseline

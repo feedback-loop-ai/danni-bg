@@ -61,45 +61,12 @@ capabilities each have their own spec:
   `/api/admin/api-usage` `byTenant`. Keys/usage/sessions are org-attributed; existing data backfills
   into the `default` org with no behavior change (SC-C1/C2/C3) — builds on 027/028
 
-- 030 production deployment & ops: app `Dockerfile` (multi-stage — build SPA, run `explorer-api` on Bun)
-  + `scripts/docker-entrypoint.sh` (migrate-on-release then serve; bad migration aborts boot) +
-  `docker-compose.prod.yml` overlay. Readiness `GET /readyz` (`apps/explorer-api/src/readiness.ts` —
-  DB reachable + `pendingMigrations` empty; 503 until ready) + basic RED `/metrics` (`metrics.ts` +
-  `request-log` middleware). Secret gate `scripts/check-secrets.ts` (`src/lib/secret-scan.ts`
-  `auditSecrets` — fails non-dev profiles on placeholder/missing secrets; `DANNI_PROFILE`,
-  `DANNI_REQUIRED_SECRETS`) wired into the entrypoint + a gated CI `deploy` job (`DEPLOY_ENABLED`).
-  `DANNI_STORE_ROOT` points the container at its store volume. Ops runbook `docs/OPERATIONS.md`
-  (Litestream backup/restore + single→multi-node path). FR-140 multi-node is a documented plan, not the
-  migration. Gates the SQLite→Postgres app-tables move (`db-architecture-decision` memo)
-
-- 031 infrastructure provisioning & orchestration (IaC, all under `infra/`): Terraform `infra/terraform`
-  provisions a private-networked **k3s** cluster on **Hetzner Cloud** (control plane + N agents,
-  cloud-init bootstrap, firewall, remote S3 state; `envs/{acceptance,prod}.tfvars` size it — SC-E1/E3;
-  prod = 2× cx42, `curate` runs off-cluster). Portable **Kustomize** `infra/k8s` (base +
-  `overlays/{acceptance,prod}`): app Deployment (readiness
-  `/readyz` + liveness `/healthz`, RollingUpdate `maxUnavailable:0`, HPA, PDB), Kratos internal (prod
-  config `k8s/base/config/kratos.yaml`, host substituted at render), Kratos Postgres StatefulSet +
-  `pg_dump` CronJob, Ingress+TLS (cert-manager/traefik), default-deny NetworkPolicies, External Secrets
-  (no committed/baked secrets — SC-E4). `kustomize build overlays/<env>` validates; rollback via
-  `kubectl rollout undo`. >1 app replica presupposes the SQLite→Postgres app-tables move (029/030) +
-  shared rate-limit store (028); read substrate stays per-node. Runbook `infra/README.md` — the platform
-  030 ships onto
-
-- 032 observability (deepens 030 FR-138): app emits Prometheus `/metrics` (`apps/explorer-api/src/metrics.ts`
-  `Metrics` — RED by route class/status + domain counters `danni_llm_tokens_total`/`danni_llm_cost_usd_total`/
-  `danni_rate_limit_rejections_total`/`danni_chat_outcomes_total` + scrape gauges active-gens/index-stale),
-  request-id correlation (`middleware/request-id.ts` → logs + chat span trace), a vendor-neutral span
-  tracer (`trace.ts` — `chat.turn` + per-tool spans, metadata-only), and LLM cost (`src/lib/llm-cost.ts`
-  `estimateCost` tokens×price×cache-discount). Config under `infra/observability` (OTel collector,
-  Prometheus SLO/cost-anomaly rules, Grafana dashboard). OTLP exporter wiring + per-key labelled cost
-  series + the FR-154 nightly-eval gauge are documented ops follow-ons — consumes the 026/028 usage signals
-- 033 secret/image/network delivery (consumer side of the `feedback-loop-ai/vault` repo): envs =
-  acceptance+prod (dev dropped; prod 2× cx43); CI builds+pushes the app image to **GHCR**
-  (`.github/workflows/ci.yml` `image` job; main→`:acceptance`/`:edge`/`:sha`, tag→`:stable`); private
-  pull via `imagePullSecret` `ghcr-pull` from OpenBao; secrets via ESO ← OpenBao per-env namespace
-  `danni/<env>`; ESO→OpenBao only over a self-hosted **Headscale** tailnet via the
-  `infra/k8s/components/openbao-egress` Tailscale proxy (`:8200` never public; the Tailscale *operator*
-  is incompatible with Headscale). OpenBao + Headscale themselves live in the `vault` repo
+- 030–033 deployment & operations (production deployment, infra provisioning, observability,
+  secret/image/network delivery) live in the **private `danni-bg/deploy`** repo — the commercial layer
+  of the open-core split (this repo is EUPL-1.2). The app's own run/health/telemetry primitives stay
+  here (`Dockerfile`, `docker-compose*.yml`, `scripts/docker-entrypoint.sh` + `check-secrets.ts`,
+  `apps/explorer-api/src/{readiness,metrics,trace}.ts`); the scalable IaC (Terraform/k8s/observability),
+  the `OPERATIONS.md` runbook, and the OpenBao/Headscale `vault` repo are commercial.
 
 Project constitution: `.specify/memory/constitution.md` (v1.1.1; the locked test runner is `bun:test`).
 <!-- SPECKIT END -->

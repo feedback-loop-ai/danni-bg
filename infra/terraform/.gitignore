@@ -1,8 +1,0 @@
-# Terraform working files — never commit state (contains secrets) or the local provider cache.
-.terraform/
-.terraform.lock.hcl
-*.tfstate
-*.tfstate.*
-crash.log
-*.auto.tfvars
-backend.*.tfvars
