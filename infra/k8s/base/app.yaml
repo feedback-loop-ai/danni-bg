@@ -41,7 +41,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: app
-          image: ghcr.io/feedback-loop-ai/danni-app:latest # overlays pin an immutable tag/digest
+          image: ghcr.io/danni-bg/danni-app:latest # overlays pin an immutable tag/digest
           ports:
             - name: http
               containerPort: 8790

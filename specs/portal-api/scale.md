@@ -22,7 +22,7 @@ on a fresh machine and commit the result table here.
    {
      "portal": { "baseUrl": "https://data.egov.bg/api/", "api": "egov-bg", "apiKeyEnv": null },
      "crawler": {
-       "userAgent": "danni-bg/0.1.0 (+https://github.com/feedback-loop-ai/danni-bg)",
+       "userAgent": "danni-bg/0.1.0 (+https://github.com/danni-bg/danni-bg)",
        "rateLimit": { "requestsPerSecondPerHost": 5 },
        "concurrency": { "maxConcurrentRequestsPerHost": 6 },
        "backoff": { "initialMs": 500, "maxMs": 60000, "failureBudget": 20 },

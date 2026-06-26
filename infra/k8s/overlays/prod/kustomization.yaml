@@ -10,7 +10,7 @@ resources:
   - ../../base
 
 images:
-  - name: ghcr.io/feedback-loop-ai/danni-app
+  - name: ghcr.io/danni-bg/danni-app
     newTag: stable # CI pins this to an immutable @sha256 digest per release
 
 replicas:

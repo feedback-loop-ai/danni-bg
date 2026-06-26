@@ -9,7 +9,7 @@ resources:
   - ../../base
 
 images:
-  - name: ghcr.io/feedback-loop-ai/danni-app
+  - name: ghcr.io/danni-bg/danni-app
     newTag: acceptance
 
 replicas:
